@@ -17,6 +17,7 @@ function applyLayout(seed) {
     return a;
   };
 
+  placeSea(); // sea.js: from S.sea, not the seed (older towns keep their map)
   HOME.x = ri(30, COLS - 34);
   HOME_DOOR[0] = HOME.x + 1;
 
@@ -47,7 +48,9 @@ function applyLayout(seed) {
   const order = MODE !== 'chaos' && Array.isArray(S.coreOrder) && S.coreOrder.length === core.length ? S.coreOrder : null;
   if (order) core.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   const total = core.reduce((a, b) => a + b.w + 2, -2);
-  let x = Math.max(12, Math.min(COLS - 12 - total, HOME.x + 1 - Math.floor(total / 2) + ri(-5, 5)));
+  const seaW = SEA.side === 'w' ? SEA.w : 0;
+  const seaE = SEA.side === 'e' ? SEA.w : 0;
+  let x = Math.max(12 + seaW, Math.min(COLS - 12 - total - seaE, HOME.x + 1 - Math.floor(total / 2) + ri(-5, 5)));
   const used = [];
   for (const b of core) {
     b.place(x);
@@ -56,6 +59,7 @@ function applyLayout(seed) {
   }
 
   // The lake, the mine and the landmark sites: anywhere that's free, a tile apart from the rest.
+  if (SEA.side) used.push([SEA.x - 1, SEA.x + SEA.w]);
   const rest = shuffle([
     { w: 9, place: (x) => (LAKE.x = x) },
     { w: 9, place: (x) => (MINE.x = x) },
@@ -91,7 +95,7 @@ function applyLayout(seed) {
   LOT_X.length = 0;
   LOT_X.push(
     ...Array.from({ length: Math.floor((COLS - 2) / 3) }, (_, i) => 1 + i * 3)
-      .filter((lx) => lx + 1 < HOME.x - 1 || lx > HOME.x + HOME.w)
+      .filter((lx) => (lx + 1 < HOME.x - 1 || lx > HOME.x + HOME.w) && !inSeaTile(lx) && !inSeaTile(lx + 1))
       .sort((a, b) => Math.abs(a - HOME.x) - Math.abs(b - HOME.x))
       .slice(0, LOTS),
   );

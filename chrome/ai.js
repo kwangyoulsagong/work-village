@@ -12,6 +12,7 @@ const inRect = (P, tx, ty) => tx >= P.x && tx < P.x + P.w && ty >= P.y && ty < P
 function walkable(tx, ty) {
   if (tx < 0 || ty < 2 || tx >= COLS || ty >= ROWS) return false;
   if (inRect(POND, tx, ty) || inRect(LAKE, tx, ty) || inRect(PEN, tx, ty) || inRect(MINE, tx, ty)) return false;
+  if (seaBlocks(tx, ty)) return false; // the sea (the pier is fine)
   // Houses stand on rows 3–5, above the road.
   if (ty >= 3 && ty <= 5) {
     if (tx >= HOME.x && tx < HOME.x + HOME.w) return false;
@@ -85,6 +86,7 @@ const tileOf = (e) => [Math.round((e.x - T / 2) / T), Math.round((e.y - T + 2) /
 /** Sends someone to a tile along a real path. */
 function route(e, [tx, ty]) {
   const [sx, sy] = tileOf(e);
+  tx = shoreClamp(tx); // nobody walks out to sea (sea.js)
   e.path = findPath(sx, sy, Math.max(0, Math.min(COLS - 1, tx)), Math.max(0, Math.min(ROWS - 1, ty)));
 }
 

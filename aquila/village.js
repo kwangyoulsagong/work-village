@@ -525,7 +525,8 @@ function fishOption(e, add) {
   const t = npcTraits(e);
   const keen = (temperOf(resident(e)).id === 'loner' ? 25 : 0) + (t.luck - 3) * 5 + (e.job?.id === 'fisher' ? 30 : 0);
   const pond = Math.random() < 0.3;
-  const spot = pond ? [POND.x + rand(0, POND.w - 1), POND.y - 1] : [LAKE.x + rand(0, LAKE.w - 1), LAKE.y - 1];
+  const sea = hasSea() && Math.random() < 0.45; // off the end of the pier (sea.js)
+  const spot = sea ? [pierEnd(), ROAD_Y] : pond ? [POND.x + rand(0, POND.w - 1), POND.y - 1] : [LAKE.x + rand(0, LAKE.w - 1), LAKE.y - 1];
   add(22 + keen, 'fish', spot, 'rod', 110, () => {
     e.fishCool = 300 + rand(0, 400);
     if (Math.random() > 0.35 + t.luck * 0.08) return; // the one that got away
@@ -533,6 +534,7 @@ function fishOption(e, add) {
     if (Math.random() < 0.12 * findMul(e)) find('fish');
     leaps.push({ x: e.x + (e.dir === 'l' ? -6 : 6), y: e.y - 2, sx: e.x, t: 0, big: Math.random() < 0.15 });
     S.fishCaught = (S.fishCaught ?? 0) + 1;
+    if (sea && Math.random() < 0.05) story(`🦈 ${ga(nameOf(resident(e)))} 상어를 낚을 뻔했어요! 줄이 끊어져서 다행이에요.`);
     if (S.fishCaught === 1) story(`🎣 ${ga(nameOf(resident(e)))} 호숫가에서 첫 물고기를 낚았어요.`);
   });
 }
@@ -805,6 +807,7 @@ function drawWildMore(g, e) {
   return drawYoung(g, e);
 }
 function spawnWildMore(add) {
+  if (hasSea()) animals = animals.filter((a) => !inSeaTile(Math.floor(a.x / T))); // nothing grazes on the waves
   add('otter', { x: LAKE.x + 1, y: LAKE.y, w: LAKE.w - 2, h: Math.max(1, LAKE.h - 1) }, 0.5);
   for (let i = 0; i < 3; i++) add('magpie', { x: HOME.x - 20 + i * 14, y: ROAD_Y + 1, w: 8, h: 2 }, 0.8);
   GROVES.filter((g) => g.w >= 9).slice(0, 3).forEach((g) => add('gorani', { x: g.x, y: ROAD_Y + 2, w: g.w, h: 3 }, 0.7));

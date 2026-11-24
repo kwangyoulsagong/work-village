@@ -176,7 +176,7 @@ function enterVisit(obj) {
   VISIT = { home: homeState(), host: obj.from, chaos: false };
   lifeState = null;
   MODE = 'visit';
-  S = { ...fresh(), ...obj.town, usage: {}, story: [], over: null, sickDays: 0, gender: mine.gender, style: mine.style ?? fresh().style };
+  S = { ...fresh(), sea: null, ...obj.town, usage: {}, story: [], over: null, sickDays: 0, gender: mine.gender, style: mine.style ?? fresh().style };
   settleTown(false);
   story(`🧳 ${VISIT.host?.name ?? '이웃'}님이 코드를 만든 순간의 마을에 놀러 왔어요. 주민들 움직임은 각자 화면에서 따로 흘러가요.`);
   document.body.dataset.mode = 'visit';
@@ -193,7 +193,7 @@ function enterChaosVisit(obj) {
   lifeState = home; // leaveChaos() brings it back
   MODE = 'chaos';
   const era = Math.max(0, Math.min(ERAS.length - 1, obj.town?.era ?? 0));
-  S = { ...sandboxFor(era), ...obj.town, story: [], gender: mine.gender, style: mine.style ?? fresh().style };
+  S = { ...sandboxFor(era), sea: null, ...obj.town, story: [], gender: mine.gender, style: mine.style ?? fresh().style };
   S.wrecked ??= [];
   S.wreckedLm ??= [];
   S.scorch ??= [];

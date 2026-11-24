@@ -241,6 +241,7 @@ function drawLamps(g) {
   const y = ROAD_Y * T - 1;
   for (const lx of LAMP_X) {
     if (lx >= COLS) break;
+    if (inSeaTile(lx)) continue;
     const x = lx * T + 12;
     if (S.era <= 2) {
       R(g, x, y - 10, 2, 10, '#6b4428');
@@ -260,6 +261,7 @@ function drawLamps(g) {
 function drawLampGlow(g) {
   if (S.era < 1 || !night) return;
   for (const lx of LAMP_X) {
+    if (inSeaTile(lx)) continue;
     const x = lx * T + 13 - Math.round(viewX);
     if (x < -20 || x > VIEW_W + 20) continue;
     const y = ROAD_Y * T - (S.era <= 2 ? 14 : 15);

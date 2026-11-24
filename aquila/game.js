@@ -81,6 +81,7 @@ const fresh = () => ({
   traits: null, //     { health, green, charm, trade, luck }: 1–5 each, rolled at the start
   over: null, //       set when the protagonist dies: the game is over
   mapSeed: Math.floor(Math.random() * 1e9), // the map's layout (layout.js): new game, new map
+  sea: rollSea(), //   'e' | 'w' | null: a beach and open water at that end (sea.js)
   lots: [], //         built house lots in order: { x, s } (s: south of the road, on cleared land)
   cleared: [], //      stretches of woods cleared for new streets: { x, w }
   age: 0, //           days lived by the current protagonist
@@ -1262,7 +1263,7 @@ function landmark(g, l) {
 /** The ground: grass, woods, the road, water, the hill. Redrawn only when the era, season, map or woods change. */
 const ground = { canvas: document.createElement('canvas'), key: '' };
 function paintGround() {
-  const key = [S.era, S.season, S.mapSeed, HOME.x, FARM.x, PEN.x, (S.cleared ?? []).length, S.landmarks.join(), (S.wreckedLm ?? []).join()].join('|');
+  const key = [S.era, S.season, S.mapSeed, S.sea, HOME.x, FARM.x, PEN.x, (S.cleared ?? []).length, S.landmarks.join(), (S.wreckedLm ?? []).join()].join('|');
   if (ground.key === key) return;
   ground.key = key;
   ground.canvas.width = W;
@@ -1297,6 +1298,7 @@ function paintGround() {
       if (i % 3 === 0) mushroom(g, x, y);
       else bush(g, x, y, i % 2 ? '#e8505b' : '#6a5ad8');
     }
+  paintSea(g); // over whatever was drawn at that end (sea.js)
 }
 
 /** The still picture: the ground, then what changes more often (houses, fields, the store, lamps…). */
@@ -1491,6 +1493,7 @@ function spawnAnimals() {
 /** What goes down the road: runners, riders, carts … cars, buses, hover cars (life.js). */
 function spawnCars() {
   cars = spawnTraffic();
+  spawnBoats(); // sea.js
 }
 
 
@@ -1605,6 +1608,7 @@ function frame() {
   ctx.save();
   ctx.translate(-Math.round(viewX), 0);
   drawTraffic(ctx, cars);
+  drawSea(ctx);
   drawGolden(ctx);
   drawFx(ctx);
   drawHoliday(ctx);
@@ -1907,6 +1911,7 @@ function loopFrame(now) {
   villageVisual(k);
   juiceVisual(k);
   trafficTick(cars, k);
+  seaTick(k);
   goldenTick(k);
   fxTick(k);
   holidayTick(k);
@@ -2075,7 +2080,7 @@ function pickGender(gender) {
   $('pick').hidden = true;
   const best = TRAITS.reduce((a, t) => (S.traits[t[0]] > S.traits[a[0]] ? t : a));
   const worst = TRAITS.reduce((a, t) => (S.traits[t[0]] < S.traits[a[0]] ? t : a));
-  story(`빈 들판에 작은 움막을 지었어요. 타고난 ${best[1]}은(는) 좋지만 ${worst[1]}은(는) 약해요. 성격은 ${myTemper().name}이에요.`);
+  story(`빈 들판에 작은 움막을 지었어요. 타고난 ${best[1]}은(는) 좋지만 ${worst[1]}은(는) 약해요. 성격은 ${myTemper().name}이에요.${hasSea() ? ' 바다가 보이는 마을이에요.' : ''}`);
   save();
   paintUi();
   wake();
@@ -2094,6 +2099,7 @@ async function start() {
   try {
     const saved = await aquila.storage.get('save');
     if (saved && saved.v === 2) S = { ...fresh(), ...saved };
+    if (saved && !('sea' in saved)) S.sea = null; // a town from before the sea keeps its map
     ensurePlots();
   } catch {
     /* first run */

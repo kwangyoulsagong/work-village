@@ -213,9 +213,11 @@ function spawnTraffic() {
     const d = VEHICLE[type];
     const right = i % 2 === 0;
     const gender = r() < 0.5 ? 'f' : 'm';
+    const lo = d.sky ? 0 : Math.max(0, landMinX()); // on the road: only where there's land (sea.js)
+    const hi = d.sky ? W : Math.min(W, landMaxX());
     return {
       type,
-      x: ((i + r() * 0.6) / kinds.length) * W,
+      x: lo + ((i + r() * 0.6) / kinds.length) * (hi - lo),
       right,
       v: d.v * (0.85 + r() * 0.3),
       c: CAR_COLOURS[Math.floor(r() * CAR_COLOURS.length)],
@@ -234,6 +236,12 @@ function trafficTick(list, k) {
   for (const c of list) {
     c.x += (c.right ? 1 : -1) * c.v * k;
     c.f += k;
+    if (!c.sky && hasSea()) {
+      // The road ends at the beach: turn round there (and change lanes).
+      if (c.right && c.x > landMaxX() - 20) c.right = false;
+      else if (!c.right && c.x < landMinX()) c.right = true;
+      continue;
+    }
     if (c.x > W + 40) c.x = -40;
     if (c.x < -40) c.x = W + 40;
   }
