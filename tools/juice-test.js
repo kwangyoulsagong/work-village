@@ -40,7 +40,7 @@ app.whenReady().then(async () => {
   await shot('j2-ufo');
   const r3 = await js(`return { gone: __b - (people.length + animals.length), wrecked: S.wrecked.length };`);
   ok(r3.gone > 0, 'the UFO beams things up: ' + JSON.stringify(r3));
-  const r4 = await js(`const [x, y] = lotCenter(6); chaosCam = x - VIEW_W / 2; window.__w = S.wrecked.length; useCat(x, y); return true;`);
+  const r4 = await js(`const i = [...Array(S.houses).keys()].find((k) => k > 4 && !S.wrecked.includes(k)); const [x, y] = lotCenter(i); chaosCam = x - VIEW_W / 2; window.__w = S.wrecked.length; useCat(x, y); return true;`);
   await wait(450);
   await shot('j3-paw');
   await wait(800);

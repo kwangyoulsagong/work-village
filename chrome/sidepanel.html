@@ -132,7 +132,10 @@
       ul.grid li { background: var(--fill); border-radius: 8px; padding: 6px 8px; font-size: 12px; }
 
       /* Sheets over the town */
-      .pick { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, 0.4); padding: 8px; }
+      /* A sheet sits at the bottom of the town; one taller than the town scrolls instead of losing its top. */
+      .pick { position: absolute; inset: 0; display: flex; align-items: flex-start; justify-content: center; background: rgba(0, 0, 0, 0.4); padding: 8px; overflow-y: auto; }
+      .pick > .sheet { margin-top: auto; }
+      .pick { scrollbar-width: none; }
       .pick[hidden] { display: none; }
       .sheet { background: var(--card); border-radius: 16px; padding: 18px 16px 14px; width: 100%; display: flex; flex-direction: column; gap: 6px; }
       .sheet h2 { margin: 0; font-size: 18px; font-weight: 700; }

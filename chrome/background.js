@@ -2,7 +2,8 @@
 // 1. This Mac's Claude / Codex usage, through the local helper (chrome/install-host.sh registers it). Codex every
 //    3 minutes, Claude every 10 (it runs `claude -p /usage`).
 // 2. If neither is there: the minutes the browser is open (not while the screen is locked). 60 minutes = 1 % = 🪙10.
-// Minutes only count while the helper has nothing, so switching between the two never counts twice.
+// Minutes only count while the helper has nothing, so switching between the two never counts twice. If you chose
+// browser time at the start (storage `source: 'browser'`), minutes always count and the helper's usage is ignored.
 const HOST = 'com.work_village.usage';
 const STALE_MS = 30 * 60_000;
 const tick = () => chrome.alarms.create('minute', { periodInMinutes: 1 });
@@ -63,7 +64,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   const m = now.getHours() * 60 + now.getMinutes();
   if (m % 3 === 0) await poll(m % 10 === 0);
   if ((await chrome.idle.queryState(600)) === 'locked') return;
-  const { live, minutes = 0 } = await chrome.storage.local.get(['live', 'minutes']);
-  if (hasLive(live, Date.now())) return;
+  const { live, minutes = 0, source } = await chrome.storage.local.get(['live', 'minutes', 'source']);
+  if (source !== 'browser' && hasLive(live, Date.now())) return;
   await chrome.storage.local.set({ minutes: minutes + 1 });
 });

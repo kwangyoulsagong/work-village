@@ -122,6 +122,10 @@ if (-not $Claude) { Write-Host '(claude 명령을 못 찾았어요. Codex 사용
     .helper .status { margin-top: 10px; }
     .helper .status.ok { color: var(--green); font-weight: 600; }
     body[data-mode='chaos'] .helper, body[data-mode='visit'] .helper { display: none; }
+    #sourcePick .sheet { padding: 14px 14px 12px; gap: 6px; }
+    #sourcePick h2 { font-size: 16px; }
+    #sourcePick p { margin: 0 0 2px; }
+    #sourcePick .choice { padding: 9px 12px; }
   `;
   document.head.append(style);
 
@@ -208,18 +212,70 @@ if (-not $Claude) { Write-Host '(claude 명령을 못 찾았어요. Codex 사용
   });
 
   async function refresh() {
-    const { live, helperLater = 0 } = await chrome.storage.local.get(['live', 'helperLater']);
+    const { live, helperLater = 0, source } = await chrome.storage.local.get(['live', 'helperLater', 'source']);
+    paintHint(source, live);
+    if (source === 'browser') return void (card.hidden = true); // you chose browser time: nothing to install
     if (live?.host) {
       if (!card.hidden && waiting) connected();
       else card.hidden = true;
       return;
     }
-    // Only once the background has actually asked the helper (live.checked), and not right after "later".
-    card.hidden = !live?.checked || Date.now() - helperLater < LATER_MS;
+    // AI usage chosen and no helper yet: show how to set it up. Otherwise only once the background has actually asked
+    // the helper (live.checked), and not right after "later".
+    card.hidden = source === 'ai' ? false : !live?.checked || Date.now() - helperLater < LATER_MS;
+  }
+
+  // ── What the town grows with: asked once at the very start (and changeable from the footer) ──
+  const HINTS = {
+    ai: '이 컴퓨터의 Claude·Codex 사용량만큼 마을이 자라요. 주간 사용량 1%가 코인 10이에요.',
+    aiWaiting: 'AI 사용량으로 키우려면 아래 도우미를 설치해 주세요. 그전까지는 브라우저를 켜 둔 시간으로 자라요.',
+    browser: '브라우저를 켜 둔 1시간마다 코인 10이에요. 설치할 건 없어요.',
+  };
+  function paintHint(source, live) {
+    const hint = document.getElementById('hint');
+    if (!hint || !source) return;
+    hint.textContent = source === 'browser' ? HINTS.browser : live?.host ? HINTS.ai : HINTS.aiWaiting;
+  }
+  const sheet = document.createElement('div');
+  sheet.className = 'pick';
+  sheet.id = 'sourcePick';
+  sheet.hidden = true;
+  sheet.innerHTML = `
+    <div class="sheet">
+      <h2>무엇으로 마을을 키울까요?</h2>
+      <p>나중에 언제든 바꿀 수 있어요.</p>
+      <button class="choice" data-src="ai"><b>AI 사용량</b><span>Claude·Codex를 쓰는 만큼 자라요. 도우미 설치가 필요해요.</span></button>
+      <button class="choice" data-src="browser"><b>브라우저 시간</b><span>켜 둔 1시간마다 코인 10. 설치 없이 바로 시작해요.</span></button>
+    </div>`;
+  sheet.addEventListener('click', async (ev) => {
+    const src = ev.target.closest('[data-src]')?.dataset.src;
+    if (!src) return;
+    await chrome.storage.local.set({ source: src, helperLater: 0 });
+    sheet.hidden = true;
+    await refresh();
+    if (src === 'ai' && !card.hidden) setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }), 300);
+  });
+  const switcher = Object.assign(document.createElement('button'), { className: 'btn text', textContent: '키우는 방법 바꾸기' });
+  switcher.addEventListener('click', () => {
+    sheet.hidden = false;
+    document.querySelector('.town')?.scrollIntoView({ block: 'start' });
+  });
+  /** First start: ask. A town already under way keeps what it grew with until now, without asking. */
+  async function askSource() {
+    const { source, live, 'game:save': saved } = await chrome.storage.local.get(['source', 'live', 'game:save']);
+    if (source) return;
+    if (saved?.gender) return void (await chrome.storage.local.set({ source: live?.host ? 'ai' : 'browser' }));
+    sheet.hidden = false;
   }
 
   if (!hasRuntime()) return; // not running as the extension (tests load the panel without it)
   (document.querySelector('.foot') ?? document.body.lastElementChild).after(card);
+  document.querySelector('.stage')?.append(sheet); // over the game's own first sheet (life or chaos)
+  document.getElementById('startOver')?.before(switcher);
+  // Starting over from nothing asks again what the town grows with.
+  document.getElementById('resetYes')?.addEventListener('click', () => void chrome.storage.local.remove(['source', 'helperLater']));
+  chrome.storage.onChanged.addListener((changes, area) => area === 'local' && changes.source && void refresh());
+  void askSource();
   chrome.storage.onChanged.addListener((changes, area) => area === 'local' && changes.live && void refresh());
   void refresh();
   // The panel just opened without a known helper: ask now instead of waiting for the next 3-minute poll.

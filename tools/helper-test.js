@@ -51,8 +51,13 @@ app.whenReady().then(async () => {
     await win.loadFile(path.join(GAME, 'sidepanel.html')).catch((e) => console.log('load', e.message));
     await wait(1500);
     const js = (c) => win.webContents.executeJavaScript(`(async () => { ${c} })()`);
-    await js(`document.querySelector('#pick button[data-gender=f]')?.click(); document.getElementById('mode').hidden = true; return 1`);
     const tag = platform === 'Win32' ? 'win' : 'mac';
+    // First start: what should the town grow with? AI usage without the helper → the setup card, and a hint.
+    ok(`${tag}: first start asks what the town grows with`, await js(`return !document.getElementById('sourcePick').hidden`));
+    await js(`document.querySelector('[data-src=ai]').click(); return 1`); await wait(400);
+    const ai = await js(`return { source: window.__chromeData.source, sheet: document.getElementById('sourcePick').hidden, card: !document.querySelector('.helper').hidden, hint: document.getElementById('hint').textContent }`);
+    ok(`${tag}: AI usage without the helper shows how to install it (${ai.hint.slice(0, 24)}…)`, ai.source === 'ai' && ai.sheet && ai.card && ai.hint.includes('도우미를 설치'));
+    await js(`document.querySelector('#pick button[data-gender=f]')?.click(); document.getElementById('mode').hidden = true; return 1`);
     ok(`${tag}: card shows when the helper isn't there`, await js(`return !document.querySelector('.helper').hidden`));
     const cmd = await js(`return document.querySelector('.helper code').textContent`);
         ok(`${tag}: command for ${tag === 'win' ? 'PowerShell' : 'sh'}`, tag === 'win' ? cmd.startsWith('powershell -NoProfile -ExecutionPolicy Bypass') && cmd.includes('[scriptblock]::Create') : cmd.startsWith('sh "$(ls -t ~/Downloads/'));
@@ -105,6 +110,13 @@ app.whenReady().then(async () => {
     ok(`${tag}: card notices the helper`, await js(`return document.querySelector('.helper .status').classList.contains('ok')`));
     await wait(4200);
     ok(`${tag}: card goes away`, await js(`return document.querySelector('.helper').hidden`));
+    // Browser time chosen (from the footer): the card goes, the helper's numbers are ignored, the hint says so.
+    await js(`[...document.querySelectorAll('.foot button')].find((b) => b.textContent === '키우는 방법 바꾸기').click(); return 1`); await wait(100);
+    await js(`document.querySelector('[data-src=browser]').click(); return 1`); await wait(400);
+    const br = await js(`window.__chromeData.live = { host: true, claude: { weekly: 9, at: Date.now() } }; const u = await aquila.usage(); return { card: document.querySelector('.helper').hidden, hint: document.getElementById('hint').textContent, ai: u.find((x) => x.kind === 'claude') }`);
+    ok(`${tag}: browser time hides the card and ignores the helper`, br.card && br.hint.includes('1시간마다') && br.ai && br.ai.weekly === null);
+    // Starting over asks again.
+    ok(`${tag}: starting over forgets the choice`, await js(`startOver = async () => {}; document.getElementById('resetYes').dispatchEvent(new Event('click')); await new Promise((r) => setTimeout(r, 50)); return !('source' in window.__chromeData)`));
     ok(`${tag}: no errors`, errors.length === 0);
     if (errors.length) console.log(errors);
     win.destroy();

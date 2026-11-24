@@ -2123,7 +2123,7 @@ function pickGender(gender) {
   $('pick').hidden = true;
   const best = TRAITS.reduce((a, t) => (S.traits[t[0]] > S.traits[a[0]] ? t : a));
   const worst = TRAITS.reduce((a, t) => (S.traits[t[0]] < S.traits[a[0]] ? t : a));
-  story(`빈 들판에 작은 움막을 지었어요. 타고난 ${best[1]}은(는) 좋지만 ${worst[1]}은(는) 약해요. 성격은 ${myTemper().name}이에요.${hasSea() ? ' 바다가 보이는 마을이에요.' : ''}`);
+  story(`빈 들판에 작은 움막을 지었어요. 타고난 ${josa(best[1], '은', '는')} 좋지만 ${josa(worst[1], '은', '는')} 약해요. 성격은 ${myTemper().name}이에요.${hasSea() ? ' 바다가 보이는 마을이에요.' : ''}`);
   save();
   paintUi();
   wake();
@@ -2155,7 +2155,7 @@ async function start() {
     await aquila.usage().catch(() => null);
     $('hint').textContent =
       window.VILLAGE_SOURCE === 'local'
-        ? '이 맥의 Claude·Codex 사용량만큼 마을이 자라요. 주간 사용량 1%가 코인 10이에요.'
+        ? '이 컴퓨터의 Claude·Codex 사용량만큼 마을이 자라요. 주간 사용량 1%가 코인 10이에요.'
         : '브라우저를 켜 둔 1시간마다 코인 10. Claude·Codex 도우미를 설치하면 사용량으로 자라요.';
   }
   try {

@@ -7,21 +7,25 @@
   const emit = (name, data) => (listeners.get(name) ?? []).forEach((cb) => cb(data));
   // Real usage from the local helper (see background.js) when there is some, plus the browser minutes. The minutes
   // only grow while the helper has nothing, so the game can simply count every source's increase.
-  const usageFrom = (minutes, live) => [
+  // Browser time chosen: the helper's numbers go as blanks, so the game drops their baseline and a later switch to
+  // AI usage starts counting from then, not from before.
+  const usageFrom = (minutes, live, browserOnly) => [
     { account: 'browser', kind: 'chrome', weekly: minutes / 60, fiveHour: null, near: false },
     ...['claude', 'codex']
       .filter((k) => live?.[k])
-      .map((k) => ({ account: 'local', kind: k, weekly: live[k].weekly ?? null, fiveHour: live[k].fiveHour ?? null, near: false })),
+      .map((k) => ({ account: 'local', kind: k, weekly: browserOnly ? null : live[k].weekly ?? null, fiveHour: browserOnly ? null : live[k].fiveHour ?? null, near: false })),
   ];
   const get = (key) => chrome.storage.local.get(key).then((v) => v[key]);
   const current = async () => {
-    const { minutes = 0, live } = await chrome.storage.local.get(['minutes', 'live']);
-    window.VILLAGE_SOURCE = live?.host && (live.claude || live.codex) ? 'local' : 'browser';
-    return usageFrom(minutes, live);
+    const { minutes = 0, live, source } = await chrome.storage.local.get(['minutes', 'live', 'source']);
+    const browserOnly = source === 'browser';
+    window.VILLAGE_SOURCE = !browserOnly && live?.host && (live.claude || live.codex) ? 'local' : 'browser';
+    window.VILLAGE_CHOICE = source ?? null; // what you picked at the start ('ai' | 'browser'), for the hint
+    return usageFrom(minutes, live, browserOnly);
   };
 
   chrome.storage.onChanged.addListener(async (changes, area) => {
-    if (area === 'local' && (changes.minutes || changes.live)) emit('usage', await current());
+    if (area === 'local' && (changes.minutes || changes.live || changes.source)) emit('usage', await current());
   });
   document.addEventListener('visibilitychange', () => emit('visible', { visible: !document.hidden }));
 

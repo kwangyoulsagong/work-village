@@ -5,8 +5,8 @@ const OUT = process.argv[3] || require('path').join(__dirname, 'out');
 require('fs').mkdirSync(OUT, { recursive: true });
 const fs = require('fs'), vm = require('vm');
 const src = fs.readFileSync(GAME + '/background.js', 'utf8');
-async function run(hostAnswer) {
-  const store = {};
+async function run(hostAnswer, source) {
+  const store = source ? { source } : {};
   let alarmCb, messageCb;
   const chrome = {
     runtime: { onInstalled: { addListener() {} }, onStartup: { addListener() {} }, onMessage: { addListener: (cb) => (messageCb = cb) }, lastError: null,
@@ -32,4 +32,8 @@ async function run(hostAnswer) {
   console.log('no helper:', JSON.stringify({ minutes: without.minutes, host: without.live?.host, checkNow: without.checkNow }));
   const empty = await run(() => ({ ok: true, claude: null, codex: null }));
   console.log('helper but no usage:', JSON.stringify({ minutes: empty.minutes }));
+  // Browser time chosen at the start: minutes count even with the helper answering.
+  const browser = await run((msg) => ({ ok: true, claude: msg.claude ? { weekly: 5, fiveHour: 15 } : undefined, codex: { weekly: 1, fiveHour: null } }), 'browser');
+  console.log('browser time chosen, helper there:', JSON.stringify({ minutes: browser.minutes }));
+  if (!(browser.minutes >= 29) || (withHost.minutes ?? 0) !== 0) { console.log('FAIL minutes'); process.exitCode = 1; }
 })();

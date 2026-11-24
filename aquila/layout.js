@@ -134,11 +134,13 @@ function moveCam(to) {
   paintCamMe();
 }
 /** 내 캐릭터로 shows whether the view is following you (on, blue) or somewhere you moved it (off). */
+let camMeOn = null;
 function paintCamMe() {
   const b = document.getElementById('camMe');
   if (!b) return;
   const on = MODE !== 'chaos' && !lifeCam;
-  if (b.getAttribute('aria-pressed') === String(on)) return;
+  if (camMeOn === on) return;
+  camMeOn = on;
   b.setAttribute('aria-pressed', String(on));
   b.title = on ? '내 캐릭터를 따라가는 중이에요' : '누르면 내 캐릭터로 돌아가요';
 }
