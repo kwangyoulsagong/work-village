@@ -125,8 +125,17 @@ function options(e) {
     return out;
   }
 
-  // Someone to talk to: an idle neighbour not too far away.
-  const friend = people.find((o) => o !== e && !o.small && !o.hidden && !o.busy && Math.abs(o.x - e.x) < 12 * T && o.kind !== 'dog' && !avoids(e, o));
+  // Someone to talk to: of the idle neighbours within 12 tiles, the nearer and the better liked are likelier, with a
+  // little chance on top (taking the first in the list sent everyone to the same few people).
+  let friend = null;
+  let best = -Infinity;
+  const me0 = resident(e);
+  for (const o of people) {
+    if (o === e || o.small || o.hidden || o.busy || o.zombie || o.kind === 'dog' || o.kind === 'petcat' || Math.abs(o.x - e.x) >= 12 * T || avoids(e, o)) continue;
+    const them = resident(o);
+    const s = -Math.abs(o.x - e.x) / T + (me0 >= 0 && them >= 0 ? relOf(me0, them) * 0.6 : 0) + Math.random() * 6;
+    if (s > best) [friend, best] = [o, s];
+  }
   if (friend)
     add((100 - n.social) * 0.9, 'talk', tileOf(friend), 'talk', 60, () => {
       n.social = 100;
