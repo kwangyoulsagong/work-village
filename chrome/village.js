@@ -517,6 +517,42 @@ function drawRobotPet(g, e) {
   spr(g, ROBOT_PX, { o: '#3a4a66', c: '#5ad7e8', w: '#ffffff', g: '#c8d4e0' }, Math.round(e.x) + side - 2, Math.round(e.y) - 5 - hop);
 }
 
+// ── Fishing for fun: anyone, any era, at the lake or the pond. A catch leaps out of the water ─────────────────────
+
+let leaps = [];
+function fishOption(e, add) {
+  if ((e.fishCool ?? 0) > 0 || people.filter((p) => p.doing === 'fish').length >= 3) return;
+  const t = npcTraits(e);
+  const keen = (temperOf(resident(e)).id === 'loner' ? 25 : 0) + (t.luck - 3) * 5 + (e.job?.id === 'fisher' ? 30 : 0);
+  const pond = Math.random() < 0.3;
+  const spot = pond ? [POND.x + rand(0, POND.w - 1), POND.y - 1] : [LAKE.x + rand(0, LAKE.w - 1), LAKE.y - 1];
+  add(22 + keen, 'fish', spot, 'rod', 110, () => {
+    e.fishCool = 300 + rand(0, 400);
+    if (Math.random() > 0.35 + t.luck * 0.08) return; // the one that got away
+    stock('fish', 1);
+    if (Math.random() < 0.12 * findMul(e)) find('fish');
+    leaps.push({ x: e.x + (e.dir === 'l' ? -6 : 6), y: e.y - 2, sx: e.x, t: 0, big: Math.random() < 0.15 });
+    S.fishCaught = (S.fishCaught ?? 0) + 1;
+    if (S.fishCaught === 1) story(`🎣 ${ga(nameOf(resident(e)))} 호숫가에서 첫 물고기를 낚았어요.`);
+  });
+}
+function leapTick(k) {
+  for (const l of leaps) l.t += k;
+  leaps = leaps.filter((l) => l.t < 10);
+}
+function drawLeaps(g) {
+  for (const l of leaps) {
+    if (!onScreen(l.x)) continue;
+    // Up out of the water on the line, wriggling, into the basket.
+    const p = l.t / 10;
+    const x = Math.round(l.x + (l.sx - l.x) * p);
+    const y = Math.round(l.y - 14 - Math.sin(p * Math.PI) * 10 + 14 * p);
+    const wig = Math.floor(l.t) % 2;
+    spr(g, l.big ? ['.oooo.o', 'owwwwoo', 'oweww.o', '.oooo..'] : ['.ooo.o', 'owwwoo', '.ooo.o'], { o: '#3a5a7a', w: wig ? '#9fd6f0' : '#c8ecff', e: '#222222' }, x - 3, y);
+    if (l.t < 3) for (const dx of [-3, 0, 3]) R(g, Math.round(l.x) + dx, Math.round(l.y) - 2 - Math.round(l.t), 1, 1, '#ffffff');
+  }
+}
+
 // ── Hooks for ai.js: what a resident might do besides their job, and what follows ───────────────────────────────
 
 function villageOptions(e, add, night) {
@@ -525,6 +561,7 @@ function villageOptions(e, add, night) {
   if (night) return;
   const i = resident(e);
   huntOption(e, add);
+  fishOption(e, add);
   if (i < 0) return;
   tradeOption(e, i, add);
   makeUpOption(e, i, add);
@@ -539,16 +576,18 @@ function villageTick() {
   for (const p of people) {
     if (p.tradeCool > 0) p.tradeCool--;
     if (p.huntCool > 0) p.huntCool--;
+    if (p.fishCool > 0) p.fishCool--;
     if (p.sulk > 0) p.sulk--;
   }
   const now = Date.now();
   for (const a of animals) if (a.caughtUntil && now > a.caughtUntil) [a.hidden, a.caughtUntil] = [false, 0];
   if (++pairTick % 4 === 0) markPairs();
   eggTick();
-  return fights.length > 0 || drones.length > 0;
+  return fights.length > 0 || drones.length > 0 || leaps.length > 0;
 }
 function villageVisual(k) {
   droneTick(k);
+  leapTick(k);
 }
 function drawVillageUnder(g) {
   drawMarket(g);
@@ -558,6 +597,7 @@ function drawVillageUnder(g) {
 function drawVillageOver(g) {
   drawFights(g);
   drawDrones(g);
+  drawLeaps(g);
 }
 /** Over a person, after they're drawn: what they carry, their hunt, a pair icon, a sulk, a robot pet. */
 function drawVillager(g, e) {

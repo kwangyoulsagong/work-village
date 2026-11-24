@@ -29,7 +29,7 @@ app.whenReady().then(async () => {
     for (let i = 0; i < ${houses}; i++) { ensureLots(i + 1); S.houses = i + 1; }
     S.friends = Array.from({ length: S.houses }, () => ({ f: 4, day: '${today}' }));
     updateMyJob(true); spawnFamily(); spawnAnimals(); spawnCars(); cache.dirty = true; $('mode').hidden = true; $('pick').hidden = true; paintUi(); fitCanvas(); wake();
-    window.__camAt = HOME.x + 1;`;
+    window.__camAt = HOME.x + 1; window.scrollTo(0, 0);`;
 
   await win.loadFile(path.join(GAME, 'index.html'));
   await wait(800);
@@ -128,7 +128,25 @@ app.whenReady().then(async () => {
   await js(`document.querySelector('[data-tab="story"]').click(); return tryMe(me.x, me.y - 6);`);
   ok(await js(`return !document.querySelector('[data-body="me"]').hidden;`), 'tapping yourself opens 나');
 
-  // 8. Not in chaos mode: no fights, no trade.
+  // 8. Your own ride: bought, parked by the door, ridden on a long trip (faster).
+  const ride = await js(town(4, 8) + `S.coins = 5000; const t = rideTask(); if (!t) return 'no task'; t.act();
+    const parked = S.ride; me.path = []; route(me, [HOME.x + 20, ROAD_Y]); startTrip(); window.__camAt = HOME.x + 6;
+    const x0 = me.x; return { ride: S.ride, riding: me.riding, rows: buildRows().filter((r) => r.group === '탈것').length, parked };`);
+  ok(ride.ride && ride.riding === ride.ride && ride.rows >= 3, 'a ride bought and ridden: ' + JSON.stringify(ride));
+  await wait(700);
+  await shot('v7-ride');
+  const fast = await js(`return me.x;`);
+  ok(fast > 0, 'riding moves');
+  await js(`me.path = []; me.riding = null; window.__camAt = HOME.x + 2; return 1;`);
+  await wait(500);
+  await shot('v8-parked');
+
+  // 9. Fishing for fun: the option, and a catch leaping out.
+  const fish = await js(town(3, 8) + `const p = people.find((x) => resident(x) >= 0); const opts = []; fishOption(p, (...a) => opts.push(a));
+    const real = Math.random; Math.random = () => 0.01; opts[0][5](); Math.random = real; return { n: opts.length, tool: opts[0][3], leaps: leaps.length, fish: S.stock.fish };`);
+  ok(fish.n === 1 && fish.tool === 'rod' && fish.leaps === 1 && fish.fish >= 1, 'fishing for fun: ' + JSON.stringify(fish));
+
+  // 10. Not in chaos mode: no fights, no trade.
   const chaos = await js(`enterChaos(0); const p = people.find((x) => resident(x) >= 0); const opts = []; villageOptions(p, (...a) => opts.push(a), false); chatted(p, people[3]); const r = { opts: opts.length, fights: fights.length }; leaveChaos(); return r;`);
   ok(chaos.opts === 0 && chaos.fights === 0, 'chaos mode has none of it: ' + JSON.stringify(chaos));
 

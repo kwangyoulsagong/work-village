@@ -574,6 +574,8 @@ function nextTask() {
   if (ware) return { to: [PLAZA.x + 4, PLAZA.y + 1], tool: 'sparkle', what: `떠돌이 상인에게서 ${ware.name} 사기`, act: () => merchantBuy(ware) };
   const item = shopPick();
   if (item) return { to: STALL_SPOT, tool: 'sparkle', what: `옷가게에서 ${item.name} 사기`, act: () => buy(item) };
+  const ride = rideTask(); // this era's ride, when there's plenty to spare (rides.js)
+  if (ride) return ride;
   // Your job, when there's nothing more pressing (only while you're watching: off screen nobody walks).
   const mine = myJob();
   if (mine && live() && Math.random() < 0.45)
@@ -1611,6 +1613,7 @@ function frame() {
   drawFarmLife(ctx);
   drawVillageUnder(ctx);
   drawChimneys(ctx);
+  drawParked(ctx);
   drawChaos(ctx);
   // Only what's on screen, each at its in-between position, back to front.
   const all = [...animals, ...people, me, ...(thief ? [thief] : [])]
@@ -1640,6 +1643,7 @@ function frame() {
       const hop = e.hop ?? 0;
       const sitting = e.act?.tool === 'sit' ? 2 : 0;
       const drawn = hop || sitting ? { ...e, y: e.y + hop + sitting } : e;
+      if (e.kind === 'me' && drawMeRiding(ctx, drawn)) continue;
       person(ctx, drawn, e.kind === 'me' ? OUTFIT[S.era] : e.look);
       if (e.act && !drawHunt(ctx, drawn) && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
       drawVillager(ctx, drawn);
@@ -1803,7 +1807,13 @@ function tick() {
     moved = true;
     if (!step(thief) || thief.x > me.x + VIEW_W) thief = null;
   }
-  if (me.path.length) moved = step(me) || moved;
+  if (me.path.length) {
+    const walk = me.speed;
+    me.speed = walk * rideSpeed(); // faster on your ride (rides.js)
+    moved = step(me) || moved;
+    me.speed = walk;
+    if (me.dir === 'l' || me.dir === 'r') me.lastLR = me.dir;
+  }
   else if (task && !me.act) {
     // Arrived: play the action (hoe, hammer, basket…), then it happens.
     me.act = { tool: task.tool ?? 'sparkle', n: 10, t: 10 };
@@ -1839,9 +1849,13 @@ function tick() {
     if (task) {
       $('now').textContent = task.what;
       route(me, nearestWalkable(task.to[0], task.to[1]));
+      startTrip();
     } else {
       $('now').textContent = '마을 산책';
-      if (Math.random() < 0.3) route(me, [Math.floor(Math.random() * COLS), ROAD_Y]);
+      if (Math.random() < 0.3) {
+        route(me, [Math.floor(Math.random() * COLS), ROAD_Y]);
+        startTrip();
+      }
       rest = 24;
     }
   }

@@ -275,7 +275,7 @@ function drawVehicle(g, c) {
   const x = Math.round(c.x);
   const r = c.right;
   const flip = !r;
-  const b = c.sky ? c.sky : laneBottom(c);
+  const b = c.b ?? (c.sky ? c.sky : laneBottom(c)); // c.b: drawn somewhere else (your ride, parked)
   const step = Math.floor(c.f / 3);
   const light = (dx, yy) => R(g, r ? x + dx : x, yy, 1, 1, '#fff3a0');
   switch (c.type) {
@@ -407,6 +407,7 @@ function drawVehicle(g, c) {
       return;
     }
   }
+  drawMoreVehicle(g, c, x, b, r, flip, step); // rides.js: the rest of each era's road and sky
 }
 
 // ── Build it yourself: spend coins on what you want ────────────────────────────────────────────────────────────────
@@ -493,6 +494,7 @@ function buildRows() {
     story('🐈 고양이를 입양했어요.');
     spawnFamily();
   });
+  rideRows(add); // your own ride (rides.js)
   // Farm
   const up = FARM_UPGRADES.find((u) => !S.farm.includes(u.id) && u.era <= S.era);
   if (up) add('농장', up.name, up.does, up.cost, true, () => farmBuy(up));
