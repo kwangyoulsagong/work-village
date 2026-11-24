@@ -184,7 +184,13 @@ function checkAchievements() {
       story(`🏅 업적 달성: ${name}`);
     }
 }
-const population = () => 1 + S.kids + occupied() * 2;
+/** Everyone who lives here, counted the way spawnFamily() puts them in town: you, your spouse and children, two
+ *  per lived-in house (and the grandparent in some), and the residents you invited. Visiting friends aren't counted. */
+const population = () => {
+  let n = 1 + (S.spouse != null ? 1 : 0) + S.kids + (S.folk ?? 0);
+  for (let i = 0; i < occupied(); i++) if (i !== S.spouse) n += 2 + (hasElder(i) ? 1 : 0);
+  return n;
+};
 
 /** Something new the pocket money covers (cheapest first), or null. */
 const shopPick = () =>
@@ -1942,6 +1948,21 @@ function paintUi() {
   void aquila.chip(`${fmt(S.coins)}${ripe ? ' 수확' : ''}`).catch(() => {});
 }
 
+/** The one choice at the start: who you live as. Traits are rolled, a job follows. */
+function pickGender(gender) {
+  if (S.gender) return;
+  S.gender = gender === 'm' ? 'm' : 'f';
+  S.traits = rollTraits();
+  updateMyJob(true);
+  $('pick').hidden = true;
+  const best = TRAITS.reduce((a, t) => (S.traits[t[0]] > S.traits[a[0]] ? t : a));
+  const worst = TRAITS.reduce((a, t) => (S.traits[t[0]] < S.traits[a[0]] ? t : a));
+  story(`빈 들판에 작은 움막을 지었어요. 타고난 ${best[1]}은(는) 좋지만 ${worst[1]}은(는) 약해요.`);
+  save();
+  paintUi();
+  wake();
+}
+
 async function start() {
   // In Chrome the town grows with browser time instead of Claude / Codex usage (see chrome/chrome-shim.js).
   // In Chrome: this Mac's Claude / Codex usage through the local helper, or else browser time (chrome/chrome-shim.js).
@@ -1990,22 +2011,8 @@ async function start() {
   wireCamera();
   wireChaos();
   wireVisit();
-  if (!S.gender) {
-    $('mode').hidden = false;
-    for (const b of document.querySelectorAll('#pick button'))
-      b.addEventListener('click', () => {
-        S.gender = b.dataset.gender;
-        S.traits = rollTraits();
-        updateMyJob(true);
-        $('pick').hidden = true;
-        const best = TRAITS.reduce((a, t) => (S.traits[t[0]] > S.traits[a[0]] ? t : a));
-        const worst = TRAITS.reduce((a, t) => (S.traits[t[0]] < S.traits[a[0]] ? t : a));
-        story(`빈 들판에 작은 움막을 지었어요. 타고난 ${best[1]}은(는) 좋지만 ${worst[1]}은(는) 약해요.`);
-        save();
-        paintUi();
-        wake();
-      });
-  }
+  if (!S.gender) $('mode').hidden = false;
+  for (const b of document.querySelectorAll('#pick button')) b.addEventListener('click', () => pickGender(b.dataset.gender));
   try {
     const p = await aquila.power();
     saver = !!p.saver;
