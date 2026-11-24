@@ -9,6 +9,7 @@ let chaosTool = 'smash';
 let fx = []; //       explosions, clouds, bolts, ghosts, fire…
 let fires = []; //    burning spots that spread
 let signAt = null;
+let statsDirty = false; // something fell since the tally was drawn (delayed blasts, plague, zombies)
 
 const CHAOS_TOOLS = [
   ['smash', '🔨', '집 부수기'],
@@ -135,6 +136,7 @@ function wreckLot(i) {
   collapseLot(i);
   S.wrecked.push(i);
   S.chaosStats.houses++;
+  statsDirty = true;
   fx.push({ k: 'dust', x: lotCenter(i)[0], y: lotCenter(i)[1] + 8, t: 24 });
   // Whoever lives there leaves as a ghost.
   for (const e of people.filter((p) => p.home === i)) ghost(e);
@@ -201,6 +203,7 @@ function ghost(e) {
   animals = animals.filter((a) => a !== e);
   if (isAnimal) S.chaosStats.animals++;
   else S.chaosStats.people++;
+  statsDirty = true;
   fx.push({ k: 'ghost', x: e.x, y: e.y - 8, t: 60 });
   tomb(e.x, e.y);
 }
@@ -329,6 +332,10 @@ function placeSign() {
 
 function chaosTick() {
   if (MODE !== 'chaos') return false;
+  if (statsDirty) {
+    statsDirty = false;
+    paintChaosUi();
+  }
   // Plague: the sick slow down, pass it on, and some don't make it.
   for (const e of people) {
     if (e.scared > 0 && --e.scared === 0) e.speed = 1;
