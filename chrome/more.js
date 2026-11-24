@@ -269,25 +269,46 @@ function drawHoliday(g) {
     for (let i = 0; i < Math.min(8, S.houses); i++) {
       const tx = lotX(i);
       if (!onScreen(tx * T)) continue;
-      const x = tx * T + 22;
-      const y = lotBottom(i) - 6;
-      box(g, x, y, 7, 6, '#f08a2a', '#a0501a');
-      R(g, x + 3, y - 2, 1, 2, '#3f7a3a');
+      const x = tx * T + 20;
+      const y = lotBottom(i) - 9;
+      box(g, x, y, 11, 9, '#f08a2a', '#a0501a');
+      R(g, x + 3, y + 1, 1, 7, '#d8701e'); // ridges
+      R(g, x + 7, y + 1, 1, 7, '#d8701e');
+      R(g, x + 5, y - 3, 2, 3, '#3f7a3a');
+      R(g, x + 7, y - 2, 2, 1, '#5a9a4a'); // leaf
       if (night || blink) {
-        R(g, x + 1, y + 2, 1, 1, '#ffe066');
-        R(g, x + 5, y + 2, 1, 1, '#ffe066');
-        R(g, x + 2, y + 4, 3, 1, '#ffe066');
+        if (night) disc(g, x + 5, y + 4, 7, 'rgba(255, 170, 60, 0.18)');
+        R(g, x + 2, y + 2, 2, 2, '#ffe066');
+        R(g, x + 7, y + 2, 2, 2, '#ffe066');
+        R(g, x + 2, y + 6, 7, 1, '#ffe066');
+        R(g, x + 3, y + 5, 1, 1, '#ffe066');
+        R(g, x + 7, y + 5, 1, 1, '#ffe066');
       }
     }
   // A Christmas tree in the square.
   if (holiday === 'xmas') {
     const x = (PLAZA.x + 5) * T + 4;
     const y = (PLAZA.y + 2) * T - 2;
-    for (let i = 0; i < 4; i++) box(g, x - 2 - i * 2, y - 26 + i * 6, 5 + i * 4, 6, '#2f7a3a', '#1f5a2a');
-    R(g, x - 1, y - 2, 3, 3, '#7a4a2a');
-    R(g, x, y - 30, 1, 3, '#ffd23f');
-    R(g, x - 1, y - 29, 3, 1, '#ffd23f');
-    for (let i = 0; i < 6; i++) R(g, x - 6 + ((i * 5) % 13), y - 22 + i * 3, 1, 1, ['#ff5a5a', '#5ab4ff', '#ffd23f'][(i + blink) % 3]);
+    if (night) disc(g, x, y - 22, 20, 'rgba(255, 220, 140, 0.12)');
+    // Five tiers, narrow at the top; a pot under the trunk.
+    for (let i = 0; i < 5; i++) box(g, x - 3 - i * 3, y - 40 + i * 7, 7 + i * 6, 8, '#2f7a3a', '#1f5a2a');
+    R(g, x - 2, y - 5, 5, 3, '#7a4a2a');
+    box(g, x - 4, y - 3, 9, 5, '#c8402e', '#8a2a1e');
+    // Garland zigzags and blinking baubles.
+    for (let i = 0; i < 4; i++) for (let k = -4 - i * 3; k <= 4 + i * 3; k += 2) R(g, x + k, y - 32 + i * 7 + ((k >> 1) & 1), 1, 1, '#f2d27a');
+    const lights = ['#ff5a5a', '#5ab4ff', '#ffd23f', '#ff8ac0'];
+    for (let t = 1, n = 0; t < 5; t++)
+      for (let k = 0; k <= t; k++, n++) R(g, x - t * 3 + Math.round((k * t * 6) / Math.max(1, t)) - (k ? 1 : 0), y - 38 + t * 7 + (k & 1) * 2, 2, 2, lights[(n + blink) % 4]);
+    // The star.
+    R(g, x, y - 46, 1, 5, '#ffd23f');
+    R(g, x - 2, y - 44, 5, 1, '#ffd23f');
+    R(g, x - 1, y - 45, 3, 3, '#ffd23f');
+    if (night || blink) disc(g, x, y - 44, 4, 'rgba(255, 230, 120, 0.3)');
+    // Presents.
+    box(g, x - 13, y - 3, 6, 5, '#5ab4ff', '#2a6a9a');
+    R(g, x - 11, y - 3, 1, 5, '#ffffff');
+    box(g, x + 7, y - 2, 5, 4, '#ffd23f', '#a0801a');
+    R(g, x + 9, y - 2, 1, 4, '#c8402e');
   }
   for (const p of petals) {
     const x = Math.round(p.x);
