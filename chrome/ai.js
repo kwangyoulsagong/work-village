@@ -242,6 +242,7 @@ function think(e) {
   }
   if (e.wait > 0) {
     e.wait--;
+    lookAround(e); // motion.js
     return false;
   }
   const opts = options(e);

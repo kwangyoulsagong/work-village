@@ -1610,6 +1610,7 @@ function frame() {
   drawCritters(ctx);
   drawFarmLife(ctx);
   drawVillageUnder(ctx);
+  drawChimneys(ctx);
   drawChaos(ctx);
   // Only what's on screen, each at its in-between position, back to front.
   const all = [...animals, ...people, me, ...(thief ? [thief] : [])]
@@ -1642,11 +1643,13 @@ function frame() {
       person(ctx, drawn, e.kind === 'me' ? OUTFIT[S.era] : e.look);
       if (e.act && !drawHunt(ctx, drawn) && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
       drawVillager(ctx, drawn);
+      drawDust(ctx, drawn);
     }
   }
   drawWishes(ctx);
   drawVillageOver(ctx);
   drawJuice(ctx);
+  drawPops(ctx, frameK);
   drawMeMarker(ctx);
   drawVisit(ctx);
   if (bubble) {
@@ -1683,7 +1686,7 @@ function frame() {
     ctx.fillRect(0, 0, VIEW_W, H);
     drawLampGlow(ctx);
     drawSky(ctx);
-  }
+  } else drawSkyShade(ctx); // golden hour, dusk, dawn (motion.js)
   drawWeather(ctx);
   drawChaosFlash(ctx);
   drawComboHud(ctx);
@@ -1818,6 +1821,7 @@ function tick() {
     const before = S.coins;
     const said = task.act();
     if (S.coins < before) lifeCount('spent', before - S.coins);
+    popAt(me.x, me.y);
     gainXp(3);
     save();
     if (typeof said === 'string') {
@@ -1850,6 +1854,7 @@ let lastFrame = 0;
 /** One animation frame: catch the minds up (8 Hz), move the little things by the time passed, draw. */
 const FPS = 45; // everywhere: smooth scrolling, still well under 60
 let lastRaf = 0;
+let frameK = 0; //  this frame's ticks' worth of time (for effects drawn in frame())
 let drawDebt = 0; // ms owed to drawing: at 60 Hz, 45 fps draws three frames of every four (a gap check could only halve)
 function loopFrame(now) {
   raf = 0;
@@ -1876,6 +1881,7 @@ function loopFrame(now) {
     lastTick += FRAME_MS;
   }
   const k = Math.min(4, (now - (lastFrame || now)) / FRAME_MS); // ticks' worth of time since the last frame
+  frameK = k;
   lastFrame = now;
   alpha = Math.min(1, (now - lastTick) / FRAME_MS);
   birdsThink(k);
