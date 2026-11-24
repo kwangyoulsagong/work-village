@@ -109,12 +109,17 @@ function applyLayout(seed) {
 }
 
 /** A spot in the woods (south of the road). */
-function groveSpot() {
-  // Woods near home (within 70 tiles) when there are any: nobody walks to the far end of the map for berries.
-  const near = GROVES.filter((g) => Math.abs(g.x + g.w / 2 - HOME.x) < 70);
-  const pool = near.length ? near : GROVES;
-  const g = pool.length ? pool[Math.floor(Math.random() * pool.length)] : { x: 12, w: 20 };
-  return [g.x + Math.floor(Math.random() * Math.max(1, g.w)), ROAD_Y + 2 + Math.floor(Math.random() * 3)];
+function groveSpot(e = null) {
+  // The woods nearest to whoever goes (or to home): one of the two closest stretches, and the part of it nearest
+  // them. Picking any wood within 70 tiles sent people on long walks there and back between chores.
+  const from = e ? e.x / T : HOME.x;
+  if (!GROVES.length) return [12, ROAD_Y + 2];
+  const dist = (g) => (from < g.x ? g.x - from : from > g.x + g.w ? from - g.x - g.w : 0);
+  const near = [...GROVES].sort((a, b) => dist(a) - dist(b)).slice(0, 2);
+  const g = near[Math.random() < 0.75 ? 0 : near.length - 1];
+  const edge = Math.max(g.x, Math.min(g.x + g.w - 1, Math.round(from)));
+  const x = Math.max(g.x, Math.min(g.x + g.w - 1, edge + Math.round((Math.random() - 0.5) * 8)));
+  return [x, ROAD_Y + 2 + Math.floor(Math.random() * 3)];
 }
 /** In front of a landmark. */
 function landmarkSpot(id) {

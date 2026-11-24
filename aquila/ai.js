@@ -163,13 +163,13 @@ function options(e) {
         break;
       }
       case 'forager':
-        add(w, 'forage', groveSpot(), 'pick', 80, () => {
+        add(w, 'forage', groveSpot(e), 'pick', 80, () => {
           stock('berries', workYield(e));
           if (Math.random() < 0.15 * findMul(e)) find('forage');
         });
         break;
       case 'woodcutter':
-        add(w, 'chop', groveSpot(), 'axe', 90, () => stock('wood', workYield(e)));
+        add(w, 'chop', groveSpot(e), 'axe', 90, () => stock('wood', workYield(e)));
         break;
       case 'miner':
         add(w, 'mine', [MINE.x + rand(1, MINE.w - 2), MINE.y + MINE.h], 'pickaxe', 100, () => {
@@ -193,7 +193,10 @@ function options(e) {
   }
   villageOptions(e, add, night); // trade, hunt, make up, the bonfire (village.js)
   pastimeOptions(e, add); // the commute, a picket, the joust, the museum, a caravan (pastimes.js)
-  add(20, 'stroll', [rand(0, COLS - 1), ROAD_Y], null, 10, () => {});
+  leisureOptions(e, add, night); // a book on a bench, a kite, a jog (home.js)
+  // A stroll round their own part of town (anywhere on the map made for long, aimless walks).
+  const base = e.home >= 0 ? doorOf(e.home)[0] : HOME.x;
+  add(20, 'stroll', [Math.max(0, Math.min(COLS - 1, base + rand(-18, 18))), ROAD_Y], null, 10, () => {});
   return out;
 }
 
@@ -269,7 +272,7 @@ function think(e) {
     // An errand cut short (a storm, a scuffle): whatever was carried goes home with them.
     e.carry = null;
     if (e.baseSpeed) e.speed = e.baseSpeed;
-  }
+  } else if (e.baseSpeed && pick.what !== 'trade') e.speed = e.baseSpeed; // back to their own pace after a jog
   pick.start?.();
   route(e, nearestWalkable(pick.to[0], pick.to[1]));
   return true;

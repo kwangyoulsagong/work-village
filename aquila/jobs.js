@@ -39,7 +39,7 @@ function jobPlace(e, j) {
   const plaza = [PLAZA.x + rand(0, 3), PLAZA.y + rand(0, 1)];
   switch (j.at) {
     case 'woods':
-      return groveSpot();
+      return groveSpot(e);
     case 'lake':
       return [LAKE.x + rand(0, LAKE.w - 1), LAKE.y - 1];
     case 'farm': {

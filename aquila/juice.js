@@ -397,6 +397,7 @@ let chaosRound = 0; // a new round, a new number: timers from an old round see i
 function juiceReset() {
   chaosRound++;
   seaTrip = 0; //   a trip out to sea doesn't carry on in another town (pastimes.js)
+  homeStay = null; // nor a rest at home (home.js)
   drones = []; //  village.js / motion.js effects don't follow you into another town
   leaps = [];
   pops = [];

@@ -581,6 +581,11 @@ function nextTask(noJob = false) {
   if (ride) return ride;
   const boat = boatTask(); // out to sea on your boat (pastimes.js)
   if (boat) return boat;
+  // Free time: something you like doing, more often than your job (only while you're watching, like the job).
+  if (live() && Math.random() < 0.55) {
+    const fun = leisureTask(); // home.js
+    if (fun) return fun;
+  }
   // Your job, when there's nothing more pressing (only while you're watching: off screen nobody walks).
   const mine = myJob();
   if (mine && live() && !noJob && Math.random() < 0.45)
@@ -1605,6 +1610,12 @@ function frame() {
   // A view you're dragging goes straight there; otherwise it glides with everyone else.
   const manual = MODE === 'chaos' || lifeCam;
   viewX = manual ? camX : prevCam + (camX - prevCam) * alpha;
+  if (insideView()) {
+    // You're at home and the view follows you: inside the house (home.js).
+    drawInterior(ctx);
+    drawMini();
+    return;
+  }
   const [sx, sy] = shakeOffset(); // a big hit in chaos mode shakes the view (juice.js)
   ctx.setTransform(scale, 0, 0, scale, sx * scale, sy * scale);
   ctx.imageSmoothingEnabled = false;
@@ -1654,7 +1665,7 @@ function frame() {
       const drawn = hop || sitting ? { ...e, y: e.y + hop + sitting } : e;
       if (e.kind === 'me' && drawMeRiding(ctx, drawn)) continue;
       person(ctx, drawn, e.kind === 'me' ? OUTFIT[S.era] : e.look);
-      if (e.act && !drawPicket(ctx, drawn) && !drawHunt(ctx, drawn) && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
+      if (e.act && !drawLeisure(ctx, drawn) && !drawPicket(ctx, drawn) && !drawHunt(ctx, drawn) && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
       drawVillager(ctx, drawn);
       drawDust(ctx, drawn);
     }
@@ -1808,6 +1819,7 @@ function tick() {
   moved = villageTick() || moved;
   moved = juiceTick() || moved;
   moved = pastimesTick() || moved;
+  moved = homeTick() || moved;
   if (me.sulk > 0) me.sulk--;
   for (const s of sites) s.left--;
   if (sites.length && sites[0].left <= 0) sites.shift();
@@ -1865,7 +1877,8 @@ function tick() {
     } else {
       $('now').textContent = '마을 산책';
       if (Math.random() < 0.3) {
-        route(me, [Math.floor(Math.random() * COLS), ROAD_Y]);
+        // A stroll round the neighbourhood, not to the far end of the map.
+        route(me, [Math.max(0, Math.min(COLS - 1, HOME.x + Math.round((Math.random() - 0.5) * 40))), ROAD_Y]);
         startTrip();
       }
       rest = 24;
