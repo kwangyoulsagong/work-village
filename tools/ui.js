@@ -40,7 +40,7 @@ app.whenReady().then(async () => {
     spawnFamily(); spawnAnimals(); spawnCars(); cache.dirty = true; $('mode').hidden = true; $('pick').hidden = true; $('now').textContent = '씨앗 심기'; paintUi(); fitCanvas(); wake();`;
   await shoot('ui-wide', 420, 1000, false, town);
   await shoot('ui-dark', 420, 1000, true, town);
-  await shoot('ui-narrow', 300, 760, false, town);
+  await shoot('ui-narrow', 300, 1000, false, town);
   await shoot('ui-short', 420, 480, false, town);
   await shoot('ui-tiny', 420, 360, false, town);
   await shoot('ui-mode', 420, 760, false, `$('mode').hidden = false;`);

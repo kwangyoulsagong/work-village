@@ -1986,6 +1986,8 @@ function paintUi() {
   $('hudDay').textContent = `${S.days}일차 · ${SEASONS[Math.max(0, S.season)]}`;
   checkAchievements();
   $('pop').textContent = fmt(population());
+  // Not everyone on screen lives here: travellers on the road, friends visiting, the merchant.
+  $('passers').textContent = fmt(cars.filter((c) => !VEHICLE[c.type]?.sky).length + guests.length + (merchantHere() ? 1 : 0));
 
   const familySize = 1 + (S.spouse != null ? 1 : 0) + S.kids;
   const animalsOwned = S.chickens + S.cows + S.sheep + S.pigs + S.goats + S.horses + S.alpacas + (S.donkeys ?? 0) + (S.turkeys ?? 0);

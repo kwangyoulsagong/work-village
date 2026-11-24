@@ -168,6 +168,7 @@ function settleTown(chaos) {
   addGuest(VISIT.host);
   if (chaos) chaosCam = (HOME.x + 1.5) * T - VIEW_W / 2;
   lifeCam = null;
+  paintCamMe();
   cache.dirty = true;
   for (const id of ['eraPick', 'mode', 'pick', 'over', 'signBox']) $(id).hidden = true;
   $('visitCard').hidden = true;

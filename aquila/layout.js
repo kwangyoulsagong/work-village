@@ -131,6 +131,16 @@ const HOLD_MS = 10_000;
 function moveCam(to) {
   if (MODE === 'chaos') chaosCam = to;
   else lifeCam = { x: to, until: Date.now() + HOLD_MS };
+  paintCamMe();
+}
+/** 내 캐릭터로 shows whether the view is following you (on, blue) or somewhere you moved it (off). */
+function paintCamMe() {
+  const b = document.getElementById('camMe');
+  if (!b) return;
+  const on = MODE !== 'chaos' && !lifeCam;
+  if (b.getAttribute('aria-pressed') === String(on)) return;
+  b.setAttribute('aria-pressed', String(on));
+  b.title = on ? '내 캐릭터를 따라가는 중이에요' : '누르면 내 캐릭터로 돌아가요';
 }
 const camTarget = () => (MODE === 'chaos' ? chaosCam : lifeCam?.x ?? camX);
 
@@ -139,6 +149,7 @@ function lifeFollow() {
   if (!lifeCam) return false;
   if (Date.now() > lifeCam.until) {
     lifeCam = null;
+    paintCamMe(); // following you again
     return false;
   }
   lifeCam.x = Math.max(0, Math.min(W - VIEW_W, lifeCam.x));
@@ -179,8 +190,10 @@ function wireCamera() {
   $('camMe').addEventListener('click', () => {
     lifeCam = null;
     camX = prevCam = Math.max(0, Math.min(W - VIEW_W, me.x - VIEW_W / 2));
+    paintCamMe();
     frame();
   });
+  paintCamMe();
   mini.addEventListener('click', (ev) => {
     const r = mini.getBoundingClientRect();
     moveCam(((ev.clientX - r.left) / r.width) * W - VIEW_W / 2);

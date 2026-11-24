@@ -213,10 +213,12 @@
       /* While you were away */
       .away { background: var(--blue-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
       .away[hidden] { display: none; }
-      .week__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin-top: 8px; }
-      .week__list .choice { padding: 8px 10px; background: var(--card); }
+      .week__list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+      .week__list .choice { padding: 6px 8px; border-radius: 10px; background: var(--card); min-width: 0; }
       .week__list .choice b { font-size: 13px; }
-      .week__list .choice span { font-size: 11px; }
+      .week__list .choice span { font-size: 11px; line-height: 1.35; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+      .away__head b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      .away__head .btn { flex: none; white-space: nowrap; }
       #visitNews[hidden] { display: none; }
       .away__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
       .away__head b { font-size: 13px; color: var(--blue); }
@@ -286,7 +288,7 @@
         <ul class="list" id="awayList"></ul>
       </div>
       <div class="away week life-only" id="weekCard" hidden>
-        <div class="away__head"><b>이번 주는 어떻게 보낼까요?</b><button class="btn text" id="weekAuto">알아서 골라 주세요</button></div>
+        <div class="away__head"><b>이번 주 계획을 골라요</b><button class="btn text" id="weekAuto">알아서 골라요</button></div>
         <div class="week__list" id="weekChoices"></div>
       </div>
       <div class="stage">
@@ -425,7 +427,8 @@
       <div class="headline" id="now"></div>
       <div class="numbers">
         <div><b id="level">Lv.1</b><span>레벨</span></div>
-        <div><b id="pop">1</b><span>인구</span></div>
+        <div><b id="pop">1</b><span>주민</span></div>
+        <div><b id="passers">0</b><span>오가는 사람</span></div>
         <div><b id="bag">0</b><span>바구니</span></div>
       </div>
       <div class="rows">
