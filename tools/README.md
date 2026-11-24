@@ -19,6 +19,7 @@ Install once with `npm install` (Electron, dev only). Screenshots go to `tools/o
 | `npm run test:chrome` | `background.js` with a fake Chrome (helper / no helper / check now), the side panel growing from minutes and from usage, and the helper setup card: the macOS installer run for real in a temp HOME, the Windows PowerShell installer checked as text |
 | `npm test` | All of the above |
 | `npx electron tools/ui.js` | The panel at several sizes, light and dark |
+| `npx electron tools/icon.js` | Draws the extension icon (pixel art) into aquila/icon.png and chrome/icons/ |
 | `npx electron tools/eras.js` | The panel in every era (300 / 360 / 420 px wide): crowding, chips, overflow |
 | `npx electron tools/maps.js` / `houses.js` / `jobs-sheet.js` / `vehicles.js` | Sheets: whole maps, house looks, the 24 jobs, every vehicle and what flies |
 
