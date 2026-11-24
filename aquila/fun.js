@@ -83,10 +83,10 @@ function collectGolden(share) {
   const what = golden.kind === 'star' ? '별똥별' : '황금 닭';
   S.coins += prize;
   if (share === 1) {
-    story(`✨ ${what}을(를) 잡았어요! 🪙${fmt(prize)}을 얻었어요.`);
+    story(`✨ ${josa(what, '을', '를')} 잡았어요! 🪙${fmt(prize)}을 얻었어요.`);
     toast(`${what}! +${fmt(prize)}코인`);
     S.golden = (S.golden ?? 0) + 1;
-  } else story(`${what}이(가) 지나가며 🪙${fmt(prize)}을 떨어뜨렸어요.`);
+  } else story(`${josa(what, '이', '가')} 지나가며 🪙${fmt(prize)}을 떨어뜨렸어요.`);
   golden = null;
   goldenNext = Date.now() + (8 + Math.random() * 12) * 60_000;
   save();

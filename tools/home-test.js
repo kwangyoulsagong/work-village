@@ -41,6 +41,21 @@ app.whenReady().then(async () => {
   // Dragging the view away shows the town; coming out again after the stay.
   const out = await js(`moveCam(0); const town = !insideView(); lifeCam = null; homeStay.t = 1; homeTick(); return { town, inside: insideView(), hidden: me.hidden };`);
   ok(out.town && !out.inside && !out.hidden, 'drag shows the town; out again after: ' + JSON.stringify(out));
+  // The 집 안 button, a chosen pastime, furniture: one bed at a time (swap), decorations add up, era gating, owned ones put back free.
+  const f = await js(town(4) + `S.coins = 2000; $('homeView').click(); const shown = !$('homeCard').hidden && insideView();
+    const opts = [...$('hobbyPick').options].map((o) => o.value); $('hobbyPick').value = 'tv'; $('hobbyGo').click(); const heading = nextTask()?.what;
+    buyFurniture('bed_wood'); buyFurniture('bed_queen'); const bed = S.furn.bed; const c1 = S.coins; buyFurniture('bed_wood'); const swapFree = S.coins === c1 && S.furn.bed === 'bed_wood';
+    buyFurniture('pot'); buyFurniture('aquarium'); const capsule = buyFurniture('bed_capsule');
+    paintHome(); const groups = [...$('furniturePick').querySelectorAll('optgroup')].map((g) => g.label);
+    $('homeView').click(); return { shown, opts, heading, bed, swapFree, deco: S.furniture, capsule, groups, out: !insideView() && $('homeCard').hidden };`);
+  ok(f.shown && f.opts.includes('tv') && !f.opts.includes('wallpaint') && /TV/.test(f.heading ?? '') && f.bed === 'bed_queen' && f.swapFree && f.deco.length === 2 && f.capsule === false && f.groups.includes('침대') && f.out, 'the house: ' + JSON.stringify(f));
+  for (const [era, items] of [[0, ['table_log', 'seat_stump', 'light_torch', 'rug_fur', 'pot']], [2, ['bed_canopy', 'rug_persian', 'light_candle', 'tapestry', 'chest']], [5, ['bed_capsule', 'table_float', 'seat_float', 'light_neon', 'holoframe', 'robotvac']]]) {
+    await js(town(era) + `S.coins = 5000; for (const id of ${JSON.stringify(items)}) buyFurniture(id); lifeCam = null; goInside(); homeStay.hobby = ${JSON.stringify(['wallpaint', 'letter', 'vr'][era === 0 ? 0 : era === 2 ? 1 : 2])}; return 1;`);
+    await wait(500);
+    const url = await js(`return document.getElementById('world').toDataURL()`);
+    fs.writeFileSync(path.join(OUT, `home-furnished-${era}.png`), Buffer.from(url.split(',')[1], 'base64'));
+  }
+
   // Neighbours: a book and a kite.
   const nb = await js(town(2) + `weather = 'sun'; const p = people.find((x) => x.kind === 'villager' && !x.small); const opts = []; leisureOptions(p, (...a) => opts.push(a), false); return opts.map((o) => o[1]);`);
   ok(nb.includes('read') && nb.includes('kite'), 'neighbours read and fly kites: ' + nb.join());

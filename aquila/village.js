@@ -14,7 +14,11 @@ const hasBatchim = (w) => {
   const c = String(w).charCodeAt(String(w).length - 1);
   return c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 !== 0;
 };
-const josa = (w, withB, without) => `${w}${hasBatchim(w) ? withB : without}`;
+const josa = (w, withB, without) => {
+  const c = String(w).charCodeAt(String(w).length - 1);
+  const rieul = c >= 0xac00 && c <= 0xd7a3 && (c - 0xac00) % 28 === 8; // ㄹ takes 로, not 으로
+  return `${w}${hasBatchim(w) && !(withB === '으로' && rieul) ? withB : without}`;
+};
 const ga = (w) => josa(w, '이', '가');
 const wa = (w) => josa(w, '과', '와');
 const eul = (w) => josa(w, '을', '를');
@@ -430,8 +434,7 @@ function huntDone(e, prey) {
   const ok = !prey.hidden && Math.random() < [0.45, 0.55, 0.65][S.era] + (e.job?.id === 'hunter' ? 0.1 : 0) + (t.health + t.luck - 6) * 0.03;
   const home = e.home >= 0 ? doorOf(e.home) : HOME_DOOR;
   if (ok) {
-    prey.hidden = true;
-    prey.caughtUntil = Date.now() + 8 * 60_000;
+    downPrey(prey);
     e.carry = { how: 'meat' };
     S.hunts = (S.hunts ?? 0) + 1;
     if (S.hunts === 1) story(`🏹 ${ga(nameOf(resident(e)) || '사냥꾼')} 처음으로 사냥에 성공했어요. 오늘 저녁은 고기예요!`);
@@ -449,28 +452,93 @@ function huntDone(e, prey) {
     },
   };
 }
+/** You, as the town's hunter: off to the nearest wild animal with the era's weapon; meat and a hide, or it got away. */
+function myHuntTask(job) {
+  if (MODE !== 'life') return null;
+  const wild = animals.filter((a) => PREY.has(a.kind) && !a.variant && !a.hidden);
+  if (!wild.length) return null;
+  const prey = wild.reduce((a, b) => (Math.abs(b.x - me.x) < Math.abs(a.x - me.x) ? b : a));
+  const [px, py] = tileOf(prey);
+  const tool = HUNT_TOOL[Math.min(2, S.era)];
+  return {
+    to: [px + (prey.x < me.x ? 2 : -2), py],
+    tool,
+    what: `${josa(job.name, '으로', '로')} 사냥하기`,
+    job: true,
+    dur: 40,
+    dir: prey.x < me.x ? 'l' : 'r', // set again on arrival, towards where the animal is now
+    arrive: () => {
+      me.prey = prey; // aimed at (drawHunt), and it holds still
+      me.dir = prey.x < me.x ? 'l' : 'r';
+    },
+    act: () => {
+      me.prey = null;
+      const name = ANIMAL_NAMES[prey.kind] ?? '짐승';
+      if (prey.hidden || Math.random() > 0.45 + (trait('health') + trait('luck') - 6) * 0.04) return `${josa(name, '을', '를')} 놓쳤어요…`;
+      downPrey(prey);
+      stock('meat', 1);
+      stock('hide', 1);
+      S.hunts = (S.hunts ?? 0) + 1;
+      if (S.hunts === 1) story(`🏹 처음으로 사냥에 성공했어요. ${josa(name, '을', '를')} 잡았어요!`);
+      return `${josa(name, '을', '를')} 잡았어요!`;
+    },
+  };
+}
+/** A hit: the animal keels over (stars round it) for a few seconds, then it's taken away. */
+function downPrey(prey) {
+  prey.down = 28;
+  prey.path = [];
+  prey.caughtUntil = Date.now() + 8 * 60_000;
+}
+function preyTick() {
+  for (const a of animals)
+    if (a.down > 0 && --a.down === 0) a.hidden = true;
+}
+function drawDownPrey(g) {
+  const t = clockTick();
+  for (const a of animals) {
+    if (!(a.down > 0) || a.hidden || !onScreen(a.x)) continue;
+    for (let i = 0; i < 3; i++) {
+      const ang = t / 3 + (i * Math.PI * 2) / 3;
+      R(g, Math.round(a.x + Math.cos(ang) * 6), Math.round(a.y - 12 + Math.sin(ang) * 2), 2, 2, '#ffe066');
+    }
+    R(g, Math.round(a.x) - 1, Math.round(a.y) - 18, 2, 1, '#e8404b');
+  }
+}
 /** The weapon while the hunt plays: a thrust spear, an arrow in flight, a falcon swooping. */
 function drawHunt(g, e) {
   const a = e.act;
   if (!a || !HUNT_TOOL.includes(a.tool)) return false;
   const k = a.n - a.t;
-  const flip = e.dir === 'l';
+  // Aim at the animal being hunted (who holds still meanwhile); without one, straight ahead.
+  const prey = e.prey ?? (e.kind === 'me' ? me.prey : null);
+  if (prey && !prey.hidden && !(prey.down > 0)) {
+    prey.path = [];
+    prey.wait = Math.max(prey.wait ?? 0, 6);
+  }
+  const live = prey && !prey.hidden;
+  const tx = live ? Math.round(prey.x) : Math.round(e.x) + (e.dir === 'l' ? -40 : 40);
+  const ty = live ? Math.round(prey.y) - 5 : Math.round(e.y) - 9;
+  const flip = tx < e.x;
   const s = flip ? -1 : 1;
   const x = Math.round(e.x);
   const y = Math.round(e.y) - 9;
   if (a.tool === 'spear') {
-    const reach = k % 8 < 4 ? 2 : 7;
-    R(g, x + (flip ? -reach - 10 : reach), y - 1, 11, 1, '#8a5a3a');
-    R(g, x + (flip ? -reach - 12 : reach + 11), y - 2, 2, 3, '#b8bcc4');
+    // Thrown: from the hand to the animal, then it's there.
+    const p = Math.min(1, (k % 20) / 10);
+    const sx = Math.round(x + (tx - x) * p);
+    const sy = Math.round(y + (ty - y) * p - Math.sin(p * Math.PI) * 6);
+    R(g, sx - s * 10, sy, 11, 1, '#8a5a3a');
+    R(g, flip ? sx - 12 : sx + 1, sy - 1, 2, 3, '#b8bcc4');
   } else if (a.tool === 'bow') {
     for (let i = 0; i < 7; i++) R(g, x + s * (4 + Math.abs(3 - i)), y - 4 + i, 1, 1, '#8a5a3a');
-    const fly = (k % 16) * 3;
-    if (k % 16 > 2) R(g, x + s * (6 + fly), y - 1, 5, 1, '#6b4428');
+    const p = Math.min(1, (k % 16) / 8); // the arrow flies to the animal and sticks
+    if (k % 16 > 1) R(g, Math.round(x + s * 6 + (tx - x - s * 6) * p) - (flip ? 0 : 4), Math.round(y - 1 + (ty - y + 1) * p), 5, 1, '#6b4428');
   } else {
-    // A falcon: up from the glove, round, and down on the prey.
+    // A falcon: up from the glove, over, and down on the animal.
     const p = (k % 24) / 24;
-    const fx = x + s * Math.round(Math.sin(p * Math.PI) * 26);
-    const fy = y - 6 - Math.round(Math.sin(p * Math.PI) * 14);
+    const fx = Math.round(x + (tx - x) * p);
+    const fy = Math.round(y - 6 + (ty - y + 6) * p - Math.sin(p * Math.PI) * 18);
     R(g, x + s * 4, y, 2, 2, '#8a6a48');
     spr(g, BIRD[Math.floor(k / 3) % 2], { o: '#7a5a3a' }, fx - 3, fy, flip);
   }
@@ -569,6 +637,58 @@ function villageOptions(e, add, night) {
   makeUpOption(e, i, add);
 }
 
+// ── Travellers on foot: a word with whoever they pass, a hand at a building site ──────────────────────────────────
+
+const ON_FOOT = new Set(['runner', 'walker']);
+function travellersTick() {
+  if (MODE !== 'life' || !cars.length) return;
+  for (const c of cars) {
+    if (!ON_FOOT.has(c.type) || c.pause > 0 || c.x < viewX - 40 || c.x > viewX + VIEW_W + 40) continue;
+    c.cool = (c.cool ?? 0) - 1;
+    if (c.cool > 0) continue;
+    // A building site on their way: they stop and help for a while (cooperation; the work goes quicker).
+    const s = sites.find((x) => Math.abs(x.tx * T + x.w * 8 - c.x) < 20);
+    if (s) {
+      c.pause = 40;
+      c.help = 40;
+      c.cool = 200;
+      s.left = Math.max(1, s.left - 30);
+      if (Math.random() < 0.3) story('🔨 지나가던 여행자가 잠깐 멈춰서 집 짓기를 도왔어요.');
+      continue;
+    }
+    // Someone on the road near them: a hello, a few words.
+    const near = [me, ...people].find((p) => !p.hidden && !p.small && (p.kind === 'villager' || p.kind === 'me') && Math.abs(p.x - c.x) < 14 && Math.abs(p.y - (ROAD_Y * T + 14)) < 12);
+    if (near && Math.random() < 0.5) {
+      c.pause = 24;
+      c.chat = 24;
+      c.cool = 160;
+      if (near.kind === 'me') {
+        bubble = { x: me.x, y: me.y, heart: false };
+        talkFrames = 16;
+        $('now').textContent = ['여행자와 인사를 나눴어요', '여행자에게 길을 알려 줬어요', '먼 마을 소식을 들었어요'][rand(0, 2)];
+        S.happy = Math.min(100, S.happy + 1);
+      } else near.dir = near.x < c.x ? 'r' : 'l';
+    } else c.cool = 12;
+  }
+  for (const c of cars) {
+    if (c.chat > 0) c.chat--;
+    if (c.help > 0) c.help--;
+  }
+}
+/** Over a traveller: "…" while talking, a hammer while helping. */
+function drawTraveller(g, c, x, b) {
+  if (c.chat > 0) {
+    const by = b - 34;
+    R(g, x - 1, by, 11, 7, '#ffffff');
+    R(g, x + 3, by + 7, 2, 2, '#ffffff');
+    for (const dx of [1, 4, 7]) R(g, x + dx, by + 3, 1, 1, '#6b5a6a');
+  } else if (c.help > 0) {
+    const up = Math.floor(c.help / 3) % 2;
+    R(g, x + 10, b - 14 - up * 3, 1, 6, '#8a5a3a');
+    R(g, x + 9, b - 16 - up * 3, 4, 3, '#7a7e88');
+  }
+}
+
 // ── Each tick (8 a second) and each frame ─────────────────────────────────────────────────────────────────────────
 
 let pairTick = 0;
@@ -584,6 +704,8 @@ function villageTick() {
   const now = Date.now();
   for (const a of animals) if (a.caughtUntil && now > a.caughtUntil) [a.hidden, a.caughtUntil] = [false, 0];
   if (++pairTick % 4 === 0) markPairs();
+  travellersTick();
+  preyTick();
   eggTick();
   return fights.length > 0 || drones.length > 0 || leaps.length > 0;
 }
@@ -598,6 +720,7 @@ function drawVillageUnder(g) {
 }
 function drawVillageOver(g) {
   drawFights(g);
+  drawDownPrey(g);
   drawDrones(g);
   drawLeaps(g);
 }
@@ -660,6 +783,8 @@ function keepTask() {
     to: doorOf(i),
     tool: 'talk',
     what: `${nameOf(i)}네 붙잡으러 가기`,
+    dur: 36,
+    dir: 'u',
     act: () => {
       S.leaving = null;
       const odds = 0.45 + trait('charm') * 0.1 + Math.min(0.2, (S.friends[i]?.f ?? 0) * 0.03);
@@ -964,7 +1089,7 @@ let myHealth = 70;
 function meFeel() {
   if (!S.traits || MODE !== 'life') return;
   myHealth = myStatus()[0].v;
-  me.speed = 1.15 + myHealth * 0.005; // 1.15 … 1.65
+  me.speed = 1.6 + myHealth * 0.006; // 1.6 … 2.2: you go about your day a little briskly
   if (S.happy < 30 && Math.random() < 0.3) me.sulk = 30;
 }
 /** The pause after an errand: longer when you're unwell; the hot-tempered rush on. */

@@ -229,7 +229,7 @@ function liveADay() {
       const best = t && TRAITS.reduce((m, x) => (t[x[0]] > t[m[0]] ? x : m));
       const parent = S.gender === 'f' ? '엄마' : '아빠';
       const like = best && S.traits && S.traits[best[0]] >= t[best[0]] ? `${parent}를 닮아 ` : '';
-      story(`${who}가 어른이 됐어요. ${best ? `${like}${best[1]}이(가) 뛰어나요.` : ''} 이제 농사를 도와줘요.`);
+      story(`${who}가 어른이 됐어요. ${best ? `${like}${josa(best[1], '이', '가')} 뛰어나요.` : ''} 이제 농사를 도와줘요.`);
     }
     return age;
   });
@@ -272,7 +272,7 @@ function familyMoment() {
     options.push(`${k.who}가 혼자 닭 모이를 줬어요.`, `${k.who}가 강가에서 예쁜 돌을 주워 왔어요.`, `${k.who}가 이웃집 아이랑 하루 종일 뛰어놀았어요.`);
   }
   if (S.dog) options.push('강아지가 밭에 구멍을 파 놨어요… 그래도 귀여워요.', '강아지가 도둑고양이를 쫓아냈어요.');
-  if (S.spouse != null) options.push(`${FAMILIES[S.spouse].single}이(가) 저녁을 맛있게 해 줬어요.`, `${FAMILIES[S.spouse].single}와(과) 광장에서 산책했어요.`);
+  if (S.spouse != null) options.push(`${josa(FAMILIES[S.spouse].single, '이', '가')} 저녁을 맛있게 해 줬어요.`, `${josa(FAMILIES[S.spouse].single, '과', '와')} 광장에서 산책했어요.`);
   if (options.length) story(options[Math.floor(Math.random() * options.length)]);
 }
 
@@ -313,7 +313,7 @@ function war() {
   if (Math.random() < defend) {
     const lost = Math.floor(S.coins * 0.05);
     S.coins -= lost;
-    story(`⚔️ ${enemy}이(가) 쳐들어왔지만 마을이 힘을 모아 막아 냈어요!${lost ? ` (전쟁 비용 🪙${fmt(lost)})` : ''}`);
+    story(`⚔️ ${josa(enemy, '이', '가')} 쳐들어왔지만 마을이 힘을 모아 막아 냈어요!${lost ? ` (전쟁 비용 🪙${fmt(lost)})` : ''}`);
     return;
   }
   const fall = Math.max(1, Math.round(S.houses * (0.2 + Math.random() * 0.2)));
@@ -544,21 +544,23 @@ function nextTask(noJob = false) {
   if (ripe >= 0) return { to: plotSpot(ripe), tool: 'basket', what: `${era().crop} 수확`, act: () => harvest(ripe), ok: () => S.plots[ripe]?.planted };
   const keep = keepTask(); // a neighbour about to move away (village.js)
   if (keep) return keep;
+  const chosen = hobbyTask(); // a pastime you picked inside (home.js)
+  if (chosen) return chosen;
   if (S.bag >= 4 || (S.bag > 0 && !S.plots.some((p) => !p.planted)))
     return { to: STALL_SPOT, tool: 'coin', what: '가게에 작물 팔기', act: sell };
   const lm = nextLandmark();
-  if (lm && S.coins >= lm.cost && haveMaterials(materialsFor('landmark', lm))) return { to: [lm.x + Math.floor(lm.w / 2), ROAD_Y], tool: 'hammer', what: `${lm.name} 짓기`, act: () => raise(lm) };
+  if (lm && S.coins >= lm.cost && haveMaterials(materialsFor('landmark', lm))) return { to: [lm.x + Math.floor(lm.w / 2), ROAD_Y], tool: 'hammer', what: `${lm.name} 짓기`, act: () => raise(lm), dur: 40 };
   const next = ERAS[S.era + 1];
   if (next && !lm && S.coins >= next.cost && haveMaterials(materialsFor('era')) && occupied() >= Math.min(houseCap(), (S.era + 1) * 2))
-    return { to: HOME_DOOR, tool: 'hammer', what: `${next.name}로 발전`, act: advance };
+    return { to: HOME_DOOR, tool: 'hammer', what: `${josa(next.name, '으로', '로')} 발전`, act: advance, dur: 40 };
   if (S.houses < houseCap() && wantClearing() && S.coins >= clearCost()) {
     const c = clearable();
-    return { to: [c.x + 4, ROAD_Y + 1], tool: 'axe', what: '숲 개간하기', act: clearWoods };
+    return { to: [c.x + 4, ROAD_Y + 1], tool: 'axe', what: '숲 개간하기', act: clearWoods, dur: 40, dir: 'd' };
   }
   if (S.vacant > 0 && S.coins >= Math.ceil(buildCost(occupied()) / 2))
     return { to: doorOf(occupied()), tool: 'heart', what: '빈집에 새 가족 맞이하기', act: welcome };
   if (S.houses < houseCap() && S.coins >= buildCost(S.houses) && haveMaterials(materialsFor('house', S.houses)))
-    return { to: doorOf(S.houses), tool: 'hammer', what: S.ruins ? '무너진 집 다시 짓기' : '새 집 짓기', act: build };
+    return { to: doorOf(S.houses), tool: 'hammer', what: S.ruins ? '무너진 집 다시 짓기' : '새 집 짓기', act: build, dur: 32, dir: 'u' };
   if (S.chickens < MAX_CHICKENS && S.coins >= 20) return { to: PEN_GATE, tool: 'heart', what: '닭 들이기', act: buyChicken };
   if (S.era >= 1 && S.cows < MAX_COWS && S.coins >= 70) return { to: PEN_GATE, tool: 'heart', what: '소 들이기', act: buyCow };
   if (S.era >= 1 && S.sheep < 3 && S.coins >= 45) return { to: PEN_GATE, tool: 'heart', what: '양 들이기', act: () => buyAnimal('sheep', 45, '양') };
@@ -588,10 +590,13 @@ function nextTask(noJob = false) {
   }
   // Your job, when there's nothing more pressing (only while you're watching: off screen nobody walks).
   const mine = myJob();
-  if (mine && live() && !noJob && Math.random() < 0.45)
-    return { to: jobPlace(me, mine), tool: mine.tool ?? 'sparkle', what: `${mine.name}로 일하기`, act: () => jobDone(mine), job: true };
+  if (mine && live() && !noJob && Math.random() < 0.45) {
+    const hunt = mine.id === 'hunter' ? myHuntTask(mine) : null; // a hunter really hunts (village.js)
+    if (hunt) return hunt;
+    return { to: jobPlace(me, mine), tool: mine.tool ?? 'sparkle', what: `${josa(mine.name, '으로', '로')} 일하기`, act: () => jobDone(mine), job: true };
+  }
   const f = S.friends.findIndex((x, i) => i < occupied() && x && x.day !== today() && i !== S.spouse);
-  if (f >= 0) return { to: doorOf(f), tool: 'talk', what: `${FAMILIES[f].family}에 놀러 가기`, act: () => visit(f) };
+  if (f >= 0) return { to: doorOf(f), tool: 'talk', what: `${FAMILIES[f].family}에 놀러 가기`, act: () => visit(f), dur: 30, dir: 'u' };
   return null;
 }
 
@@ -609,18 +614,18 @@ function raise(lm) {
   openSite(lm.x, lm.w);
   S.coins -= lm.cost;
   S.landmarks.push(lm.id);
-  photoSoon(`${lm.name}을(를) 지은 날`);
+  photoSoon(`${josa(lm.name, '을', '를')} 지은 날`);
   cache.dirty = true;
   if (lm.id === 'rocket') {
     S.launched = true;
     story('🚀 로켓이 하늘로 날아올랐어요! 원시의 움막에서 시작한 마을이 우주까지 닿았어요. (엔딩) 마을의 하루는 계속돼요.');
-  } else story(`${lm.name}을(를) 지었어요. ${lm.does}.`);
+  } else story(`${josa(lm.name, '을', '를')} 지었어요. ${lm.does}.`);
 }
 function buy(item) {
   S.pocket -= item.price;
   S.owned.push(item.id);
   S.style[item.kind] = item.value;
-  story(`옷가게에서 ${item.name}을(를) 샀어요. 바로 바꿔 봤어요!`);
+  story(`옷가게에서 ${josa(item.name, '을', '를')} 샀어요. 바로 바꿔 봤어요!`);
 }
 function adoptDog() {
   S.dog = true;
@@ -632,9 +637,9 @@ function harvest(i) {
   S.plots[i] = { planted: false, g: 0 };
   if (Math.random() < goldenChance()) {
     S.bag += 3;
-    if (++S.golden === 1) story(`황금빛 ${era().crop}이(가) 열렸어요! 세 배로 수확했어요.`);
+    if (++S.golden === 1) story(`황금빛 ${josa(era().crop, '이', '가')} 열렸어요! 세 배로 수확했어요.`);
   } else S.bag++;
-  if (++S.harvested === 1) story(`처음으로 ${era().crop}을(를) 수확했어요.`);
+  if (++S.harvested === 1) story(`처음으로 ${josa(era().crop, '을', '를')} 수확했어요.`);
   cache.dirty = true;
 }
 function sell() {
@@ -682,7 +687,7 @@ function buyCow() {
 function buyAnimal(key, cost, name) {
   S.coins -= cost;
   S[key] = S[key] ?? 0;
-  if (++S[key] === 1) story(`목장에 ${name}을(를) 들였어요.`);
+  if (++S[key] === 1) story(`목장에 ${josa(name, '을', '를')} 들였어요.`);
   wishDone('animal', key);
   spawnAnimals();
 }
@@ -705,8 +710,8 @@ function visit(i) {
   if (fr.f >= MAX_FRIEND && S.spouse == null) {
     S.spouse = i;
     S.sinceKid = 0;
-    story(`${who}와(과) 결혼했어요! 이제 한 집에 살아요.`);
-    photoSoon(`${who}와(과) 결혼한 날`);
+    story(`${josa(who, '과', '와')} 결혼했어요! 이제 한 집에 살아요.`);
+    photoSoon(`${josa(who, '과', '와')} 결혼한 날`);
     spawnFamily();
     return `${who}: "평생 함께해요."`;
   }
@@ -1661,8 +1666,12 @@ function frame() {
     else if (e.kind === 'thief') person(ctx, e, { hair: '#1a1a22', top: '#2a2a33', legs: '#1a1a22' });
     else {
       const hop = e.hop ?? 0;
-      const sitting = e.act?.tool === 'sit' ? 2 : 0;
+      const sitting = e.act?.tool === 'sit' || e.act?.tool === 'sunset' ? 2 : 0;
       const drawn = hop || sitting ? { ...e, y: e.y + hop + sitting } : e;
+      if (e.dying > 0) {
+        drawLying(ctx, e); // chaos.js
+        continue;
+      }
       if (e.kind === 'me' && drawMeRiding(ctx, drawn)) continue;
       person(ctx, drawn, e.kind === 'me' ? OUTFIT[S.era] : e.look);
       if (e.act && !drawLeisure(ctx, drawn) && !drawPicket(ctx, drawn) && !drawHunt(ctx, drawn) && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
@@ -1838,8 +1847,12 @@ function tick() {
   }
   else if (task && !me.act) {
     // Arrived: play the action (hoe, hammer, basket…), then it happens.
-    me.act = { tool: task.tool ?? 'sparkle', n: 10, t: 10 };
-    me.dir = 'd';
+    // Each errand plays as long as it takes and faces what it's about (task.dur / task.dir); some start something on
+    // arrival (task.arrive: the animals come over, the kids run up).
+    const dur = task.dur ?? (task.job ? 36 : 12);
+    me.act = { tool: task.tool ?? 'sparkle', n: dur, t: dur };
+    me.dir = task.dir ?? 'd';
+    task.arrive?.();
     moved = true;
   } else if (task && --me.act.t > 0) moved = true;
   else if (task && (task.ok?.() === false || (!task.job && (S.coins < task.coinsAt || S.pocket < task.pocketAt) && nextTask(true)?.what !== task.what))) {
@@ -2064,6 +2077,7 @@ function paintUi() {
   paintMe();
   meFeel();
   paintWeek();
+  paintHome();
   paintAlbum();
   $('dexCount').textContent = `도감 ${S.dex.length + (S.variants?.length ?? 0)}/${DEX_TOTAL + VARIANT_TOTAL}`;
   const rare = (S.variants ?? []).map((k) => {
@@ -2155,6 +2169,39 @@ async function startOver() {
   for (const k of keys) await aquila.storage.remove(k).catch(() => {});
   location.reload();
 }
+/** 투명도: the whole panel fades (for the office) and stays that way; Esc flips between your fade and fully shown. */
+let fadeTo = 100;
+function setFade(pct, keep = true) {
+  const v = Math.max(10, Math.min(100, Math.round(pct / 10) * 10));
+  document.documentElement?.style?.setProperty('--fade', String(v / 100));
+  const r = $('fade');
+  if (r) r.value = String(v);
+  if (keep) {
+    fadeTo = v;
+    try {
+      localStorage.setItem('fade', String(v));
+    } catch {
+      /* just for this time, then */
+    }
+  }
+}
+function wireStealth() {
+  $('fade')?.addEventListener('input', (ev) => setFade(Number(ev.target.value)));
+  let shownFull = false; // Esc: a quick look at full strength, Esc again to fade back
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key !== 'Escape' || /^(INPUT|TEXTAREA|SELECT)$/.test(ev.target?.tagName ?? '') || fadeTo >= 100) return;
+    shownFull = !shownFull;
+    setFade(shownFull ? 100 : fadeTo, false);
+  });
+  let saved = 100;
+  try {
+    saved = Number(localStorage.getItem('fade')) || 100;
+  } catch {
+    /* none */
+  }
+  setFade(saved);
+}
+
 function wireStartOver() {
   $('startOver')?.addEventListener('click', () => ($('resetPick').hidden = false));
   $('resetNo')?.addEventListener('click', () => ($('resetPick').hidden = true));
@@ -2260,6 +2307,8 @@ async function start() {
   }).observe(canvas);
   wireTabs();
   wireStartOver();
+  wireHome();
+  wireStealth();
   wireBuild();
   wireFun();
   welcomeBack();

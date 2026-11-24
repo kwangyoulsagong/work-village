@@ -272,6 +272,6 @@ function updateMyJob(quiet = false) {
   S.job = j.id;
   if (quiet) return;
   const [a] = JOB_FIT[j.id];
-  story(`💼 ${traitName(a)}이(가) 좋아서 ${j.name}(이)가 됐어요. 직업 수입 +${pct(myPay(0.5))}.`);
+  story(`💼 ${josa(traitName(a), '이', '가')} 좋아서 ${josa(j.name, '이', '가')} 됐어요. 직업 수입 +${pct(myPay(0.5))}.`);
 }
 const myJob = () => JOBS.find((j) => j.id === S.job) ?? null;

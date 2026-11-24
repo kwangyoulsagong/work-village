@@ -234,6 +234,11 @@ function spawnTraffic() {
 /** Each frame: move, wrap round the map, and pull out to overtake anything slower just ahead. */
 function trafficTick(list, k) {
   for (const c of list) {
+    if (c.pause > 0) {
+      c.pause -= k; // stopped for a chat or to lend a hand (village.js travellersTick)
+      c.f += k * 0.3;
+      continue;
+    }
     c.x += (c.right ? 1 : -1) * c.v * k;
     c.f += k;
     if (!c.sky && hasSea()) {
@@ -288,9 +293,10 @@ function drawVehicle(g, c) {
   const light = (dx, yy) => R(g, r ? x + dx : x, yy, 1, 1, '#fff3a0');
   switch (c.type) {
     case 'runner': {
-      const e = { x: x + 4, y: b, dir: r ? 'r' : 'l', path: [1], frame: Math.floor(c.f * 1.5), seed: 0, gender: c.look.style ? null : c.gender };
+      const e = { x: x + 4, y: b, dir: r ? 'r' : 'l', path: c.pause > 0 ? [] : [1], frame: Math.floor(c.f * 1.5), seed: 0, gender: c.look.style ? null : c.gender };
       const at = drawPerson(g, e, c.look, { hairStyle: c.look.style });
       lookExtras(g, { ...c.look, elder: false }, at);
+      drawTraveller(g, c, x, b); // a chat, a helping hand (village.js)
       return;
     }
     case 'bike':
@@ -459,7 +465,7 @@ let placing = null; // a DECOR item waiting for a tap on the map
 function pick(d) {
   placing = d;
   document.body.dataset.placing = String(!!d);
-  if (d) toast(`${d.name}을(를) 놓을 곳을 마을에서 눌러요`, 0);
+  if (d) toast(`${josa(d.name, '을', '를')} 놓을 곳을 마을에서 눌러요`, 0);
   else toast('');
 }
 
@@ -525,7 +531,7 @@ function buildRows() {
 function addFolk() {
   S.coins -= FOLK_COST();
   S.folk = (S.folk ?? 0) + 1;
-  story(`🧳 새 주민이 마을에 왔어요. ${jobFor(100 + S.folk - 1).name}(으)로 일한대요.`);
+  story(`🧳 새 주민이 마을에 왔어요. ${josa(jobFor(100 + S.folk - 1).name, '으로', '로')} 일한대요.`);
   spawnFamily();
 }
 /** The extra neighbours, for spawnFamily. */
@@ -571,9 +577,9 @@ function placeDecor(wx, wy) {
   const d = placing;
   S.coins -= d.cost;
   (S.decor ??= []).push({ k: d.id, x: tx, y: ty });
-  if (S.decor.length === 1) story(`🌼 마을에 처음으로 ${d.name}을(를) 놓았어요.`);
+  if (S.decor.length === 1) story(`🌼 마을에 처음으로 ${josa(d.name, '을', '를')} 놓았어요.`);
   pick(null);
-  toast(`${d.name}을(를) 놓았어요`);
+  toast(`${josa(d.name, '을', '를')} 놓았어요`);
   wishDone('decor', d.id);
   cache.dirty = true;
   save();

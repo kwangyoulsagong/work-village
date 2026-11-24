@@ -108,7 +108,7 @@ function wishDaily() {
   if (!it) return;
   const w = pickAnimal ? { i, kind: 'animal', id: it.key, name: it.name } : { i, kind: 'decor', id: it.id, name: it.name };
   S.wishes.push({ ...w, until: S.days + 3 });
-  story(`💭 ${FAMILIES[i].single}이(가) 마을에 ${w.name}이(가) 있으면 좋겠대요. (짓기 탭)`);
+  story(`💭 ${josa(FAMILIES[i].single, '이', '가')} 마을에 ${josa(w.name, '이', '가')} 있으면 좋겠대요. (짓기 탭)`);
 }
 /** Something was bought or placed: does it make a wish come true? */
 function wishDone(kind, id) {
@@ -119,7 +119,7 @@ function wishDone(kind, id) {
   S.coins += gift;
   S.happy = Math.min(100, S.happy + 10);
   if (S.friends[w.i]) S.friends[w.i].f = (S.friends[w.i].f ?? 0) + 2;
-  story(`💌 ${FAMILIES[w.i].single}이(가) ${w.name} 고맙다고 편지를 보냈어요. 🪙${gift}과 우정이 늘었어요.`);
+  story(`💌 ${josa(FAMILIES[w.i].single, '이', '가')} ${w.name} 고맙다고 편지를 보냈어요. 🪙${gift}과 우정이 늘었어요.`);
 }
 /** Build-tab rows: each wish, with the button that grants it. */
 function wishRows() {

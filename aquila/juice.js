@@ -254,7 +254,7 @@ function landmarkDown(l) {
   const x = (l.x + l.w / 2) * T;
   const y = (ROAD_Y + 3) * T;
   pending.push({ boom: [x, y], at: Date.now() + 400 });
-  story(`💥 ${l.name}이(가) 연쇄 폭발했어요!`);
+  story(`💥 ${josa(l.name, '이', '가')} 연쇄 폭발했어요!`);
 }
 function pendingTick() {
   const now = Date.now();
@@ -398,6 +398,8 @@ function juiceReset() {
   chaosRound++;
   seaTrip = 0; //   a trip out to sea doesn't carry on in another town (pastimes.js)
   homeStay = null; // nor a rest at home (home.js)
+  houseView = false;
+  wantHobby = null;
   drones = []; //  village.js / motion.js effects don't follow you into another town
   leaps = [];
   pops = [];

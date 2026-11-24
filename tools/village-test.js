@@ -52,7 +52,7 @@ app.whenReady().then(async () => {
     S.rel[pairKey(1, 4)] = 6; addRel(1, 4, 1);
     const after = S.story[0].text;
     const pa = people.find((p) => resident(p) === 0), pb = people.find((p) => resident(p) === 2);
-    pa.x = (HOME.x - 1) * T; pb.x = (HOME.x - 0) * T; pa.y = pb.y = ROAD_Y * T + T - 2; pa.path = pb.path = [];
+    pa.x = (HOME.x - 1) * T; pb.x = (HOME.x - 0) * T; pa.y = pb.y = ROAD_Y * T + T - 2; pa.path = pb.path = []; pa.hidden = pb.hidden = false; // out, whatever the weather
     markPairs();
     return { feud, after, icon: pa.pairIcon, rivals: isRivals(0, 2) };`);
   ok(/앙숙/.test(rel.feud) && rel.rivals, 'rivals: ' + JSON.stringify(rel));
@@ -95,7 +95,7 @@ app.whenReady().then(async () => {
   }
   const hunt = await js(`const p = people.find((x) => resident(x) >= 0); const prey = animals.find((a) => PREY.has(a.kind) && !a.variant);
     let n = 0; for (let i = 0; i < 30 && !p.carry; i++) { prey.hidden = false; huntDone(p, prey); n++; }
-    return { carry: p.carry?.how, then: !!p.then, hidden: prey.hidden };`);
+    return { carry: p.carry?.how, then: !!p.then, hidden: prey.hidden || prey.down > 0 };`);
   ok(hunt.carry === 'meat' && hunt.then && hunt.hidden, 'a hunt brings meat home: ' + JSON.stringify(hunt));
 
   // 5. Eggs → chicks behind their mother; a breed; new wildlife.

@@ -146,7 +146,7 @@ function find(kind) {
   const rare = i >= list.length - 2;
   const bonus = rare ? 30 + i * 10 : 0;
   S.coins += bonus;
-  story(`📖 도감에 새로 올랐어요: ${name}을(를) ${DEX_VERB[kind]}!${bonus ? ` 귀한 거라 🪙${bonus}에 팔렸어요.` : ''}`);
+  story(`📖 도감에 새로 올랐어요: ${josa(name, '을', '를')} ${DEX_VERB[kind]}!${bonus ? ` 귀한 거라 🪙${bonus}에 팔렸어요.` : ''}`);
 }
 
 // ── The travelling merchant: now and then, at the square, for a day ──────────────────────────────────────────────
@@ -184,7 +184,7 @@ function merchantBuy(item) {
   if (item.id === 'charm') S.traits.luck = Math.min(5, S.traits.luck + 1);
   if (item.id === 'tonic') S.traits.health = Math.min(5, S.traits.health + 1);
   if (item.id === 'cat') S.cat = true;
-  story(`떠돌이 상인에게서 ${item.name}을(를) 샀어요. ${item.does}.`);
+  story(`떠돌이 상인에게서 ${josa(item.name, '을', '를')} 샀어요. ${item.does}.`);
   cache.dirty = true;
   spawnFamily();
 }
@@ -369,7 +369,7 @@ function farmBuy(u) {
   S.coins -= u.cost;
   S.farm.push(u.id);
   ensurePlots();
-  story(`🌾 농장에 ${u.name}을(를) 들였어요. ${u.does}.`);
+  story(`🌾 농장에 ${josa(u.name, '을', '를')} 들였어요. ${u.does}.`);
   cache.dirty = true;
 }
 /** How fast crops grow now: sprinklers help, winter slows them unless there's a greenhouse. */

@@ -137,6 +137,7 @@ function moveCam(to) {
   if (MODE === 'chaos') chaosCam = to;
   else lifeCam = { x: to, until: Date.now() + HOLD_MS };
   paintCamMe();
+  paintHome(); // dragging the view out of the house shows the town (home.js)
 }
 /** 내 캐릭터로 shows whether the view is following you (on, blue) or somewhere you moved it (off). */
 let camMeOn = null;
@@ -157,6 +158,7 @@ function lifeFollow() {
   if (Date.now() > lifeCam.until) {
     lifeCam = null;
     paintCamMe(); // following you again
+    paintHome();
     return false;
   }
   lifeCam.x = Math.max(0, Math.min(W - VIEW_W, lifeCam.x));

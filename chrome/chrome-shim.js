@@ -30,6 +30,7 @@
   document.addEventListener('visibilitychange', () => emit('visible', { visible: !document.hidden }));
 
   const badge = (text) => {
+    if (!String(text ?? '').trim()) return ''; // 숨기기 clears it
     const n = Number(String(text).replace(/[^\d]/g, ''));
     if (!Number.isFinite(n)) return '';
     return n >= 10000 ? `${Math.floor(n / 1000)}k` : n >= 1000 ? `${(n / 1000).toFixed(1)}k` : String(n);

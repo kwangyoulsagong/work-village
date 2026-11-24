@@ -288,8 +288,8 @@ function buyRide(r) {
   S.rides = [...new Set([...(S.rides ?? []), r.id])];
   S.ride = r.id;
   S.rideColour ??= RIDE_COLOURS[Math.floor(Math.random() * RIDE_COLOURS.length)];
-  story(`🚗 ${r.name}을(를) 샀어요! ${r.note}.`);
-  photoSoon(`${r.name}을(를) 산 날`);
+  story(`🚗 ${josa(r.name, '을', '를')} 샀어요! ${r.note}.`);
+  photoSoon(`${josa(r.name, '을', '를')} 산 날`);
 }
 /** Rows for the build tab: this era's rides and the ones from before. */
 function rideRows(add) {
@@ -299,7 +299,7 @@ function rideRows(add) {
     if (owned)
       add('탈것', r.name, S.ride === r.id ? '타는 중이에요' : '갖고 있어요 · 눌러서 갈아타요', 0, S.ride !== r.id, () => {
         S.ride = r.id;
-        toast(`${r.name}(으)로 갈아탔어요`);
+        toast(`${josa(r.name, '으로', '로')} 갈아탔어요`);
       });
     else add('탈것', r.name, `${r.note} · 빨라져요`, r.cost, true, () => buyRide(r));
   }

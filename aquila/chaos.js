@@ -249,6 +249,62 @@ function scorch(x, y, r) {
   cache.dirty = true;
 }
 
+/** On fire: they run about, flames and all, for a couple of seconds, set others alight, then fall. */
+function ignite(e) {
+  if (e.burning || e.kind === 'me' || e.kind === 'guest' || e.dying) return;
+  e.burning = 20;
+  e.sick = 0;
+  e.act = null;
+  e.goal = null;
+  e.speed = 2.2;
+  const [tx, ty] = tileOf(e);
+  route(e, nearestWalkable(Math.max(0, Math.min(COLS - 1, tx + rand(-6, 6))), ty + rand(-1, 1)));
+  if (Math.random() < 0.3) story('🔥 불길에 휩쓸렸어요.');
+}
+/** Down they go (illness): a moment lying there, then the ghost. */
+function collapse(e) {
+  if (e.dying) return;
+  e.dying = 14;
+  e.path = [];
+  e.act = null;
+  e.goal = null;
+}
+function burnTick() {
+  for (const e of [...people]) {
+    if (e.burning > 0) {
+      if (!e.path.length) {
+        const [tx, ty] = tileOf(e);
+        route(e, nearestWalkable(Math.max(0, Math.min(COLS - 1, tx + rand(-5, 5))), ty));
+      }
+      for (const o of people) if (o !== e && !o.burning && !o.hidden && Math.random() < 0.04 && dist(o.x, o.y, e.x, e.y) < 12) ignite(o);
+      if (--e.burning === 0) {
+        scorch(e.x, e.y + 2, 5);
+        ghost(e);
+      }
+    } else if (e.dying > 0 && --e.dying === 0) ghost(e);
+  }
+}
+/** Someone lying where they fell (illness), green and still. */
+function drawLying(g, e) {
+  g.save();
+  g.translate(Math.round(e.x) - 6, Math.round(e.y) - 2);
+  g.rotate(-Math.PI / 2);
+  drawPerson(g, { x: 6, y: 16, dir: 'd', path: [], frame: 0, seed: 0, gender: e.gender }, { ...(e.look ?? {}), skin: SICK_SKIN });
+  g.restore();
+}
+function drawBurning(g) {
+  const t = clockTick();
+  for (const e of people) {
+    if (!e.hidden && e.burning > 0 && onScreen(e.x)) {
+      const x = Math.round(e.x);
+      const y = Math.round(e.y);
+      for (const [dx, dy, c] of [[-4, -14, '#ff6b2a'], [0, -19, '#ffb347'], [3, -13, '#ff6b2a'], [-1, -24, '#ffe066'], [2, -9, '#ffb347']])
+        R(g, x + dx + ((t + dx) % 2), y + dy - (t % 3), 3, 5, c);
+      if (t % 2) R(g, x - 1, y - 30 - (t % 4), 2, 2, 'rgba(120,120,130,0.7)');
+    }
+  }
+}
+
 // ── The tools ──────────────────────────────────────────────────────────────────────────────────────────────────────
 
 function useTool(x, y) {
@@ -297,7 +353,8 @@ function useTool(x, y) {
       const i = lotAt(x, y, 22);
       if (i >= 0) fires.push({ x: lotCenter(i)[0], y: lotCenter(i)[1] + 4, t: 160, lot: i });
       else fires.push({ x, y, t: 120, lot: -1 });
-      killWithin(x, y, 12);
+      killWithin(x, y, 14);
+      for (const e of people) if (!e.hidden && !e.zombie && dist(e.x, e.y - 8, x, y) < 34) ignite(e); // the ones nearby catch fire
       say('⚡ 번개가 내리쳐 불이 붙었어요.');
       panic(x, y, 60);
       break;
@@ -367,6 +424,7 @@ function placeSign() {
 
 function chaosTick() {
   if (MODE !== 'chaos') return false;
+  burnTick();
   if (statsDirty) {
     statsDirty = false;
     paintChaosUi();
@@ -378,7 +436,7 @@ function chaosTick() {
     e.sick++;
     e.speed = 0.5;
     for (const o of people) if (!o.sick && dist(e.x, e.y, o.x, o.y) < 14 && Math.random() < 0.05) o.sick = 1;
-    if (e.sick > 100 && Math.random() < 0.03) ghost(e); // ~12 s in, then a few seconds more
+    if (e.sick > 100 && Math.random() < 0.05) collapse(e); // ~12 s in, a few seconds more, then down
   }
   // Bananas: whoever steps on one goes down, stars and all.
   for (const b of S.bananas.slice()) {
@@ -409,8 +467,8 @@ function chaosTick() {
     // Walking into the flames: people and animals on the spot go down (residents also go with the house).
     for (const e of [...people, ...animals])
       if (!e.hidden && e.kind !== 'guest' && Math.abs(e.x - f.x) < 12 && Math.abs(e.y - f.y) < 34) {
-        ghost(e);
-        if (Math.random() < 0.3) story('🔥 불길에 휩쓸렸어요.');
+        if (animals.includes(e) || e.kind === 'dog' || e.kind === 'petcat') ghost(e);
+        else ignite(e);
       }
     if (f.lot >= 0 && f.t === 60) {
       wreckLot(f.lot);
@@ -524,6 +582,10 @@ function drawChaos(g) {
     R(g, b.x + 2, b.y, 2, 1, '#f2d23a');
     R(g, b.x, b.y - 2, 1, 1, '#6b5a2a');
   }
+  drawBurning(g);
+  // The sick cough a little green cloud.
+  for (const e of people)
+    if (e.sick > 20 && !e.hidden && !e.dying && onScreen(e.x) && (clockTick() + (e.seed ?? 0)) % 12 < 4) disc(g, Math.round(e.x) + (e.dir === 'l' ? -6 : 6), Math.round(e.y) - 14, 2, 'rgba(110, 200, 90, 0.55)');
   for (const e of people)
     if (e.slip > 0 && !e.hidden)
       for (let i = 0; i < 3; i++) {

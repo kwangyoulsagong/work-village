@@ -111,12 +111,15 @@ function options(e) {
   const add = (score, what, to, tool, dur, done, start) => out.push({ score: score + Math.random() * 15, what, to, tool, dur, done, start });
   const home = e.home === -1 ? HOME_DOOR : doorOf(e.home);
 
-  if (night) add(150 - n.energy * 0.5, 'sleep', home, 'sleep', 400, () => (n.energy = 100));
+  // In a chaos town nobody goes indoors (asleep, sheltering, at dinner): they'd be out of reach of everything.
+  const chaos = MODE === 'chaos';
+  if (night && !chaos) add(150 - n.energy * 0.5, 'sleep', home, 'sleep', 400, () => (n.energy = 100));
   // Weather: a storm sends everyone indoors; rain makes home a bit more tempting.
-  if (weather === 'storm') add(140, 'shelter', home, 'sleep', 160, () => {});
+  if (chaos) { /* out in all weathers */ }
+  else if (weather === 'storm') add(140, 'shelter', home, 'sleep', 160, () => {});
   else if (weather === 'rain') add(45, 'shelter', home, 'sleep', 100, () => {});
   add((100 - n.energy) * 0.7, 'rest', [PLAZA.x + rand(0, 3), PLAZA.y + 1], 'sit', 80, () => (n.energy = Math.min(100, n.energy + 40)));
-  add((100 - n.hunger) * (isMeal() ? 1.4 : 0.6), 'eat', home, 'bowl', 60, () => (n.hunger = 100));
+  if (!chaos) add((100 - n.hunger) * (isMeal() ? 1.4 : 0.6), 'eat', home, 'bowl', 60, () => (n.hunger = 100));
   if (festivalToday()) add(120, 'dance', [PLAZA.x + rand(0, 3), PLAZA.y + rand(0, 1)], 'dance', 90, () => (n.social = 100));
 
   if (e.kind === 'kid' && !e.small) add(70, 'play', [PLAZA.x + rand(-2, 5), ROAD_Y + rand(1, 2)], 'dance', 50, () => (n.social = Math.min(100, n.social + 30)));
@@ -195,8 +198,9 @@ function options(e) {
   pastimeOptions(e, add); // the commute, a picket, the joust, the museum, a caravan (pastimes.js)
   leisureOptions(e, add, night); // a book on a bench, a kite, a jog (home.js)
   // A stroll round their own part of town (anywhere on the map made for long, aimless walks).
-  const base = e.home >= 0 ? doorOf(e.home)[0] : HOME.x;
-  add(20, 'stroll', [Math.max(0, Math.min(COLS - 1, base + rand(-18, 18))), ROAD_Y], null, 10, () => {});
+  // In chaos mode: about the part of town you're looking at, where the bananas and the fires are.
+  const base = chaos ? Math.round((chaosCam + VIEW_W / 2) / T) : e.home >= 0 ? doorOf(e.home)[0] : HOME.x;
+  add(chaos ? 60 : 20, 'stroll', [Math.max(0, Math.min(COLS - 1, base + rand(chaos ? -10 : -18, chaos ? 10 : 18))), ROAD_Y + (chaos ? rand(0, 1) : 0)], null, 10, () => {});
   return out;
 }
 
@@ -211,7 +215,7 @@ function stock(kind, n) {
 function think(e) {
   if (e.zombie) return zombieThink(e);
   if (e.kind === 'guest') return guestThink(e);
-  if (e.slip > 0) return true; // on the ground, seeing stars
+  if (e.slip > 0 || e.dying > 0) return true; // on the ground (seeing stars, or not getting up)
   // Needs run down slowly.
   const n = e.needs;
   // … faster for the frail (energy) and the sociable (company): abilities everyone has, shown or not (village.js).
@@ -282,6 +286,7 @@ function think(e) {
 
 /** Animals graze, peck and wander inside where they live; the dog follows you; birds cross the sky. */
 function animalThink(e) {
+  if (e.down > 0) return false; // hit by a hunter: down, not going anywhere
   if (e.mother) return followMother(e); // a chick behind its mother (village.js)
   if (e.path.length) return step(e);
   if (e.wait > 0) {
@@ -299,10 +304,20 @@ function animalThink(e) {
 }
 
 function dogThink(e) {
-  if (e.path.length) return step(e);
+  // The further behind, the faster it runs (you may be riding); the path is re-aimed now and then, since you move.
+  const gap = Math.abs(e.x - me.x) + Math.abs(e.y - me.y);
+  e.speed = Math.min(5, 1.6 + Math.max(0, gap - 24) / 30);
+  if (gap > 30 * T) {
+    // Left far behind (a long ride): it turns up at your side.
+    [e.x, e.y] = [me.x - (me.dir === 'l' ? -12 : 12), me.y];
+    e.path = [];
+  }
+  e.aim = (e.aim ?? 0) + 1;
+  if (e.path.length && e.aim % 16 !== 0) return step(e);
   const [mx, my] = tileOf(me);
-  if (Math.abs(e.x - me.x) + Math.abs(e.y - me.y) > 22) route(e, nearestWalkable(mx + 1, my));
-  return e.path.length > 0;
+  if (gap > 22) route(e, nearestWalkable(mx + (me.dir === 'l' ? 1 : -1), my));
+  else e.path = [];
+  return e.path.length ? step(e) : false;
 }
 
 let birds = [];
