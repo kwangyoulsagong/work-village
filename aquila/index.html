@@ -22,6 +22,8 @@
         --red: #f04452;
         --yellow: #ffc342;
         --hud: rgba(255, 255, 255, 0.9);
+        --rare-bg: #fff4d6;
+        --rare-text: #8a5a00;
         --font: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', system-ui, sans-serif;
       }
       @media (prefers-color-scheme: dark) {
@@ -36,6 +38,8 @@
           --line: #2c2c35;
           --blue-soft: #1c2b42;
           --hud: rgba(32, 32, 39, 0.88);
+          --rare-bg: #3a2f14;
+          --rare-text: #f5c65a;
         }
       }
       * { box-sizing: border-box; }
@@ -168,7 +172,7 @@
       ul.album li.photo { display: grid; gap: 4px; font-size: 11px; color: var(--text-3); }
       ul.album img { width: 100%; image-rendering: pixelated; border-radius: 8px; display: block; }
       ul.album li.empty { grid-column: 1 / -1; font-size: 13px; color: var(--text-3); padding: 8px 0; }
-      ul.grid li.rare { background: #fff4d6; color: #8a5a00; font-weight: 600; }
+      ul.grid li.rare { background: var(--rare-bg); color: var(--rare-text); font-weight: 600; }
       .segment { overflow-x: auto; scrollbar-width: none; }
       .segment button { min-width: 52px; }
 
