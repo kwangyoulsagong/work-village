@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "작은 마을",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Claude·Codex 사용량(없으면 브라우저를 켜 둔 시간)만큼 자라는 작은 마을. 캐릭터가 알아서 농사짓고 집을 짓고 이웃과 살아요.",
   "permissions": [
     "storage",
