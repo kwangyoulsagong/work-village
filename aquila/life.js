@@ -560,6 +560,7 @@ function placeDecor(wx, wy) {
   if (S.decor.length === 1) story(`🌼 마을에 처음으로 ${d.name}을(를) 놓았어요.`);
   pick(null);
   toast(`${d.name}을(를) 놓았어요`);
+  wishDone('decor', d.id);
   cache.dirty = true;
   save();
   paintUi();
@@ -693,10 +694,13 @@ function paintBuild() {
   const list = document.getElementById('buildList');
   if (!list || list.closest('.tab-body')?.hidden) return;
   const rows = buildRows();
-  const sig = rows.map((r) => r.group + r.name).join('|') + (S.coreOrder ?? coreOrderNow()).join();
+  const sig =
+    rows.map((r) => r.group + r.name).join('|') +
+    (S.coreOrder ?? coreOrderNow()).join() +
+    (S.wishes ?? []).map((w) => `${w.i}${w.id}${w.until - S.days}${S.coins >= ((w.kind === 'decor' ? DECOR.find((d) => d.id === w.id) : SHOP_ANIMALS.find((a) => a.key === w.id))?.cost ?? 0)}`).join();
   if (list.dataset.sig !== sig) {
     list.dataset.sig = sig;
-    const items = [...tellerRows()];
+    const items = [...wishRows(), ...tellerRows()];
     let group = '';
     for (const r of rows) {
       if (r.group !== group) {
@@ -785,7 +789,7 @@ function paintTimeline() {
   document.getElementById('daySun').dataset.night = String(isNight());
   const h = now.getHours();
   const part = h < 6 ? '새벽' : h < 12 ? '아침' : h < 18 ? '낮' : h < 21 ? '저녁' : '밤';
-  document.getElementById('dayLabel').textContent = `${S.days}일차 · ${SEASONS[Math.max(0, S.season)]} · ${part}`;
+  document.getElementById('dayLabel').textContent = `${S.days}일차 · ${SEASONS[Math.max(0, S.season)]} · ${part}${holiday ? ` · ${HOLIDAY_NAMES[holiday]}` : ''}`;
   document.getElementById('dayTime').textContent = now.toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit' });
   const eraDots = document.getElementById('dayEra');
   if (eraDots.dataset.era !== String(S.era)) {

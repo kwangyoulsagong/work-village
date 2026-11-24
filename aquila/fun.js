@@ -14,7 +14,7 @@ const tellerMul = () => (TELLERS.find((t) => t.id === S.teller) ?? TELLERS[1]).m
 
 // ── The chronicle: the big moments, kept longer than the story ─────────────────────────────────────────────────────
 
-const BIG = /발전했어요|전쟁|역병|결혼|태어났|세상을 떠|지었어요|로켓|어른이 됐|개간|유산|황금/;
+const BIG = /발전했어요|전쟁|역병|결혼|태어났|세상을 떠|지었어요|로켓|어른이 됐|개간|유산|황금|시상식|희귀한|설날|추석|크리스마스/;
 function chronicle(text) {
   if (!BIG.test(text) || MODE !== 'life') return;
   S.chronicle ??= [];

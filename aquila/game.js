@@ -350,6 +350,7 @@ function epidemic() {
 /** The protagonist is gone: that's the end of this town. Its record stays on screen until you start again. */
 function die(how) {
   tomb(me.x, me.y);
+  photoSoon('마지막 날');
   story(`${how} 세상을 떠났어요. 이 마을의 이야기는 여기까지예요.`);
   S.over = {
     days: S.age,
@@ -398,6 +399,8 @@ function tickDay() {
     if (!S.over) war();
     if (!S.over) epidemic();
     if (!S.over) crows();
+    if (!S.over) wishDaily();
+    if (!S.over && S.days % YEAR_DAYS === 0) awards();
   }
   S.dayEarned = 0;
 }
@@ -472,6 +475,7 @@ function absorb(list) {
       S.kids++;
       S.kidAges.push(0);
       story(`아기가 태어났어요! 우리 가족은 이제 ${2 + S.kids}명이에요.`);
+      photoSoon('아기가 태어난 날');
       spawnFamily();
     }
   }
@@ -580,6 +584,7 @@ function raise(lm) {
   openSite(lm.x, lm.w);
   S.coins -= lm.cost;
   S.landmarks.push(lm.id);
+  photoSoon(`${lm.name}을(를) 지은 날`);
   cache.dirty = true;
   if (lm.id === 'rocket') {
     S.launched = true;
@@ -615,6 +620,7 @@ function advance() {
   S.coins -= ERAS[S.era + 1].cost;
   S.era++;
   story(`마을이 ${era().name}로 발전했어요. 이제 나는 '${era().title}'!`);
+  photoSoon(`${era().name} 시대가 열린 날`);
   updateMyJob();
   const newJobs = JOBS.filter((j) => j.era === S.era).map((j) => j.name);
   story(`새 직업이 생겼어요: ${newJobs.join(', ')}. 이웃들이 하나둘 일을 바꿔요.`);
@@ -651,6 +657,7 @@ function buyAnimal(key, cost, name) {
   S.coins -= cost;
   S[key] = S[key] ?? 0;
   if (++S[key] === 1) story(`목장에 ${name}을(를) 들였어요.`);
+  wishDone('animal', key);
   spawnAnimals();
 }
 function plant(i) {
@@ -672,6 +679,7 @@ function visit(i) {
     S.spouse = i;
     S.sinceKid = 0;
     story(`${who}와(과) 결혼했어요! 이제 한 집에 살아요.`);
+    photoSoon(`${who}와(과) 결혼한 날`);
     spawnFamily();
     return `${who}: "평생 함께해요."`;
   }
@@ -1447,6 +1455,7 @@ function spawnAnimals() {
   for (let i = 0; i < 6; i++) add('squirrel', { x: Math.floor((i + 0.5) * (COLS / 6)) - 5, y: 2, w: 10, h: 1 }, 0.9);
   for (let i = 0; i < 2; i++) add('frog', { x: POND.x, y: POND.y, w: POND.w, h: POND.h }, 0.5);
   spawnMoreAnimals(add);
+  tagVariants(animals);
 }
 
 /** What goes down the road: runners, riders, carts … cars, buses, hover cars (life.js). */
@@ -1566,6 +1575,7 @@ function frame() {
   drawTraffic(ctx, cars);
   drawGolden(ctx);
   drawFx(ctx);
+  drawHoliday(ctx);
   drawMerchant(ctx);
   drawCritters(ctx);
   drawFarmLife(ctx);
@@ -1602,6 +1612,7 @@ function frame() {
       if (e.act && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
     }
   }
+  drawWishes(ctx);
   if (bubble) {
     const x = Math.round(bubble.x);
     const y = Math.round(bubble.y) - 32;
@@ -1784,6 +1795,7 @@ function loopFrame(now) {
   trafficTick(cars, k);
   goldenTick(k);
   fxTick(k);
+  holidayTick(k);
   frame();
   raf = requestAnimationFrame(loopFrame);
 }
@@ -1897,8 +1909,14 @@ function paintUi() {
   );
   paintBuild();
   paintTimeline();
-  $('dexCount').textContent = `도감 ${S.dex.length}/${DEX_TOTAL}`;
+  paintAlbum();
+  $('dexCount').textContent = `도감 ${S.dex.length + (S.variants?.length ?? 0)}/${DEX_TOTAL + VARIANT_TOTAL}`;
+  const rare = (S.variants ?? []).map((k) => {
+    const [kind, v] = k.split(':');
+    return el('li', 'rare', `${VARIANTS.find((x) => x.id === v)?.name ?? ''} ${ANIMAL_NAMES[kind] ?? kind}`);
+  });
   $('dexList').replaceChildren(
+    ...rare,
     ...Object.entries(DEX).flatMap(([kind, list]) =>
       list.map(([name]) => {
         const got = S.dex.includes(`${kind}:${name}`);
@@ -1923,8 +1941,14 @@ function paintUi() {
 
 async function start() {
   // In Chrome the town grows with browser time instead of Claude / Codex usage (see chrome/chrome-shim.js).
-  if (window.VILLAGE_SOURCE === 'browser')
-    $('hint').textContent = '브라우저를 켜 둔 1시간마다 🪙10. 마을 일은 알아서 해요 — 켜 두면 마을이 자라요.';
+  // In Chrome: this Mac's Claude / Codex usage through the local helper, or else browser time (chrome/chrome-shim.js).
+  if (window.VILLAGE_SOURCE) {
+    await aquila.usage().catch(() => null);
+    $('hint').textContent =
+      window.VILLAGE_SOURCE === 'local'
+        ? '이 맥의 Claude·Codex 사용량만큼 마을이 자라요. 주간 사용량 1%가 코인 10이에요.'
+        : '브라우저를 켜 둔 1시간마다 코인 10. Claude·Codex 도우미를 설치하면 사용량으로 자라요.';
+  }
   try {
     const saved = await aquila.storage.get('save');
     if (saved && saved.v === 2) S = { ...fresh(), ...saved };
@@ -2027,6 +2051,14 @@ async function start() {
   wireBuild();
   wireFun();
   welcomeBack();
+  void loadAlbum().then(paintAlbum);
+  checkHoliday();
+  setInterval(checkHoliday, 10 * 60_000);
+  $('snap')?.addEventListener('click', () => {
+    snapshot('찰칵');
+    toast('사진을 앨범에 넣었어요');
+  });
+  document.getElementById('albumTab')?.addEventListener('click', () => paintAlbum());
   setInterval(() => live() && paintTimeline(), 30_000);
   wake();
 }

@@ -163,6 +163,15 @@
       .buy__pair.grow { flex: 1; }
       .buy__pair.grow .btn { flex: 1; }
 
+      /* Album */
+      ul.album { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+      ul.album li.photo { display: grid; gap: 4px; font-size: 11px; color: var(--text-3); }
+      ul.album img { width: 100%; image-rendering: pixelated; border-radius: 8px; display: block; }
+      ul.album li.empty { grid-column: 1 / -1; font-size: 13px; color: var(--text-3); padding: 8px 0; }
+      ul.grid li.rare { background: #fff4d6; color: #8a5a00; font-weight: 600; }
+      .segment { overflow-x: auto; scrollbar-width: none; }
+      .segment button { min-width: 52px; }
+
       /* Build menu */
       .buy { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
       .buy + .buy { border-top: 1px solid var(--line); }
@@ -253,6 +262,7 @@
         <button class="btn icon" id="camLeft" aria-label="왼쪽으로">◀</button>
         <button class="btn icon" id="camRight" aria-label="오른쪽으로">▶</button>
         <button class="btn life-only" id="camMe">내 캐릭터로</button>
+        <button class="btn life-only" id="snap">사진</button>
         <span class="grow"></span>
         <span class="hint">끌어서 둘러볼 수 있어요</span>
       </div>
@@ -294,6 +304,7 @@
       <div class="segment" role="tablist">
         <button role="tab" data-tab="story" aria-selected="true">이야기</button>
         <button class="life-only" role="tab" data-tab="build" id="buildTab">짓기</button>
+        <button class="life-only" role="tab" data-tab="album" id="albumTab">앨범</button>
         <button role="tab" data-tab="ach" id="achCount">업적</button>
         <button role="tab" data-tab="dex" id="dexCount">도감</button>
         <button class="life-only" role="tab" data-tab="job" id="jobCount">직업</button>
@@ -303,6 +314,7 @@
         <ul class="list story" id="story"></ul>
       </div>
       <div class="tab-body" data-body="build" hidden><ul class="list" id="buildList"></ul></div>
+      <div class="tab-body" data-body="album" hidden><ul class="list album" id="albumList"></ul></div>
       <div class="tab-body" data-body="ach" hidden><ul class="list grid" id="achList"></ul></div>
       <div class="tab-body" data-body="dex" hidden><ul class="list grid" id="dexList"></ul></div>
       <div class="tab-body" data-body="job" hidden><ul class="list grid" id="jobList"></ul></div>
@@ -321,6 +333,7 @@
     <script src="layout.js"></script>
     <script src="life.js"></script>
     <script src="fun.js"></script>
+    <script src="more.js"></script>
     <script src="game.js"></script>
   </body>
 </html>
