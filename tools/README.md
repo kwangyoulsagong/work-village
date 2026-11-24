@@ -10,6 +10,7 @@ Install once with `npm install` (Electron, dev only). Screenshots go to `tools/o
 | `npm run test:life` | Traffic per era, people, wildlife, build menu (buy, place decor, move blocks), jobs tab, save |
 | `npm run test:fx` | Collapse motion, graves, green faces (chaos smash / nuke / plague, a lost war, a plague) |
 | `npm run test:more` | Album, awards, wishes, holidays, rare colours |
+| `npm run test:visit` | 놀러가기: invite code → visit (walk, guestbook note) → note back home; a chaos town wrecked in turns; neither life town changes |
 | `npm run test:chaos` | Every chaos tool, then back to the untouched life town |
 | `npm run test:chrome` | `background.js` with a fake Chrome (helper / no helper), then the side panel growing from minutes and from usage |
 | `npm test` | All of the above |
