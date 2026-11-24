@@ -75,17 +75,18 @@ function jobPlace(e, j) {
 }
 
 /** What a job's work adds: the store, the collection book. */
-function jobDone(j) {
+function jobDone(j, e = null) {
+  // Skilled hands bring back more, the lucky find more (village.js reads the worker's abilities).
   if (j.id === 'gatherer' || j.id === 'hunter') {
-    stock('berries', 1);
-    if (Math.random() < 0.15) find('forage');
+    stock('berries', workYield(e));
+    if (Math.random() < 0.15 * findMul(e)) find('forage');
   } else if (j.id === 'fisher') {
-    if (Math.random() < 0.6) stock('fish', 1);
-    if (Math.random() < 0.2) find('fish');
+    if (Math.random() < 0.6) stock('fish', workYield(e));
+    if (Math.random() < 0.2 * findMul(e)) find('fish');
   } else if (j.id === 'miner') {
-    stock('stone', 1);
-    if (Math.random() < 0.15) find('gem');
-  } else if (j.id === 'smith' || j.id === 'worker') stock('wood', 1);
+    stock('stone', workYield(e));
+    if (Math.random() < 0.15 * findMul(e)) find('gem');
+  } else if (j.id === 'smith' || j.id === 'worker') stock('wood', workYield(e));
 }
 
 // ── Gear and tools ─────────────────────────────────────────────────────────────────────────────────────────────────

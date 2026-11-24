@@ -237,8 +237,10 @@ function liveADay() {
     if (S.dogAge === 5) story('강아지가 쑥 자라서 듬직한 개가 됐어요.');
   }
   // Yesterday without work: the family missed you.
+  if (S.dayEarned >= 1) lifeCount('worked');
   if (S.dayEarned < 1) {
-    S.happy = Math.max(0, S.happy - 15);
+    // A loner minds a quiet day less; the gentle take it in their stride.
+    S.happy = Math.max(0, S.happy - (S.temper === 'loner' ? 7 : S.temper === 'gentle' ? 11 : 15));
     if (S.happy < 30 && (S.spouse != null || S.kids)) story('가족이 요즘 외로워해요. 조금 더 같이 일해 볼까요?');
   }
   familyMoment();
@@ -374,7 +376,7 @@ const levelOf = (xp) => Math.floor(Math.sqrt(xp / 15)) + 1;
 const xpFor = (level) => (level - 1) ** 2 * 15;
 function gainXp(n) {
   const before = levelOf(S.xp);
-  S.xp += n;
+  S.xp += n * learnMul();
   const after = levelOf(S.xp);
   if (after > before) story(`레벨이 올랐어요! 이제 Lv.${after}이에요.`);
 }
@@ -406,6 +408,7 @@ function tickDay() {
     if (!S.over) epidemic();
     if (!S.over) crows();
     if (!S.over) wishDaily();
+    if (!S.over) villageDay();
     if (!S.over && S.days % YEAR_DAYS === 0) awards();
   }
   S.dayEarned = 0;
@@ -536,6 +539,8 @@ function nextTask() {
   if (!S.gender || S.over || S.sickDays > 0) return null;
   const ripe = S.plots.findIndex((p) => p.planted && p.g >= GROW);
   if (ripe >= 0) return { to: plotSpot(ripe), tool: 'basket', what: `${era().crop} 수확`, act: () => harvest(ripe) };
+  const keep = keepTask(); // a neighbour about to move away (village.js)
+  if (keep) return keep;
   if (S.bag >= 4 || (S.bag > 0 && !S.plots.some((p) => !p.planted)))
     return { to: STALL_SPOT, tool: 'coin', what: '가게에 작물 팔기', act: sell };
   const lm = nextLandmark();
@@ -607,7 +612,8 @@ function buy(item) {
 }
 function adoptDog() {
   S.dog = true;
-  story('떠돌이 강아지를 입양했어요. 어디든 졸졸 따라와요.');
+  S.dogBreed = pickBreed();
+  story(`떠돌이 ${dogBreed().name} 강아지를 입양했어요. 어디든 졸졸 따라와요.`);
   spawnFamily();
 }
 function harvest(i) {
@@ -620,7 +626,7 @@ function harvest(i) {
   cache.dirty = true;
 }
 function sell() {
-  S.coins += Math.round(S.bag * era().price * priceMul() * farmPriceMul());
+  S.coins += Math.round(S.bag * era().price * priceMul() * farmPriceMul() * (S.temper === 'trader' ? 1.05 : 1));
   S.bag = 0;
 }
 function advance() {
@@ -681,7 +687,8 @@ function visit(i) {
   if (S.bag > 0 && fr.f < MAX_FRIEND) {
     S.bag--;
     fr.f = Math.min(MAX_FRIEND, fr.f + 2 + charm);
-  } else fr.f = Math.min(MAX_FRIEND, fr.f + 1 + (trait('charm') === 5 ? 1 : 0));
+  } else fr.f = Math.min(MAX_FRIEND, fr.f + 1 + (trait('charm') === 5 || S.temper === 'chatty' ? 1 : 0));
+  lifeCount('visits');
   const who = FAMILIES[i].single;
   if (fr.f >= MAX_FRIEND && S.spouse == null) {
     S.spouse = i;
@@ -711,7 +718,9 @@ function nextGoal() {
 /** Off screen / power saver: everything pending happens at once. */
 function catchUp() {
   for (let t = nextTask(), n = 0; t && n < 60; t = nextTask(), n++) {
+    const before = S.coins;
     t.act();
+    if (S.coins < before) lifeCount('spent', before - S.coins);
     gainXp(3);
   }
 }
@@ -1441,6 +1450,7 @@ function spawnFamily() {
   // A chaos town passed between friends: whoever fell stays gone (chaos.js ghost()).
   if (MODE === 'chaos' && S.gone?.length) people = people.filter((p) => !p.who || !S.gone.includes(p.who));
   people.push(...guestPeople()); // friends walking around (visit.js)
+  villageSpawn();
 }
 function shade(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -1543,6 +1553,7 @@ function cow(g, e) {
   drawAnimal(g, e, COW, COW_PAL, 16, 10, 14);
 }
 function dog(g, e) {
+  const DOG_PAL = dogBreed().pal; // the breed's colours (village.js)
   if (e.puppy) {
     // A puppy: the dog, squashed a little.
     const x = Math.round(e.x) - 6;
@@ -1597,6 +1608,7 @@ function frame() {
   drawMerchant(ctx);
   drawCritters(ctx);
   drawFarmLife(ctx);
+  drawVillageUnder(ctx);
   drawChaos(ctx);
   // Only what's on screen, each at its in-between position, back to front.
   const all = [...animals, ...people, me, ...(thief ? [thief] : [])]
@@ -1618,7 +1630,7 @@ function frame() {
     else if (e.kind === 'fox') drawAnimal(ctx, e, FOX, FOX_PAL, 12, 8, 10);
     else if (e.kind === 'squirrel') drawAnimal(ctx, e, SQUIRREL, SQUIRREL_PAL, 8, 7, 6);
     else if (e.kind === 'frog') drawAnimal(ctx, e, FROG, FROG_PAL, 7, 5, 0);
-    else if (drawMoreAnimal(ctx, e)) continue;
+    else if (drawMoreAnimal(ctx, e) || drawWildMore(ctx, e)) continue;
     else if (e.kind === 'dog') dog(ctx, e);
     else if (e.kind === 'petcat') drawAnimal(ctx, e, CAT, { ...CAT_PAL, y: '#f4f1ea' }, 10, 7, 8);
     else if (e.kind === 'thief') person(ctx, e, { hair: '#1a1a22', top: '#2a2a33', legs: '#1a1a22' });
@@ -1627,10 +1639,12 @@ function frame() {
       const sitting = e.act?.tool === 'sit' ? 2 : 0;
       const drawn = hop || sitting ? { ...e, y: e.y + hop + sitting } : e;
       person(ctx, drawn, e.kind === 'me' ? OUTFIT[S.era] : e.look);
-      if (e.act && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
+      if (e.act && !drawHunt(ctx, drawn) && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
+      drawVillager(ctx, drawn);
     }
   }
   drawWishes(ctx);
+  drawVillageOver(ctx);
   drawMeMarker(ctx);
   drawVisit(ctx);
   if (bubble) {
@@ -1772,6 +1786,8 @@ function tick() {
   for (const e of people) moved = (e.kind === 'dog' || e.kind === 'petcat' ? dogThink(e) : think(e)) || moved;
   for (const e of animals) moved = animalThink(e) || moved;
   moved = chaosTick() || moved;
+  moved = villageTick() || moved;
+  if (me.sulk > 0) me.sulk--;
   for (const s of sites) s.left--;
   if (sites.length && sites[0].left <= 0) sites.shift();
   moved = moved || sites.length > 0;
@@ -1795,7 +1811,9 @@ function tick() {
     moved = true;
   } else if (task) {
     me.act = null;
+    const before = S.coins;
     const said = task.act();
+    if (S.coins < before) lifeCount('spent', before - S.coins);
     gainXp(3);
     save();
     if (typeof said === 'string') {
@@ -1804,7 +1822,7 @@ function tick() {
       talkFrames = 20;
     }
     task = null;
-    rest = 10;
+    rest = restAfter();
     moved = true;
     paintUi();
   } else if (rest > 0) rest--;
@@ -1853,6 +1871,7 @@ function loopFrame(now) {
   critterTick(k);
   farmTick(k);
   chaosVisual(k);
+  villageVisual(k);
   trafficTick(cars, k);
   goldenTick(k);
   fxTick(k);
@@ -1892,7 +1911,8 @@ function storyKind(text) {
     /^(🔥|⚔️)/u.test(text) || /도둑|해킹|서리|전쟁/.test(text) ? 'war'
     : /^😷/u.test(text) || /앓|병|역병|바이러스/.test(text) ? 'ill'
     : /^🏅/u.test(text) || /레벨이 올랐/.test(text) ? 'ach'
-    : /^(💍|👶)/u.test(text) || /결혼|아기|아이|첫째|둘째|셋째/.test(text) ? 'love'
+    : /^(⚡)/u.test(text) || /앙숙/.test(text) ? 'war'
+    : /^(💍|👶|💕|💔|🤝)/u.test(text) || /결혼|아기|아이|첫째|둘째|셋째|연인|고백|화해/.test(text) ? 'love'
     : /^📖/u.test(text) ? 'dex'
     : /^(🪓|🌾|🏛)/u.test(text) || /지었|이사 왔|발전했|개간/.test(text) ? 'build'
     : /^🛒/u.test(text) || /옷가게|상인/.test(text) ? 'shop'
@@ -1979,6 +1999,8 @@ function paintUi() {
   );
   paintBuild();
   paintTimeline();
+  paintMe();
+  meFeel();
   paintAlbum();
   $('dexCount').textContent = `도감 ${S.dex.length + (S.variants?.length ?? 0)}/${DEX_TOTAL + VARIANT_TOTAL}`;
   const rare = (S.variants ?? []).map((k) => {
@@ -2014,11 +2036,12 @@ function pickGender(gender) {
   if (S.gender) return;
   S.gender = gender === 'm' ? 'm' : 'f';
   S.traits = rollTraits();
+  S.temper = TEMPERS[Math.floor(Math.random() * TEMPERS.length)].id; // born with it, like the abilities
   updateMyJob(true);
   $('pick').hidden = true;
   const best = TRAITS.reduce((a, t) => (S.traits[t[0]] > S.traits[a[0]] ? t : a));
   const worst = TRAITS.reduce((a, t) => (S.traits[t[0]] < S.traits[a[0]] ? t : a));
-  story(`빈 들판에 작은 움막을 지었어요. 타고난 ${best[1]}은(는) 좋지만 ${worst[1]}은(는) 약해요.`);
+  story(`빈 들판에 작은 움막을 지었어요. 타고난 ${best[1]}은(는) 좋지만 ${worst[1]}은(는) 약해요. 성격은 ${myTemper().name}이에요.`);
   save();
   paintUi();
   wake();

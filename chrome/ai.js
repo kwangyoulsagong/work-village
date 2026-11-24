@@ -106,7 +106,7 @@ function options(e) {
   const out = [];
   const night = isNight();
   const n = e.needs;
-  const add = (score, what, to, tool, dur, done) => out.push({ score: score + Math.random() * 15, what, to, tool, dur, done });
+  const add = (score, what, to, tool, dur, done, start) => out.push({ score: score + Math.random() * 15, what, to, tool, dur, done, start });
   const home = e.home === -1 ? HOME_DOOR : doorOf(e.home);
 
   if (night) add(150 - n.energy * 0.5, 'sleep', home, 'sleep', 400, () => (n.energy = 100));
@@ -124,8 +124,12 @@ function options(e) {
   }
 
   // Someone to talk to: an idle neighbour not too far away.
-  const friend = people.find((o) => o !== e && !o.small && !o.hidden && !o.busy && Math.abs(o.x - e.x) < 12 * T && o.kind !== 'dog');
-  if (friend) add((100 - n.social) * 0.9, 'talk', tileOf(friend), 'talk', 60, () => (n.social = 100));
+  const friend = people.find((o) => o !== e && !o.small && !o.hidden && !o.busy && Math.abs(o.x - e.x) < 12 * T && o.kind !== 'dog' && !avoids(e, o));
+  if (friend)
+    add((100 - n.social) * 0.9, 'talk', tileOf(friend), 'talk', 60, () => {
+      n.social = 100;
+      chatted(e, friend); // village.js: closer, or a scuffle
+    });
 
   if (sites.length && (e.role === 'builder' || Math.random() < 0.3)) {
     const s = sites[0];
@@ -136,7 +140,7 @@ function options(e) {
   if (!night && e.job) {
     const j = e.job;
     const dur = j.at === 'lake' ? 140 : j.at === 'run' || j.at === 'patrol' ? 20 : 90;
-    add(60, j.id, jobPlace(e, j), j.tool, dur, () => jobDone(j));
+    add(60, j.id, jobPlace(e, j), j.tool, dur, () => jobDone(j, e));
   }
   // Work by role, in daylight.
   if (!night && !e.job) {
@@ -149,23 +153,23 @@ function options(e) {
       }
       case 'forager':
         add(w, 'forage', groveSpot(), 'pick', 80, () => {
-          stock('berries', 1);
-          if (Math.random() < 0.15) find('forage');
+          stock('berries', workYield(e));
+          if (Math.random() < 0.15 * findMul(e)) find('forage');
         });
         break;
       case 'woodcutter':
-        add(w, 'chop', groveSpot(), 'axe', 90, () => stock('wood', 1));
+        add(w, 'chop', groveSpot(), 'axe', 90, () => stock('wood', workYield(e)));
         break;
       case 'miner':
         add(w, 'mine', [MINE.x + rand(1, MINE.w - 2), MINE.y + MINE.h], 'pickaxe', 100, () => {
-          stock('stone', 1);
-          if (Math.random() < 0.15) find('gem');
+          stock('stone', workYield(e));
+          if (Math.random() < 0.15 * findMul(e)) find('gem');
         });
         break;
       case 'fisher':
         add(w, 'fish', [LAKE.x + rand(0, LAKE.w - 1), LAKE.y - 1], 'rod', 140, () => {
-          if (Math.random() < 0.6) stock('fish', 1);
-          if (Math.random() < 0.2) find('fish');
+          if (Math.random() < 0.6) stock('fish', workYield(e));
+          if (Math.random() < 0.2 * findMul(e)) find('fish');
         });
         break;
       case 'builder':
@@ -175,6 +179,7 @@ function options(e) {
     if (S.chickens + S.cows + S.sheep + S.pigs > 0 && Math.random() < 0.3)
       add(45, 'feed', [PEN_GATE[0], PEN_GATE[1]], 'feed', 60, () => {});
   }
+  villageOptions(e, add, night); // trade, hunt, make up, the bonfire (village.js)
   add(20, 'stroll', [rand(0, COLS - 1), ROAD_Y], null, 10, () => {});
   return out;
 }
@@ -193,9 +198,10 @@ function think(e) {
   if (e.slip > 0) return true; // on the ground, seeing stars
   // Needs run down slowly.
   const n = e.needs;
-  n.energy = Math.max(0, n.energy - 0.02);
+  // … faster for the frail (energy) and the sociable (company): abilities everyone has, shown or not (village.js).
+  n.energy = Math.max(0, n.energy - 0.02 * needMul(e, 'energy'));
   n.hunger = Math.max(0, n.hunger - 0.03);
-  n.social = Math.max(0, n.social - 0.025);
+  n.social = Math.max(0, n.social - 0.025 * needMul(e, 'social'));
 
   if (e.path.length) return step(e);
   if (e.act) {
@@ -211,6 +217,14 @@ function think(e) {
         e.dir = 'd';
       }
       e.wait = rand(4, 20);
+      if (e.then) {
+        // Something follows (home from the hunt with the catch).
+        e.goal = e.then;
+        e.then = null;
+        e.busy = true;
+        e.wait = 0;
+        route(e, nearestWalkable(e.goal.to[0], e.goal.to[1]));
+      }
     }
     return true;
   }
@@ -235,6 +249,7 @@ function think(e) {
   e.busy = true;
   e.doing = pick.what;
   e.goal = pick;
+  pick.start?.();
   route(e, nearestWalkable(pick.to[0], pick.to[1]));
   return true;
 }
@@ -243,6 +258,7 @@ function think(e) {
 
 /** Animals graze, peck and wander inside where they live; the dog follows you; birds cross the sky. */
 function animalThink(e) {
+  if (e.mother) return followMother(e); // a chick behind its mother (village.js)
   if (e.path.length) return step(e);
   if (e.wait > 0) {
     e.wait--;

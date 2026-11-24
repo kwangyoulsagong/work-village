@@ -87,6 +87,7 @@ function spawnMoreAnimals(add) {
   if (biggest && biggest.w >= 14 && S.era <= 3) add('bear', { x: biggest.x + 2, y: ROAD_Y + 2, w: biggest.w - 4, h: 3 }, 0.4);
   for (let i = 0; i < (S.donkeys ?? 0); i++) add('donkey', { x: PEN.x + 1, y: PEN.y, w: PEN.w - 2, h: PEN.h }, 0.45);
   for (let i = 0; i < (S.turkeys ?? 0); i++) add('turkey', { x: PEN.x + 1, y: PEN.y, w: PEN.w - 2, h: PEN.h }, 0.55);
+  spawnWildMore(add); // otters, magpies, water deer, and the young behind their mothers (village.js)
 }
 
 // ── Villagers who all look different ───────────────────────────────────────────────────────────────────────────────
@@ -773,8 +774,9 @@ function wireBuild() {
   canvas.addEventListener('click', (ev) => {
     if (MODE !== 'life' || dragged) return;
     const [x, y] = worldAt(ev);
-    if (tryGolden(x, y)) return;
+    if (tryGolden(x, y) || tryStopFight(x, y)) return;
     if (placing) placeDecor(x, y);
+    else tryMe(x, y);
   });
 }
 

@@ -169,6 +169,22 @@
       .tl-era > span.done { background: var(--blue-soft); color: var(--blue); }
       .tl-era > span.now { background: var(--blue); color: #ffffff; font-weight: 700; }
       @media (max-width: 380px) { .tl-era .full { display: none; } }
+      .tl-news { margin-top: 8px; font-size: 12px; color: var(--text-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .tl-news[hidden] { display: none; }
+
+      /* Me: status, abilities, temperament */
+      ul.me li.me-head { display: flex; flex-direction: column; gap: 2px; background: var(--blue-soft); border-radius: 10px; padding: 10px 12px; }
+      ul.me li.me-head b { font-size: 14px; color: var(--blue); }
+      ul.me li.me-head span { font-size: 12px; color: var(--text-2); }
+      ul.me li.stat { padding: 6px 0; }
+      ul.me li.stat + li.stat { border-top: 1px solid var(--line); }
+      .stat__top { display: flex; justify-content: space-between; align-items: baseline; font-size: 13px; color: var(--text-2); }
+      .stat__top b { color: var(--text); font-variant-numeric: tabular-nums; }
+      .stat__top b.stars { color: var(--yellow); letter-spacing: -1px; }
+      .stat__note { font-size: 11px; color: var(--text-3); margin-top: 2px; }
+      li.stat__note { padding-top: 8px; }
+      .grain { position: relative; height: 6px; margin-top: 6px; border-radius: 999px; background: linear-gradient(to right, var(--blue), var(--fill) 50%, #ff8a5a); }
+      .grain i { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: var(--card); box-shadow: 0 0 0 2px var(--text-2); }
 
       /* While you were away */
       .away { background: var(--blue-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
@@ -228,6 +244,7 @@
         <div class="tl-top"><span id="dayLabel">1일차</span><span id="dayTime"></span></div>
         <div class="tl-bar" aria-hidden="true"><b class="night a"></b><b class="night b"></b><i id="dayFill"></i><span id="daySun"></span></div>
         <div class="tl-era" id="dayEra"></div>
+        <div class="tl-news" id="dayNews" hidden></div>
       </div>
       <div class="away life-only" id="away" hidden>
         <div class="away__head"><b id="awayTitle"></b><button class="btn text" id="awayClose">확인</button></div>
@@ -356,6 +373,7 @@
     <section class="card extra">
       <div class="segment" role="tablist">
         <button role="tab" data-tab="story" aria-selected="true">이야기</button>
+        <button class="life-only" role="tab" data-tab="me" id="meTab">나</button>
         <button class="life-only" role="tab" data-tab="build" id="buildTab">짓기</button>
         <button class="life-only" role="tab" data-tab="album" id="albumTab">앨범</button>
         <button role="tab" data-tab="ach" id="achCount">업적</button>
@@ -366,6 +384,7 @@
         <div class="story-view life-only"><button class="btn" data-story="all" aria-pressed="true">전체</button><button class="btn" data-story="big" aria-pressed="false">연대기</button></div>
         <ul class="list story" id="story"></ul>
       </div>
+      <div class="tab-body" data-body="me" hidden><ul class="list me" id="meList"></ul></div>
       <div class="tab-body" data-body="build" hidden><ul class="list" id="buildList"></ul></div>
       <div class="tab-body" data-body="album" hidden><ul class="list album" id="albumList"></ul></div>
       <div class="tab-body" data-body="ach" hidden><ul class="list grid" id="achList"></ul></div>
@@ -388,6 +407,7 @@
     <script src="fun.js"></script>
     <script src="more.js"></script>
     <script src="visit.js"></script>
+    <script src="village.js"></script>
     <script src="game.js"></script>
     <script src="helper-setup.js"></script>
   </body>

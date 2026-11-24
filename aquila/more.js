@@ -333,7 +333,7 @@ const VARIANTS = [
 const ANIMAL_NAMES = {
   chicken: '닭', cow: '소', sheep: '양', pig: '돼지', goat: '염소', horse: '말', alpaca: '알파카', donkey: '당나귀', turkey: '칠면조',
   duck: '오리', rabbit: '토끼', deer: '사슴', fox: '여우', squirrel: '다람쥐', frog: '개구리', cat: '고양이', hedgehog: '고슴도치',
-  turtle: '거북이', swan: '백조', boar: '멧돼지', bear: '곰', raccoon: '너구리',
+  turtle: '거북이', swan: '백조', boar: '멧돼지', bear: '곰', raccoon: '너구리', otter: '수달', magpie: '까치', gorani: '고라니',
 };
 const VARIANT_TOTAL = Object.keys(ANIMAL_NAMES).length * VARIANTS.length;
 function mixHex(a, b, t) {
