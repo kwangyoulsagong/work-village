@@ -7,7 +7,7 @@ Claude·Codex로 일한 만큼 자라는 2D 픽셀 마을 시뮬레이션. [Aqui
 
 ## 설치
 
-**Aquila**: 이 폴더를 `~/.aquila/extensions/work-village/`에 두고 확장 패널에서 켭니다. 권한: 사용량, 저장.
+**Aquila**: `./install-aquila.sh`로 `~/.aquila/extensions/work-village/`에 복사한 뒤 확장 패널에서 켭니다(게임을 고칠 때마다 다시 실행하고 패널의 ↻). 권한: 사용량, 저장.
 
 **Chrome**: `./build-chrome.sh` → `chrome://extensions` → 개발자 모드 → "압축해제된 확장 프로그램 로드" → `chrome/` 폴더. Chrome판은 브라우저를 켜 둔 시간으로 자랍니다(1시간 = 10코인).
 
