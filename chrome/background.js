@@ -42,6 +42,13 @@ async function poll(withClaude) {
   await chrome.storage.local.set({ live: next });
 }
 
+// The side panel's setup card: "try the helper now" (just installed, or the panel just opened).
+chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+  if (!msg?.check) return false;
+  void poll(true).then(async () => reply({ host: !!(await chrome.storage.local.get('live')).live?.host }));
+  return true; // answering later
+});
+
 /** Is real usage coming in? Then browser minutes don't count. */
 const hasLive = (live, now) => !!live?.host && ['claude', 'codex'].some((k) => live[k] && now - live[k].at < STALE_MS);
 
