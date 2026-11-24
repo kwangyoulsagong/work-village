@@ -16,8 +16,11 @@ const GUESTBOOK_MAX = 8;
 async function pipeBytes(bytes, stream) {
   return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
 }
+/** Raw deflate both ways: the browser's streams, or a host's own (the Claude Code mod has no streams). */
+const zipBytes = (bytes) => (window.VILLAGE_ZIP ? window.VILLAGE_ZIP.deflate(bytes) : pipeBytes(bytes, new CompressionStream('deflate-raw')));
+const unzipBytes = (bytes) => (window.VILLAGE_ZIP ? window.VILLAGE_ZIP.inflate(bytes) : pipeBytes(bytes, new DecompressionStream('deflate-raw')));
 async function packCode(obj) {
-  const z = await pipeBytes(new TextEncoder().encode(JSON.stringify(obj)), new CompressionStream('deflate-raw'));
+  const z = await zipBytes(new TextEncoder().encode(JSON.stringify(obj)));
   let s = '';
   for (let i = 0; i < z.length; i += 0x8000) s += String.fromCharCode(...z.subarray(i, i + 0x8000));
   return CODE_HEAD + btoa(s);
@@ -30,7 +33,7 @@ async function unpackCode(text) {
   if (!body) return null;
   try {
     const bin = atob(body);
-    const raw = await pipeBytes(Uint8Array.from(bin, (c) => c.charCodeAt(0)), new DecompressionStream('deflate-raw'));
+    const raw = await unzipBytes(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
     const obj = JSON.parse(new TextDecoder().decode(raw));
     return obj && typeof obj === 'object' ? obj : null;
   } catch {
@@ -96,18 +99,18 @@ function guestThink(e) {
 function drawVisit(g) {
   if (!guests.length && !VISIT) return;
   g.font = '6px sans-serif';
-  const tag = (e, text, bg) => {
+  const tag = (e, text, bg, up = 0) => {
     if (e.hidden || !onScreen(e.x)) return;
     const w = Math.min(50, g.measureText(text).width + 4);
     const x = Math.round(e.x - w / 2);
-    const y = Math.round(e.y) - 34;
+    const y = Math.round(e.y) - 34 - up;
     g.fillStyle = bg;
     g.fillRect(x, y, w, 8);
     g.fillStyle = '#ffffff';
     g.fillText(text, x + 2, y + 6, 46);
   };
   for (const e of guests) tag(e, e.name, 'rgba(40, 30, 30, 0.7)');
-  if (VISIT && !me.hidden) tag(me, myCard().name, 'rgba(49, 130, 246, 0.85)');
+  if (VISIT && !me.hidden) tag(me, myCard().name, 'rgba(49, 130, 246, 0.85)', 9); // above your arrow
 }
 
 // ── Guestbook signs left by visitors (life towns; chaos towns have their own signs) ────────────────────────────────

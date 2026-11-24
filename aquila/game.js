@@ -1621,6 +1621,7 @@ function frame() {
     }
   }
   drawWishes(ctx);
+  drawMeMarker(ctx);
   drawVisit(ctx);
   if (bubble) {
     const x = Math.round(bubble.x);
@@ -1660,6 +1661,29 @@ function frame() {
   drawWeather(ctx);
   drawChaosFlash(ctx);
   drawMini();
+}
+
+/** A small yellow arrow bobbing over your character, so you can find yourself in a crowd (wherever you walk). */
+function drawMeMarker(g) {
+  if (me.hidden || !S.gender || !onScreen(me.x)) return;
+  const m = at(me);
+  const x = Math.round(m.x);
+  const lift = bubble && Math.abs(bubble.x - me.x) < 12 ? 12 : 0; // over a talk bubble, not under it
+  const y = Math.round(m.y) - 33 - lift + (Math.floor(clockTick() / 4) % 2);
+  R(g, x - 3, y - 1, 7, 1, OL);
+  R(g, x - 3, y, 7, 1, '#ffd23f');
+  R(g, x - 2, y + 1, 5, 1, '#ffd23f');
+  R(g, x - 1, y + 2, 3, 1, '#ffd23f');
+  R(g, x, y + 3, 1, 1, '#ffd23f');
+  R(g, x - 4, y, 1, 1, OL);
+  R(g, x + 4, y, 1, 1, OL);
+  R(g, x - 3, y + 1, 1, 1, OL);
+  R(g, x + 3, y + 1, 1, 1, OL);
+  R(g, x - 2, y + 2, 1, 1, OL);
+  R(g, x + 2, y + 2, 1, 1, OL);
+  R(g, x - 1, y + 3, 1, 1, OL);
+  R(g, x + 1, y + 3, 1, 1, OL);
+  R(g, x, y + 4, 1, 1, OL);
 }
 
 /** The view follows you; true when it moved. */
