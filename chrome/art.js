@@ -244,6 +244,7 @@ function animalFlip(e) {
   return faceOf(e) === 'l';
 }
 function drawAnimal(g, e, rows, pal, wid, hei, scaleShadow) {
+  if (e.variant && typeof variantPal === 'function') pal = variantPal(pal, e.variant); // rare colours (more.js)
   const walking = e.path && e.path.length > 0;
   const f = walking ? Math.floor(e.frame / 3) % rows.length : 0;
   const x = Math.round(e.x) - Math.floor(wid / 2);
