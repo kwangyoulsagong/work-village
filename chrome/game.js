@@ -278,7 +278,7 @@ function familyMoment() {
 
 /** Now and then something goes missing: coins, a hen, the ripe crops. Bigger towns tempt more; luck helps. */
 function crime() {
-  const chance = (0.04 + S.houses * 0.002 - trait('luck') * 0.006 - (has('temple') ? 0.02 : 0)) * (has('castle') ? 0.5 : 1) * tellerMul();
+  const chance = (0.04 + S.houses * 0.002 - trait('luck') * 0.006 - (has('temple') ? 0.02 : 0)) * (has('castle') ? 0.5 : 1) * tellerMul() * weekGuard();
   if (Math.random() >= chance) return;
   const r = Math.random();
   const ripe = S.plots.filter((p) => p.planted && p.g >= GROW);
@@ -305,7 +305,7 @@ let thief = null;
 /** Now and then a neighbouring land attacks. Won: a scare. Lost: houses fall, families flee, the town rebuilds. */
 function war() {
   if (S.era < 1 || S.houses < 3) return;
-  const chance = (0.015 + S.houses * 0.0008) * (has('castle') ? 0.5 : 1) * tellerMul();
+  const chance = (0.015 + S.houses * 0.0008) * (has('castle') ? 0.5 : 1) * tellerMul() * weekGuard();
   if (Math.random() >= chance) return;
   S.wars++;
   const enemy = S.era === 5 ? '로봇 군단' : ['', '이웃 부족', '기사단', '외국 군대', '외국 군대'][S.era];
@@ -410,6 +410,7 @@ function tickDay() {
     if (!S.over) crows();
     if (!S.over) wishDaily();
     if (!S.over) villageDay();
+    if (!S.over) pastimesDay();
     if (!S.over && S.days % YEAR_DAYS === 0) awards();
   }
   S.dayEarned = 0;
@@ -466,7 +467,7 @@ function absorb(list) {
   const produce =
     gain *
     (0.1 * S.chickens + 0.25 * S.cows + 0.12 * S.sheep + 0.15 * S.pigs + 0.1 * S.goats + 0.12 * S.horses +
-      0.14 * S.alpacas + 0.1 * (S.donkeys ?? 0) + 0.08 * (S.turkeys ?? 0) + 0.05 * grown + (has('factory') ? 0.1 : 0) + farmProduce());
+      0.14 * S.alpacas + 0.1 * (S.donkeys ?? 0) + 0.08 * (S.turkeys ?? 0) + 0.05 * grown + (has('factory') && !strikeToday() ? 0.1 : 0) + farmProduce());
   // On top: pay from your job (era × how well your traits fit it) and the neighbours' jobs' tax.
   const jobIncome = gain * (myPay() + townPay());
   S.jobToday = (S.jobToday ?? 0) + jobIncome;
@@ -476,7 +477,7 @@ function absorb(list) {
   S.dayEarned += gain + produce + jobIncome;
   gainXp(gain);
   const rainBoost = raining() ? 1.25 : 1;
-  for (const p of S.plots) if (p.planted) p.g = Math.min(GROW, p.g + gain * growMul() * rainBoost * farmGrowMul());
+  for (const p of S.plots) if (p.planted) p.g = Math.min(GROW, p.g + gain * growMul() * rainBoost * farmGrowMul() * weekGrow());
   passiveGathering(gain);
   if (S.spouse) {
     S.sinceKid += gain;
@@ -577,6 +578,8 @@ function nextTask(noJob = false) {
   if (item) return { to: STALL_SPOT, tool: 'sparkle', what: `옷가게에서 ${item.name} 사기`, act: () => buy(item) };
   const ride = rideTask(); // this era's ride, when there's plenty to spare (rides.js)
   if (ride) return ride;
+  const boat = boatTask(); // out to sea on your boat (pastimes.js)
+  if (boat) return boat;
   // Your job, when there's nothing more pressing (only while you're watching: off screen nobody walks).
   const mine = myJob();
   if (mine && live() && !noJob && Math.random() < 0.45)
@@ -629,7 +632,7 @@ function harvest(i) {
   cache.dirty = true;
 }
 function sell() {
-  S.coins += Math.round(S.bag * era().price * priceMul() * farmPriceMul() * (S.temper === 'trader' ? 1.05 : 1));
+  S.coins += Math.round(S.bag * era().price * priceMul() * farmPriceMul() * (S.temper === 'trader' ? 1.05 : 1) * weekPrice());
   S.bag = 0;
 }
 function advance() {
@@ -1618,6 +1621,7 @@ function frame() {
   drawVillageUnder(ctx);
   drawChimneys(ctx);
   drawParked(ctx);
+  drawPastimes(ctx);
   drawChaos(ctx);
   // Only what's on screen, each at its in-between position, back to front.
   const all = [...animals, ...people, me, ...(thief ? [thief] : [])]
@@ -1639,7 +1643,7 @@ function frame() {
     else if (e.kind === 'fox') drawAnimal(ctx, e, FOX, FOX_PAL, 12, 8, 10);
     else if (e.kind === 'squirrel') drawAnimal(ctx, e, SQUIRREL, SQUIRREL_PAL, 8, 7, 6);
     else if (e.kind === 'frog') drawAnimal(ctx, e, FROG, FROG_PAL, 7, 5, 0);
-    else if (drawMoreAnimal(ctx, e) || drawWildMore(ctx, e)) continue;
+    else if (drawMoreAnimal(ctx, e) || drawWildMore(ctx, e) || drawVisitorAnimal(ctx, e)) continue;
     else if (e.kind === 'dog') dog(ctx, e);
     else if (e.kind === 'petcat') drawAnimal(ctx, e, CAT, { ...CAT_PAL, y: '#f4f1ea' }, 10, 7, 8);
     else if (e.kind === 'thief') person(ctx, e, { hair: '#1a1a22', top: '#2a2a33', legs: '#1a1a22' });
@@ -1649,7 +1653,7 @@ function frame() {
       const drawn = hop || sitting ? { ...e, y: e.y + hop + sitting } : e;
       if (e.kind === 'me' && drawMeRiding(ctx, drawn)) continue;
       person(ctx, drawn, e.kind === 'me' ? OUTFIT[S.era] : e.look);
-      if (e.act && !drawHunt(ctx, drawn) && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
+      if (e.act && !drawPicket(ctx, drawn) && !drawHunt(ctx, drawn) && !drawJobTool(ctx, drawn, e.act) && !drawWork(ctx, drawn, e.act)) drawAction(ctx, drawn, e.act);
       drawVillager(ctx, drawn);
       drawDust(ctx, drawn);
     }
@@ -1802,6 +1806,7 @@ function tick() {
   moved = chaosTick() || moved;
   moved = villageTick() || moved;
   moved = juiceTick() || moved;
+  moved = pastimesTick() || moved;
   if (me.sulk > 0) me.sulk--;
   for (const s of sites) s.left--;
   if (sites.length && sites[0].left <= 0) sites.shift();
@@ -2042,6 +2047,7 @@ function paintUi() {
   paintTimeline();
   paintMe();
   meFeel();
+  paintWeek();
   paintAlbum();
   $('dexCount').textContent = `도감 ${S.dex.length + (S.variants?.length ?? 0)}/${DEX_TOTAL + VARIANT_TOTAL}`;
   const rare = (S.variants ?? []).map((k) => {
@@ -2053,7 +2059,7 @@ function paintUi() {
     ...Object.entries(DEX).flatMap(([kind, list]) =>
       list.map(([name]) => {
         const got = S.dex.includes(`${kind}:${name}`);
-        const li = el('li', '', got ? name : `${{ fish: '물고기', gem: '광물', forage: '숲' }[kind]} ???`);
+        const li = el('li', '', got ? name : `${{ fish: '물고기', gem: '광물', forage: '숲', relic: '유물', sea: '바다', visitor: '손님' }[kind]} ???`);
         li.style.opacity = got ? '1' : '0.45';
         return li;
       }),

@@ -122,8 +122,14 @@ const DEX = {
   ],
   gem: [['석탄', 30], ['철광석', 22], ['구리', 16], ['은', 10], ['금', 6], ['다이아몬드', 2], ['운석 조각', 0.6]],
   forage: [['산딸기', 30], ['블루베리', 24], ['버섯', 20], ['송이버섯', 5], ['네잎클로버', 2]],
+  // Dug up or found when clearing woods; shown in a museum (pastimes.js).
+  relic: [['토기 조각', 30], ['돌도끼', 24], ['청동 거울', 14], ['암모나이트 화석', 10], ['공룡 이빨', 5], ['금관', 2], ['공룡 뼈 화석', 1]],
+  // From the pier or your own boat, on maps with a sea.
+  sea: [['고등어', 30], ['오징어', 24], ['꽃게', 18], ['문어', 12], ['참치', 6], ['복어', 4], ['고래상어', 1]],
+  // Rare visitors drawn by what you placed: never rolled, added when they come (weight 0).
+  visitor: [['공작', 0], ['두루미', 0], ['레서판다', 0], ['흰 사슴', 0]],
 };
-const DEX_VERB = { fish: '낚았어요', gem: '캐냈어요', forage: '찾았어요' };
+const DEX_VERB = { fish: '낚았어요', gem: '캐냈어요', forage: '찾았어요', relic: '발굴했어요', sea: '낚았어요' };
 const DEX_TOTAL = Object.values(DEX).reduce((a, l) => a + l.length, 0);
 
 /** Rolls a find; a new one goes in the book (rare ones pay). */

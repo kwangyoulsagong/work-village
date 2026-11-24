@@ -265,6 +265,7 @@ function clearWoods() {
   S.stock.wood += 15;
   carveGroves();
   story('🪓 숲을 개간해 새 동네 터를 닦았어요. 나무 15개가 창고에 들어왔어요.');
+  if (MODE === 'life' && Math.random() < 0.3) find('relic'); // the ground turned over
   cache.dirty = true;
   spawnAnimals();
 }

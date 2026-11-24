@@ -110,6 +110,9 @@ function spawnBoats() {
   list.forEach((type, i) => {
     boats.push({ type, x: (waterX0() + 2 + ((i * 5) % (SEA.w - 6))) * T, y: rows[i % rows.length] * T, v: (i % 2 ? -1 : 1) * (0.25 + (i % 3) * 0.12), f: i * 7 });
   });
+  // Yours, if you have one (pastimes.js): it flies a red flag.
+  const mine = MODE === 'life' ? myBoat() : null;
+  if (mine) boats.push({ type: mine.id, x: (waterX0() + 3) * T, y: 6.9 * T, v: 0.3, f: 3, mine: true });
 }
 function seaTick(k) {
   if (!hasSea()) return;
@@ -141,6 +144,10 @@ const BOAT_LEN = { raft: 14, canoe: 14, sail: 16, fishing: 18, galleon: 30, stea
 function drawBoat(g, b) {
   const x = Math.round(b.x);
   const y = Math.round(b.y + Math.sin(b.f / 6) * 1);
+  if (b.mine) {
+    R(g, x + 2, y - 20, 1, 8, '#3a2418');
+    R(g, x + 3, y - 20, 5, 3, '#ff5a5a');
+  }
   const r = b.v > 0;
   const len = BOAT_LEN[b.type] ?? 16;
   // A wake behind it.

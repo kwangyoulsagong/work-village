@@ -66,7 +66,8 @@ function townForCode() {
   return t;
 }
 
-const myCode = () => packCode({ k: MODE === 'chaos' ? 'chaos' : 'town', from: myCard(), town: townForCode() });
+const myCode = () =>
+  packCode({ k: MODE === 'chaos' ? 'chaos' : 'town', from: myCard(), town: townForCode(), news: MODE === 'life' ? newsForCode() : [] });
 
 // ── Other people's characters ──────────────────────────────────────────────────────────────────────────────────────
 
@@ -183,6 +184,10 @@ function enterVisit(obj) {
   story(`🧳 ${VISIT.host?.name ?? '이웃'}님이 코드를 만든 순간의 마을에 놀러 왔어요. 주민들 움직임은 각자 화면에서 따로 흘러가요.`);
   document.body.dataset.mode = 'visit';
   $('visitHost').textContent = `${VISIT.host?.name ?? '이웃'}님의 ${ERAS[S.era]?.name ?? ''} 마을`;
+  // The news they sent along, as plain text.
+  const news = (Array.isArray(obj.news) ? obj.news : []).filter((s) => typeof s === 'string').slice(0, 3).map((s) => s.slice(0, 60));
+  $('visitNews').hidden = !news.length;
+  $('visitNews').textContent = news.length ? `마을 소식 · ${news.join(' · ')}` : '';
   paintUi();
   wake();
 }
@@ -248,6 +253,7 @@ function takeNote(obj) {
   S.guestbook = [...(S.guestbook ?? []), { x, y, text, name }].slice(-GUESTBOOK_MAX);
   addGuest(obj.from);
   story(`✍️ ${name}님이 놀러 와서 방명록을 남겼어요: "${text}"`);
+  caravanArrives(obj); // their caravan, with a small gift, once per note (pastimes.js)
   cache.dirty = true;
   save();
   paintUi();

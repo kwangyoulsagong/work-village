@@ -166,6 +166,7 @@ function options(e) {
         add(w, 'mine', [MINE.x + rand(1, MINE.w - 2), MINE.y + MINE.h], 'pickaxe', 100, () => {
           stock('stone', workYield(e));
           if (Math.random() < 0.15 * findMul(e)) find('gem');
+          if (Math.random() < 0.04 * findMul(e)) find('relic'); // something old in the rock
         });
         break;
       case 'fisher':
@@ -182,6 +183,7 @@ function options(e) {
       add(45, 'feed', [PEN_GATE[0], PEN_GATE[1]], 'feed', 60, () => {});
   }
   villageOptions(e, add, night); // trade, hunt, make up, the bonfire (village.js)
+  pastimeOptions(e, add); // the commute, a picket, the joust, the museum, a caravan (pastimes.js)
   add(20, 'stroll', [rand(0, COLS - 1), ROAD_Y], null, 10, () => {});
   return out;
 }

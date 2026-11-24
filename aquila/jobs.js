@@ -86,6 +86,7 @@ function jobDone(j, e = null) {
   } else if (j.id === 'miner') {
     stock('stone', workYield(e));
     if (Math.random() < 0.15 * findMul(e)) find('gem');
+    if (Math.random() < 0.04 * findMul(e)) find('relic');
   } else if (j.id === 'smith' || j.id === 'worker') stock('wood', workYield(e));
 }
 

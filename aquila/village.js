@@ -531,7 +531,7 @@ function fishOption(e, add) {
     e.fishCool = 300 + rand(0, 400);
     if (Math.random() > 0.35 + t.luck * 0.08) return; // the one that got away
     stock('fish', 1);
-    if (Math.random() < 0.12 * findMul(e)) find('fish');
+    if (Math.random() < 0.12 * findMul(e)) find(sea ? 'sea' : 'fish');
     leaps.push({ x: e.x + (e.dir === 'l' ? -6 : 6), y: e.y - 2, sx: e.x, t: 0, big: Math.random() < 0.15 });
     S.fishCaught = (S.fishCaught ?? 0) + 1;
     if (sea && Math.random() < 0.05) story(`🦈 ${ga(nameOf(resident(e)))} 상어를 낚을 뻔했어요! 줄이 끊어져서 다행이에요.`);
@@ -819,6 +819,7 @@ function spawnWildMore(add) {
   for (let i = 0; i < 3; i++) add('magpie', { x: HOME.x - 20 + i * 14, y: ROAD_Y + 1, w: 8, h: 2 }, 0.8);
   GROVES.filter((g) => g.w >= 9).slice(0, 3).forEach((g) => add('gorani', { x: g.x, y: ROAD_Y + 2, w: g.w, h: 3 }, 0.7));
   spawnYoung(add);
+  spawnVisitor(add); // a rare visitor your decorations drew (pastimes.js)
 }
 
 // ── Today's line: the one thing worth knowing about today ─────────────────────────────────────────────────────────
@@ -924,6 +925,18 @@ function meRows() {
     out.push(li);
   }
   out.push(el('li', 'stat__note', '성격은 정해진 게 아니라 살아온 모습에서 읽어요. 사는 대로 조금씩 바뀌어요.'));
+  // The recipe book (pastimes.js): what the family has cooked so far.
+  out.push(el('li', 'group', `요리 수첩 ${S.cooked?.length ?? 0}/${RECIPES.length}`));
+  const book = el('li', 'chips');
+  for (const r of RECIPES) {
+    if (r.era > S.era + 1) continue;
+    const got = S.cooked?.includes(r.id);
+    const c = el('span', 'chip', got ? r.name : '???');
+    c.title = got ? r.name : `${ERAS[r.era].name} · ${Object.keys(r.need).map((k) => ({ berries: '열매', fish: '물고기', meat: '고기', crop: '작물' })[k]).join(' + ')}`;
+    if (!got) c.style.opacity = '0.5';
+    book.append(c);
+  }
+  out.push(book);
   return out;
 }
 function paintMe() {

@@ -428,6 +428,7 @@ const DECOR = [
   { id: 'bench', name: '벤치', era: 1, cost: 25 },
   { id: 'well', name: '우물', era: 1, cost: 40 },
   { id: 'statue', name: '동상', era: 2, cost: 120 },
+  { id: 'museum', name: '박물관', era: 1, cost: 250 },
   { id: 'lamp', name: '가로등', era: 3, cost: 30 },
   { id: 'fountain', name: '분수', era: 3, cost: 200 },
   { id: 'vending', name: '자판기', era: 4, cost: 60 },
@@ -503,6 +504,7 @@ function buildRows() {
     spawnFamily();
   });
   rideRows(add); // your own ride (rides.js)
+  boatRows(add); // a boat, on a map with a sea (pastimes.js)
   // Farm
   const up = FARM_UPGRADES.find((u) => !S.farm.includes(u.id) && u.era <= S.era);
   if (up) add('농장', up.name, up.does, up.cost, true, () => farmBuy(up));
@@ -627,6 +629,9 @@ function drawDecor(g) {
         box(g, x + 3, b - 5, 10, 5, '#c8c0b0');
         box(g, x + 6, b - 15, 4, 10, '#d8d4cc');
         box(g, x + 5, b - 19, 6, 5, '#e4e0d8');
+        break;
+      case 'museum':
+        drawMuseum(g, x, b);
         break;
       case 'lamp':
         R(g, x + 7, b - 16, 2, 16, '#3a3f4a');

@@ -199,6 +199,11 @@
       /* While you were away */
       .away { background: var(--blue-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
       .away[hidden] { display: none; }
+      .week__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 6px; margin-top: 8px; }
+      .week__list .choice { padding: 8px 10px; background: var(--card); }
+      .week__list .choice b { font-size: 13px; }
+      .week__list .choice span { font-size: 11px; }
+      #visitNews[hidden] { display: none; }
       .away__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
       .away__head b { font-size: 13px; color: var(--blue); }
       .away li { font-size: 12px; color: var(--text-2); padding: 3px 0; }
@@ -259,6 +264,10 @@
       <div class="away life-only" id="away" hidden>
         <div class="away__head"><b id="awayTitle"></b><button class="btn text" id="awayClose">확인</button></div>
         <ul class="list" id="awayList"></ul>
+      </div>
+      <div class="away week life-only" id="weekCard" hidden>
+        <div class="away__head"><b>이번 주는 어떻게 보낼까요?</b><button class="btn text" id="weekAuto">알아서 골라 주세요</button></div>
+        <div class="week__list" id="weekChoices"></div>
       </div>
       <div class="stage">
         <canvas id="world"></canvas>
@@ -350,6 +359,7 @@
       <div class="eyebrow" id="visitHost">친구 마을</div>
       <div class="headline">구경하는 중이에요. 이 마을은 바뀌지 않아요.</div>
       <p class="hint" style="margin: 2px 0 0">코드를 만든 순간의 마을이에요. 주민들 움직임은 실시간으로 이어지지 않아요.</p>
+      <p class="hint" id="visitNews" style="margin: 6px 0 0; color: var(--text-2)" hidden></p>
       <div class="row">
         <button class="btn" id="visitWrite">방명록 남기기</button>
         <span class="grow"></span>
@@ -436,6 +446,7 @@
     <script src="more.js"></script>
     <script src="visit.js"></script>
     <script src="village.js"></script>
+    <script src="pastimes.js"></script>
     <script src="motion.js"></script>
     <script src="game.js"></script>
   </body>
