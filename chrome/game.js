@@ -1596,7 +1596,8 @@ function frame() {
   // A view you're dragging goes straight there; otherwise it glides with everyone else.
   const manual = MODE === 'chaos' || lifeCam;
   viewX = manual ? camX : prevCam + (camX - prevCam) * alpha;
-  ctx.setTransform(scale, 0, 0, scale, 0, 0);
+  const [sx, sy] = shakeOffset(); // a big hit in chaos mode shakes the view (juice.js)
+  ctx.setTransform(scale, 0, 0, scale, sx * scale, sy * scale);
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(cache.canvas, -Math.round(viewX), 0);
   ctx.save();
@@ -1645,6 +1646,7 @@ function frame() {
   }
   drawWishes(ctx);
   drawVillageOver(ctx);
+  drawJuice(ctx);
   drawMeMarker(ctx);
   drawVisit(ctx);
   if (bubble) {
@@ -1684,6 +1686,7 @@ function frame() {
   }
   drawWeather(ctx);
   drawChaosFlash(ctx);
+  drawComboHud(ctx);
   drawMini();
 }
 
@@ -1787,6 +1790,7 @@ function tick() {
   for (const e of animals) moved = animalThink(e) || moved;
   moved = chaosTick() || moved;
   moved = villageTick() || moved;
+  moved = juiceTick() || moved;
   if (me.sulk > 0) me.sulk--;
   for (const s of sites) s.left--;
   if (sites.length && sites[0].left <= 0) sites.shift();
@@ -1857,6 +1861,15 @@ function loopFrame(now) {
     return;
   }
   drawDebt = Math.min(drawDebt - 1000 / FPS, 1000 / FPS);
+  if (hitStop > 0) {
+    // A big hit holds the picture for a beat (the view still shakes); time doesn't pile up meanwhile.
+    hitStop--;
+    if (lastTick) lastTick += 1000 / FPS;
+    lastFrame = now;
+    frame();
+    raf = requestAnimationFrame(loopFrame);
+    return;
+  }
   if (!lastTick || now - lastTick > 1000) lastTick = now - FRAME_MS;
   while (now - lastTick >= FRAME_MS) {
     tick();
@@ -1872,6 +1885,7 @@ function loopFrame(now) {
   farmTick(k);
   chaosVisual(k);
   villageVisual(k);
+  juiceVisual(k);
   trafficTick(cars, k);
   goldenTick(k);
   fxTick(k);

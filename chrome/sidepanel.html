@@ -150,8 +150,18 @@
       .visit-card .label-row { display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; font-weight: 600; }
       .visit-card .hint { margin-top: 2px; }
       .visit-card input { flex: 1; min-width: 0; font: inherit; padding: 6px 10px; border: 0; border-radius: 8px; background: var(--fill); color: var(--text); }
-      .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+      .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 6px; }
+      .tools .btn { padding: 7px 4px; font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .chaos-stats { margin-top: 10px; font-size: 12px; color: var(--text-3); }
+      .wreck { margin-top: 10px; }
+      .wreck__top { display: flex; justify-content: space-between; font-size: 13px; color: var(--text-2); }
+      .wreck__top b { font-size: 16px; color: var(--red); font-variant-numeric: tabular-nums; }
+      .wreck .progress i { background: var(--red); }
+      .wreck__line { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 10px; margin-top: 6px; font-size: 12px; color: var(--text-3); }
+      #chaosChallenge { color: var(--text-2); font-weight: 600; }
+      .done-head { display: flex; align-items: center; gap: 10px; }
+      .grade { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--blue); color: #ffffff; font-size: 22px; flex: none; }
+      .grade[data-grade='S'] { background: #ff5a7a; } .grade[data-grade='A'] { background: #ff9a3a; } .grade[data-grade='C'] { background: var(--text-3); }
       .foot { display: flex; align-items: center; gap: 8px; padding: 10px 4px 0; }
 
       /* Today's timeline over the town */
@@ -275,6 +285,16 @@
             <button class="choice" id="modeChaos"><b>인성 파탄 모드</b><span>다 지어진 마을을 마음껏 부숴요. 내 마을은 그대로예요.</span></button>
           </div>
         </div>
+        <div class="pick" id="chaosDone" hidden>
+          <div class="sheet">
+            <div class="done-head"><b class="grade" id="doneGrade">S</b><h2 id="doneTitle">마을을 다 부쉈어요</h2></div>
+            <p id="doneText"></p>
+            <div class="two">
+              <button class="btn big" id="chaosOther">다른 시대</button>
+              <button class="btn primary big" id="chaosAgain">다시 부수기</button>
+            </div>
+          </div>
+        </div>
         <div class="pick" id="eraPick" hidden>
           <div class="sheet">
             <h2>어느 시대 마을을 부술까요?</h2>
@@ -339,6 +359,11 @@
 
     <section class="card chaos-only chaos-tools">
       <div class="eyebrow">무엇으로 부술까요?</div>
+      <div class="wreck">
+        <div class="wreck__top"><span>마을 파괴율</span><b id="wreckPct">0%</b></div>
+        <div class="progress"><i id="wreckFill"></i></div>
+        <div class="wreck__line"><span id="chaosScore"></span><span id="chaosChallenge"></span></div>
+      </div>
       <div class="tools" id="chaosTools" style="margin-top: 10px"></div>
       <div class="chaos-stats" id="chaosStats"></div>
       <div class="row">
@@ -401,6 +426,7 @@
     <script src="ai.js"></script>
     <script src="extras.js"></script>
     <script src="chaos.js"></script>
+    <script src="juice.js"></script>
     <script src="jobs.js"></script>
     <script src="layout.js"></script>
     <script src="life.js"></script>

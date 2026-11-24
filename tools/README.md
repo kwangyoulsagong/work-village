@@ -13,6 +13,7 @@ Install once with `npm install` (Electron, dev only). Screenshots go to `tools/o
 | `npm run test:visit` | 놀러가기: invite code → visit (walk, guestbook note) → note back home; a chaos town wrecked in turns; neither life town changes |
 | `npm run test:village` | The neighbours' lives: a scuffle tapped apart, rivals / lovers and their icons, making up over meat, trade in all six eras, spear / bow / falcon hunts, eggs → chicks, a neighbour about to leave, today's line, the 나 tab, none of it in chaos mode |
 | `npm run test:chaos` | Every chaos tool, then back to the untouched life town |
+| `npm run test:juice` | 인성 파탄 모드's feel: score, combo, shake, debris, a challenge, knock-on collapses, the UFO and the cat paw, the result card at 100 %, a fresh round, the life town untouched |
 | `npm run test:chrome` | `background.js` with a fake Chrome (helper / no helper / check now), the side panel growing from minutes and from usage, and the helper setup card: the macOS installer run for real in a temp HOME, the Windows PowerShell installer checked as text |
 | `npm test` | All of the above |
 | `npx electron tools/ui.js` | The panel at several sizes, light and dark |

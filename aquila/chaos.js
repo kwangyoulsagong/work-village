@@ -13,7 +13,7 @@ let statsDirty = false; // something fell since the tally was drawn (delayed bla
 
 const CHAOS_TOOLS = [
   ['smash', '🔨', '집 부수기'],
-  ['fling', '👊', '사람 날리기'],
+  ['fling', '👊', '날리기'],
   ['nuke', '☢️', '핵'],
   ['plague', '🦠', '전염병'],
   ['bolt', '⚡', '번개'],
@@ -21,7 +21,9 @@ const CHAOS_TOOLS = [
   ['meteor', '☄️', '운석'],
   ['zombie', '🧟', '좀비'],
   ['tornado', '🌪', '토네이도'],
-  ['banana', '🍌', '바나나 껍질'],
+  ['ufo', '🛸', 'UFO'],
+  ['cat', '🐾', '고양이 발'],
+  ['banana', '🍌', '바나나'],
   ['sign', '✍️', '방명록'],
 ];
 
@@ -56,6 +58,7 @@ function enterChaos(era) {
   ensureLots(S.houses);
   fx = [];
   fires = [];
+  juiceReset(); // a new round: score, combo, challenge (juice.js)
   task = null;
   me.path = [];
   me.act = null;
@@ -82,6 +85,7 @@ function leaveChaos() {
   lifeState = null;
   fx = [];
   fires = [];
+  juiceReset();
   me.hidden = false;
   applyLayout(S.mapSeed);
   carveGroves();
@@ -136,6 +140,7 @@ function panic(x, y, radius) {
     route(e, nearestWalkable(Math.max(0, Math.min(COLS - 1, Math.round(e.x / T) + away * 8)), ROAD_Y));
     e.speed = 2;
   }
+  shoutNear(x, y); // "내 집!!" (juice.js)
 }
 
 function wreckLot(i) {
@@ -145,6 +150,9 @@ function wreckLot(i) {
   S.chaosStats.houses++;
   statsDirty = true;
   fx.push({ k: 'dust', x: lotCenter(i)[0], y: lotCenter(i)[1] + 8, t: 24 });
+  burst(lotCenter(i)[0], lotCenter(i)[1] + 8);
+  hit('house', lotCenter(i)[0], lotCenter(i)[1]);
+  knockOn(i); // sometimes the next one goes too
   // Whoever lives there leaves as a ghost.
   for (const e of people.filter((p) => p.home === i)) ghost(e);
   cache.dirty = true;
@@ -157,6 +165,7 @@ function wreckLandmarksNear(x, y, r) {
       S.wreckedLm.push(l.id);
       S.chaosStats.houses++;
       fx.push({ k: 'dust', x: (l.x + l.w / 2) * T, y: (ROAD_Y + 3) * T, t: 30 });
+      landmarkDown(l);
       cache.dirty = true;
     }
 }
@@ -171,6 +180,7 @@ function launch(e) {
   animals = animals.filter((a) => a !== e);
   if (e.look) S.chaosStats.people++;
   else S.chaosStats.animals++;
+  hit(e.look ? 'person' : 'animal', e.x, e.y);
 }
 
 /** A zombie shuffles after the nearest living villager; a bite makes another zombie. */
@@ -194,6 +204,7 @@ function zombieThink(e) {
     prey.goal = null;
     prey.path = [];
     S.chaosStats.people++;
+    hit('zombie', prey.x, prey.y);
     story('🧟 물렸어요! 좀비가 하나 더 늘었어요.');
     paintChaosUi();
     return true;
@@ -226,6 +237,7 @@ function ghost(e) {
   if (isAnimal) S.chaosStats.animals++;
   else S.chaosStats.people++;
   statsDirty = true;
+  hit(isAnimal ? 'animal' : 'person', e.x, e.y);
   fx.push({ k: 'ghost', x: e.x, y: e.y - 8, t: 60 });
   tomb(e.x, e.y);
 }
@@ -252,11 +264,8 @@ function useTool(x, y) {
     case 'fling': {
       const e = [...people, ...animals].filter((p) => !p.hidden).sort((a, b) => dist(a.x, a.y - 8, x, y) - dist(b.x, b.y - 8, x, y))[0];
       if (e && dist(e.x, e.y - 8, x, y) < 20) {
-        fx.push({ k: 'fly', x: e.x, y: e.y, y0: e.y, vx: (Math.random() < 0.5 ? -1 : 1) * 2.2, vy: -5, look: e.look, t: 40, animal: animals.includes(e) });
-        people = people.filter((p) => p !== e);
-        animals = animals.filter((a) => a !== e);
-        if (e.look) S.chaosStats.people++;
-        else S.chaosStats.animals++;
+        launch(e);
+        kick(1);
         say('👊 날려 버렸어요. 슝~');
         panic(x, y, 50);
       }
@@ -269,6 +278,7 @@ function useTool(x, y) {
         wreckLandmarksNear(x, y, 110);
         killWithin(x, y, 110);
         scorch(x, y, 110);
+        kick(6, 8);
         S.plots.forEach((p, i) => dist(x, y, PLOT_AT[i][0] * T, PLOT_AT[i][1] * T) < 110 && Object.assign(p, { planted: false, g: 0 }));
       }, 300);
       say('☢️ 핵이 떨어졌어요. 버섯구름이 피어올라요…');
@@ -281,6 +291,7 @@ function useTool(x, y) {
       break;
     case 'bolt': {
       fx.push({ k: 'bolt', x, y, t: 12 }, { k: 'flash', t: 4 });
+      kick(2, 1);
       const i = lotAt(x, y, 22);
       if (i >= 0) fires.push({ x: lotCenter(i)[0], y: lotCenter(i)[1] + 4, t: 160, lot: i });
       else fires.push({ x, y, t: 120, lot: -1 });
@@ -315,6 +326,12 @@ function useTool(x, y) {
       fx.push({ k: 'tornado', x, y: Math.max(ROAD_Y * T + 8, y), v: x < camX + VIEW_W / 2 ? 1.4 : -1.4, t: 150 });
       say('🌪 토네이도가 마을을 휩쓸어요.');
       panic(x, y, 90);
+      break;
+    case 'ufo':
+      useUfo(x, y);
+      break;
+    case 'cat':
+      useCat(x, y);
       break;
     case 'banana':
       S.bananas.push({ x: Math.round(x), y: Math.round(Math.min(Math.max(y, ROAD_Y * T + 4), ROAD_Y * T + 14)) });
@@ -371,6 +388,7 @@ function chaosTick() {
     e.goal = null;
     S.bananas.splice(S.bananas.indexOf(b), 1);
     S.chaosStats.slips = (S.chaosStats.slips ?? 0) + 1;
+    hit('slip', b.x, b.y);
     story('🍌 꽈당! 주민이 바나나 껍질에 미끄러졌어요 ㅋㅋ');
     paintChaosUi();
     paintUi();
@@ -409,6 +427,8 @@ function chaosTick() {
 const METEOR_FALL = 8; // ticks (1 s) from the sky to the ground
 function meteorImpact(x, y) {
   fx.push({ k: 'flash', t: 5 }, { k: 'dust', x, y, t: 30 });
+  kick(4, 4);
+  burst(x, y, 20, 1.3);
   for (let i = 0; i < S.houses; i++) if (dist(x, y, ...lotCenter(i)) < 40) wreckLot(i);
   wreckLandmarksNear(x, y, 36);
   killWithin(x, y, 40);
@@ -446,6 +466,7 @@ function drawChaos(g) {
   for (const f of fx) {
     const x = Math.round(f.x);
     const y = Math.round(f.y);
+    if (drawTools(g, f)) continue; // UFO, beamed up, the paw (juice.js)
     if (f.k === 'dust')
       for (let i = 0; i < 10; i++) {
         const a = (i / 10) * Math.PI * 2;
@@ -565,6 +586,7 @@ function paintChaosUi() {
       bar.append(b);
     }
   for (const b of bar.children) b.setAttribute('aria-pressed', String(b.dataset.tool === chaosTool));
+  paintJuiceUi();
   if (MODE === 'chaos') {
     const st = S.chaosStats;
     const alive = people.filter((p) => !p.zombie).length;
@@ -580,6 +602,7 @@ function wireChaos() {
     const [x, y] = worldAt(ev);
     useTool(x, y);
   });
+  wireJuice();
   $('signOk').addEventListener('click', placeSign);
   $('signText').addEventListener('keydown', (ev) => ev.key === 'Enter' && placeSign());
   $('chaosExit').addEventListener('click', leaveChaos);
