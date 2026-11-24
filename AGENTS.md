@@ -12,9 +12,6 @@ local helper) or, with neither, the minutes the browser is open. Plain HTML/JS, 
   `background.js` polls the native helper (`chrome/host/`) or counts minutes. Without the helper, `helper-setup.js`
   (Chrome only, added by `build-chrome.sh`) offers a one-paste installer for macOS / Linux / Windows; there are Windows
   users, so keep the helper and installer working there (`npm run test:chrome` checks the generated PowerShell).
-- `claude-mod/` — the Claude Code mod: `./build-claude-mod.sh` bundles the game into `hooks/game.gen.js`, run on
-  browser stand-ins (`hooks/host.js`: a software canvas, a remembering DOM, our own timers; `hooks/zip.js` for codes).
-  Floats a small town in the terminal's top right corner and opens a `/village` panel; grows with Claude's usage windows.
 - `./install-aquila.sh` copies `aquila/` into `~/.aquila/extensions/work-village/` (Aquila doesn't follow symlinks).
 
 ## Rules
@@ -38,6 +35,5 @@ local helper) or, with neither, the minutes the browser is open. Plain HTML/JS, 
    English. Conventional Commits, one change per commit.
 8. **Balance with the simulator, not by feel.** After changing income or costs, run `npm run sim` (200 lives, all game
    files in a `vm` with stubs, 7 % usage a day). A new game file must be added to its file list in `tools/sim.js`. Target: most towns reach the future era in ~5–7 weeks.
-9. After editing `aquila/`: run `./build-chrome.sh` and `./build-claude-mod.sh` (and `./install-aquila.sh` to try it in
-   Aquila). The game must keep running on the mod's stand-ins: new canvas calls go in `claude-mod/hooks/host.js`.
+9. After editing `aquila/`: run `./build-chrome.sh` (and `./install-aquila.sh` to try it in Aquila).
 10. **Open work lives in `TODO.md`.** Read it at the start; tick items and add new ones as you go.

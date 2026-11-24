@@ -16,9 +16,8 @@ const GUESTBOOK_MAX = 8;
 async function pipeBytes(bytes, stream) {
   return new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(stream)).arrayBuffer());
 }
-/** Raw deflate both ways: the browser's streams, or a host's own (the Claude Code mod has no streams). */
-const zipBytes = (bytes) => (window.VILLAGE_ZIP ? window.VILLAGE_ZIP.deflate(bytes) : pipeBytes(bytes, new CompressionStream('deflate-raw')));
-const unzipBytes = (bytes) => (window.VILLAGE_ZIP ? window.VILLAGE_ZIP.inflate(bytes) : pipeBytes(bytes, new DecompressionStream('deflate-raw')));
+const zipBytes = (bytes) => pipeBytes(bytes, new CompressionStream('deflate-raw'));
+const unzipBytes = (bytes) => pipeBytes(bytes, new DecompressionStream('deflate-raw'));
 async function packCode(obj) {
   const z = await zipBytes(new TextEncoder().encode(JSON.stringify(obj)));
   let s = '';

@@ -13,7 +13,6 @@ Install once with `npm install` (Electron, dev only). Screenshots go to `tools/o
 | `npm run test:visit` | 놀러가기: invite code → visit (walk, guestbook note) → note back home; a chaos town wrecked in turns; neither life town changes |
 | `npm run test:chaos` | Every chaos tool, then back to the untouched life town |
 | `npm run test:chrome` | `background.js` with a fake Chrome (helper / no helper / check now), the side panel growing from minutes and from usage, and the helper setup card: the macOS installer run for real in a temp HOME, the Windows PowerShell installer checked as text |
-| `npm run test:mod` | The Claude Code mod: the game on its browser stand-ins in Node (frames, usage, chaos, codes), then `claude plugin validate` and `claude plugin test` (panel, corner window, terminal and desktop) |
 | `npm test` | All of the above |
 | `npx electron tools/ui.js` | The panel at several sizes, light and dark |
 | `npx electron tools/maps.js` / `houses.js` / `jobs-sheet.js` / `vehicles.js` | Sheets: whole maps, house looks, the 24 jobs, every vehicle |

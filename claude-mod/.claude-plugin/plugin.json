@@ -1,6 +1,0 @@
-{
-  "name": "work-village",
-  "version": "0.1.0",
-  "description": "작은 마을: Claude를 쓰는 만큼 자라는 픽셀 마을. 터미널 오른쪽 위에 떠 있고, /village로 열어요.",
-  "types": "./types/index.d.ts"
-}

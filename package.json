@@ -10,7 +10,6 @@
     "test:more": "electron tools/more-test.js",
     "test:chaos": "electron tools/chaos-test.js",
     "test:visit": "electron tools/visit-test.js",
-    "test:mod": "node tools/mod-engine-test.mjs && claude plugin validate claude-mod && claude plugin test claude-mod",
     "test:chrome": "node tools/bg-test.js && electron tools/chrome-test.js && electron tools/helper-test.js && HELPER_PLATFORM=win electron tools/helper-test.js",
     "test": "npm run sim && npm run test:life && npm run test:fx && npm run test:more && npm run test:visit && npm run test:chaos && npm run test:chrome && npm run perf"
   },
