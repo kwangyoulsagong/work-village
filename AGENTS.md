@@ -19,7 +19,8 @@ local helper) or, with neither, the minutes the browser is open. Plain HTML/JS, 
 2. **The two modes never share a save.** Chaos mode works on a copy; leaving it restores the life town untouched.
 3. **Verify offscreen only.** The user works at an office: never open a visible window (no `npm run dev`, no visible
    Electron/Chrome). Use Electron with `show: false` + `webPreferences.offscreen: true` and capture with
-   `capturePage()` / `canvas.toDataURL()`. Say plainly when something could only be checked offscreen.
+   `capturePage()` / `canvas.toDataURL()` — the scripts in `tools/` do this (`npm test`; see tools/README.md). Say
+   plainly when something could only be checked offscreen.
 4. **Battery first.** 30 fps everywhere (minds tick 8×/s, drawing interpolates). Static scenery is cached; draw only
    what's on screen; stop when the panel is hidden. Check frame time after adding anything that draws every frame.
 5. **Serverless, local only.** No network calls. Saves go through `aquila.storage` (Aquila: 512 KB in all; the photo
@@ -28,6 +29,7 @@ local helper) or, with neither, the minutes the browser is open. Plain HTML/JS, 
    constants at top level, only inside functions.
 7. **Korean UI copy, written from the player's side** (Toss style: short, plain, polite). Code, comments, commits in
    English. Conventional Commits, one change per commit.
-8. **Balance with the simulator, not by feel.** After changing income or costs, rerun the 200-life economy sim
-   (all game files in a `vm` with stubs, 7 % usage a day). Target: most towns reach the future era in ~5–7 weeks.
+8. **Balance with the simulator, not by feel.** After changing income or costs, run `npm run sim` (200 lives, all game
+   files in a `vm` with stubs, 7 % usage a day). A new game file must be added to its file list in `tools/sim.js`. Target: most towns reach the future era in ~5–7 weeks.
 9. After editing `aquila/`: run `./build-chrome.sh` (and `./install-aquila.sh` to try it in Aquila).
+10. **Open work lives in `TODO.md`.** Read it at the start; tick items and add new ones as you go.
