@@ -535,11 +535,11 @@ const fmt = (n) => Math.floor(n).toLocaleString('ko');
 const era = () => ERAS[S.era];
 const plotSpot = (i) => [PLOT_AT[i][0], PLOT_AT[i][1] - 1];
 
-function nextTask() {
+function nextTask(noJob = false) {
   if (MODE !== 'life') return null; // visiting: just a stroll
   if (!S.gender || S.over || S.sickDays > 0) return null;
   const ripe = S.plots.findIndex((p) => p.planted && p.g >= GROW);
-  if (ripe >= 0) return { to: plotSpot(ripe), tool: 'basket', what: `${era().crop} 수확`, act: () => harvest(ripe) };
+  if (ripe >= 0) return { to: plotSpot(ripe), tool: 'basket', what: `${era().crop} 수확`, act: () => harvest(ripe), ok: () => S.plots[ripe]?.planted };
   const keep = keepTask(); // a neighbour about to move away (village.js)
   if (keep) return keep;
   if (S.bag >= 4 || (S.bag > 0 && !S.plots.some((p) => !p.planted)))
@@ -579,7 +579,7 @@ function nextTask() {
   if (ride) return ride;
   // Your job, when there's nothing more pressing (only while you're watching: off screen nobody walks).
   const mine = myJob();
-  if (mine && live() && Math.random() < 0.45)
+  if (mine && live() && !noJob && Math.random() < 0.45)
     return { to: jobPlace(me, mine), tool: mine.tool ?? 'sparkle', what: `${mine.name}로 일하기`, act: () => jobDone(mine), job: true };
   const f = S.friends.findIndex((x, i) => i < occupied() && x && x.day !== today() && i !== S.spouse);
   if (f >= 0) return { to: doorOf(f), tool: 'talk', what: `${FAMILIES[f].family}에 놀러 가기`, act: () => visit(f) };
@@ -1824,8 +1824,8 @@ function tick() {
     me.dir = 'd';
     moved = true;
   } else if (task && --me.act.t > 0) moved = true;
-  else if (task && !task.job && nextTask()?.what !== task.what) {
-    // Things changed on the way (a thief, a war, the bill came first): don't pay for what's no longer affordable.
+  else if (task && (task.ok?.() === false || (!task.job && (S.coins < task.coinsAt || S.pocket < task.pocketAt) && nextTask(true)?.what !== task.what))) {
+    // Things changed on the way (a thief, a war, the crop was taken): don't pay for what's no longer affordable.
     me.act = null;
     task = null;
     rest = 2;
@@ -1851,6 +1851,8 @@ function tick() {
   else {
     task = nextTask();
     if (task) {
+      task.coinsAt = S.coins; // checked again on arrival, if money went out meanwhile
+      task.pocketAt = S.pocket;
       $('now').textContent = task.what;
       route(me, nearestWalkable(task.to[0], task.to[1]));
       startTrip();

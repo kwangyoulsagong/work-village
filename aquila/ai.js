@@ -86,7 +86,7 @@ const tileOf = (e) => [Math.round((e.x - T / 2) / T), Math.round((e.y - T + 2) /
 /** Sends someone to a tile along a real path. */
 function route(e, [tx, ty]) {
   const [sx, sy] = tileOf(e);
-  tx = shoreClamp(tx); // nobody walks out to sea (sea.js)
+  if (!isPier(tx, ty)) tx = shoreClamp(tx); // nobody walks out to sea, except along the pier (sea.js)
   e.path = findPath(sx, sy, Math.max(0, Math.min(COLS - 1, tx)), Math.max(0, Math.min(ROWS - 1, ty)));
 }
 
@@ -210,7 +210,9 @@ function think(e) {
     e.act.t--;
     if (e.act.tool === 'dance' || (e.act.tool === 'run' && e.act.t % 4 === 0)) e.hop = e.act.t % 6 < 3 ? -2 : 0;
     if (e.act.t <= 0) {
-      e.act.done?.();
+      const a = e.act;
+      a.done?.();
+      if (e.act !== a) return true; // what finished started something new (a chat that became a scuffle)
       e.act = null;
       e.busy = false;
       e.hop = 0;
@@ -252,6 +254,11 @@ function think(e) {
   e.busy = true;
   e.doing = pick.what;
   e.goal = pick;
+  if (e.carry && !['trade', 'makeup'].includes(pick.what)) {
+    // An errand cut short (a storm, a scuffle): whatever was carried goes home with them.
+    e.carry = null;
+    if (e.baseSpeed) e.speed = e.baseSpeed;
+  }
   pick.start?.();
   route(e, nearestWalkable(pick.to[0], pick.to[1]));
   return true;

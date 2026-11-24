@@ -671,8 +671,8 @@ function keepTask() {
       if (i === occupied() - 1) {
         S.vacant++;
         spawnFamily();
-      }
-      story(`🧳 붙잡아 봤지만 ${nameOf(i)}네는 결국 떠났어요.`);
+        story(`🧳 붙잡아 봤지만 ${nameOf(i)}네는 결국 떠났어요.`);
+      } else story(`🧳 ${nameOf(i)}네는 아직 마음을 못 정했대요. 조금 더 지내 보기로 했어요.`);
       return `${nameOf(i)}: "그동안 고마웠어요."`;
     },
   };
@@ -701,7 +701,13 @@ function eggTick() {
         if (!S.variants.includes(key)) S.variants.push(key);
         story(`✨ ${VARIANTS.find((x) => x.id === v).name} ${baby}가 알을 깨고 나왔어요!`);
       } else if ((S.hatched = (S.hatched ?? 0) + 1) === 1) story(`🐣 알에서 ${baby}가 나왔어요. 엄마 뒤를 졸졸 따라다녀요.`);
-      spawnAnimals();
+      // Just the new one, next to its mother (a full respawn would bring hunted animals back early).
+      const m = animals.find((a) => a.kind === egg.k);
+      if (m) {
+        const kid = make(egg.k === 'duck' ? 'duckling' : 'chick', tileOf(m), { zone: m.zone, speed: 0.7, mother: m, babyVariant: v });
+        [kid.x, kid.y] = [m.x - 6, m.y];
+        animals.push(kid);
+      }
     }
   // Laying: now and then, while there's room for more young.
   if (S.eggs.length >= 2 || S.young.length + S.eggs.length >= YOUNG_MAX || Math.random() > 0.0015) return;
@@ -807,7 +813,8 @@ function drawWildMore(g, e) {
   return drawYoung(g, e);
 }
 function spawnWildMore(add) {
-  if (hasSea()) animals = animals.filter((a) => !inSeaTile(Math.floor(a.x / T))); // nothing grazes on the waves
+  // Nothing grazes on the waves: drop whatever was put in, or would wander into, the sea.
+  if (hasSea()) animals = animals.filter((a) => !inSeaTile(Math.floor(a.x / T)) && !(a.zone && (isWater(a.zone.x) || isWater(a.zone.x + a.zone.w - 1))));
   add('otter', { x: LAKE.x + 1, y: LAKE.y, w: LAKE.w - 2, h: Math.max(1, LAKE.h - 1) }, 0.5);
   for (let i = 0; i < 3; i++) add('magpie', { x: HOME.x - 20 + i * 14, y: ROAD_Y + 1, w: 8, h: 2 }, 0.8);
   GROVES.filter((g) => g.w >= 9).slice(0, 3).forEach((g) => add('gorani', { x: g.x, y: ROAD_Y + 2, w: g.w, h: 3 }, 0.7));
@@ -911,7 +918,7 @@ function meRows() {
     top.append(el('span', '', a), el('span', '', b));
     const bar = el('div', 'grain');
     const dot = el('i');
-    dot.style.left = `${100 - v}%`;
+    dot.style.left = `calc(6px + (100% - 12px) * ${((100 - v) / 100).toFixed(2)})`; // the dot stays inside the bar
     bar.append(dot);
     li.append(top, bar);
     out.push(li);

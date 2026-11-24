@@ -45,6 +45,8 @@ app.whenReady().then(async () => {
   await shoot('ui-tiny', 420, 360, false, town);
   await shoot('ui-mode', 420, 760, false, `$('mode').hidden = false;`);
   await shoot('ui-chaos', 420, 900, false, `enterChaos(4);`);
+  await shoot('ui-me-dark', 360, 1100, true, town + `document.querySelector('[data-tab="me"]').click(); document.querySelector('.extra').scrollIntoView();`);
+  await shoot('ui-chaos-narrow', 300, 900, true, `enterChaos(2); document.querySelector('.chaos-tools').scrollIntoView();`);
   console.log(JSON.stringify({ errors }));
   app.exit(0);
 });

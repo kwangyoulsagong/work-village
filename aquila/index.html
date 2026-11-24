@@ -107,7 +107,7 @@
       .segment { display: flex; background: var(--fill); border-radius: 10px; padding: 3px; gap: 2px; margin-bottom: 10px; }
       .segment button { flex: 1; border: 0; background: none; border-radius: 8px; padding: 6px 4px; font-size: 13px; font-weight: 600; color: var(--text-3); cursor: pointer; white-space: nowrap; }
       .segment button[aria-selected='true'] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
-      .tab-body { max-height: 280px; overflow: auto; }
+      .tab-body { max-height: 280px; overflow-y: auto; overflow-x: hidden; }
       .tab-body[hidden] { display: none; }
       ul.list { margin: 0; padding: 0; list-style: none; }
       .story li { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; }

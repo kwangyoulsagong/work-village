@@ -61,7 +61,8 @@ function myCard() {
 /** This town without what only matters to its owner (usage baseline, the long story). */
 function townForCode() {
   const t = { ...S };
-  for (const k of ['usage', 'story', 'chronicle', 'hall', 'merchant', 'over']) delete t[k];
+  // Also what only the owner's own town uses (who likes whom, the grain of a life): the code stays short.
+  for (const k of ['usage', 'story', 'chronicle', 'hall', 'merchant', 'over', 'rel', 'lovers', 'rumours', 'life', 'leaving']) delete t[k];
   return t;
 }
 
@@ -178,6 +179,7 @@ function enterVisit(obj) {
   MODE = 'visit';
   S = { ...fresh(), sea: null, ...obj.town, usage: {}, story: [], over: null, sickDays: 0, gender: mine.gender, style: mine.style ?? fresh().style };
   settleTown(false);
+  juiceReset(); // nothing of your own town's effects follows you in
   story(`🧳 ${VISIT.host?.name ?? '이웃'}님이 코드를 만든 순간의 마을에 놀러 왔어요. 주민들 움직임은 각자 화면에서 따로 흘러가요.`);
   document.body.dataset.mode = 'visit';
   $('visitHost').textContent = `${VISIT.host?.name ?? '이웃'}님의 ${ERAS[S.era]?.name ?? ''} 마을`;
@@ -200,7 +202,10 @@ function enterChaosVisit(obj) {
   S.signs ??= [];
   S.bananas ??= [];
   S.chaosStats ??= { houses: 0, people: 0, animals: 0 };
+  // Your round starts now: the sender's score, timer and challenge stay theirs.
+  for (const k of ['score', 'startedAt', 'done', 'secs', 'bestCombo']) delete S.chaosStats[k];
   settleTown(true);
+  juiceReset();
   story(`😈 ${VISIT.host?.name ?? '이웃'}님이 보낸 ${ERAS[era].name} 마을이에요. 같이 부수고, 다 되면 코드를 돌려보내세요.`);
   document.body.dataset.mode = 'chaos';
   paintChaosUi();

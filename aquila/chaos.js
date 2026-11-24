@@ -273,7 +273,9 @@ function useTool(x, y) {
     }
     case 'nuke':
       fx.push({ k: 'flash', t: 10 }, { k: 'boom', x, y, t: 70, r: 0 });
+      const round = chaosRound;
       setTimeout(() => {
+        if (MODE !== 'chaos' || round !== chaosRound) return; // left, or started over, meanwhile
         for (let i = 0; i < S.houses; i++) if (dist(x, y, ...lotCenter(i)) < 110) wreckLot(i);
         wreckLandmarksNear(x, y, 110);
         killWithin(x, y, 110);

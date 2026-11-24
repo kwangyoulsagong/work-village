@@ -168,7 +168,8 @@ function checkFinale() {
   // The last one falls slowly: a long hold, a big shake, then the card.
   kick(5, 14);
   burst(camX + VIEW_W / 2, ROAD_Y * T, 30, 1.6);
-  setTimeout(showFinale, 1400);
+  const round = chaosRound;
+  setTimeout(() => round === chaosRound && showFinale(), 1400);
 }
 const gradeOf = (secs, total) => {
   const per = secs / Math.max(1, total); // seconds a building
@@ -392,7 +393,12 @@ function drawTools(g, f) {
 // ── Wiring and the frame ──────────────────────────────────────────────────────────────────────────────────────────
 
 /** A fresh round: no leftovers from the last one, a new challenge. */
+let chaosRound = 0; // a new round, a new number: timers from an old round see it and do nothing
 function juiceReset() {
+  chaosRound++;
+  drones = []; //  village.js / motion.js effects don't follow you into another town
+  leaps = [];
+  pops = [];
   bits = [];
   floats = [];
   pending = [];
