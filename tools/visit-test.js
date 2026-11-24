@@ -125,6 +125,11 @@ app.whenReady().then(async () => {
   await js(`leaveChaos(); be(__B); nick = '민준'; return 1`);
   const passed = await js(`$('theirCode').value = ${JSON.stringify(sent.code)}; $('openCode').click(); await new Promise(r => setTimeout(r, 600)); const r = { villagers: people.filter(p => ['villager', 'kid', 'spouse'].includes(p.kind)).length, chickens: S.chickens }; $('chaosExit').click(); return r`);
   ok(`the fallen stay gone in a chaos town passed on (${sent.villagers} → ${passed.villagers} villagers, ${sent.chickens} → ${passed.chickens} chickens)`, passed.villagers === sent.villagers && passed.chickens === sent.chickens);
+  // A friend's life-town code, opened to wreck (the dropdown): their town as it is, no era to pick.
+  const wreck = await js(`be(__B); $('visitHow').value = 'chaos'; $('theirCode').value = ${JSON.stringify(codeA)}; $('openCode').click(); await new Promise(r => setTimeout(r, 600));
+    const r = { mode: MODE, chaos: !!VISIT?.chaos, seed: S.mapSeed, era: S.era, houses: S.houses, eraPick: !$('eraPick').hidden };
+    chaosTool = 'smash'; useTool(...lotCenter(0)); const wrecked = S.wrecked.length; $('chaosExit').click(); $('visitHow').value = 'life'; return { ...r, wrecked, home: S.mapSeed }`);
+  ok(`a friend's town opened to wreck (${JSON.stringify(wreck)})`, wreck.mode === 'chaos' && wreck.chaos && wreck.seed === 1111 && wreck.era === 4 && wreck.houses === 14 && !wreck.eraPick && wreck.wrecked >= 1 && wreck.home === 2222);
   ok('both life towns still untouched after all that', await js(`return __A.houses === 14 && !(__A.wrecked?.length) && __B.houses === 8 && !(__B.gone)`));
 
   console.log(check.join('\n'));

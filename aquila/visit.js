@@ -269,7 +269,8 @@ async function openCode(text) {
   if (!obj.town || typeof obj.town !== 'object') return toast('코드를 읽지 못했어요', 2000);
   if (obj.k === 'town' && obj.town.mapSeed === homeState().mapSeed) return toast('내 마을 코드예요. 친구에게 보내 주세요');
   $('theirCode').value = '';
-  if (obj.k === 'chaos') return enterChaosVisit(obj);
+  // A friend's town can be visited as it is, or wrecked as it is (the dropdown); a chaos code is always for wrecking.
+  if (obj.k === 'chaos' || (obj.k === 'town' && $('visitHow')?.value === 'chaos')) return enterChaosVisit({ ...obj, k: 'chaos' });
   if (obj.k === 'town') return enterVisit(obj);
   toast('코드를 읽지 못했어요');
 }
