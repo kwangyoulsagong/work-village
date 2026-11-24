@@ -1,16 +1,57 @@
-// Counts the minutes the browser is open (not while the screen is locked). The town grows with them:
-// 60 minutes = 1 % in the game's terms = 🪙10.
+// What the town grows with, in Chrome:
+// 1. This Mac's Claude / Codex usage, through the local helper (chrome/install-host.sh registers it). Codex every
+//    3 minutes, Claude every 10 (it runs `claude -p /usage`).
+// 2. If neither is there: the minutes the browser is open (not while the screen is locked). 60 minutes = 1 % = 🪙10.
+// Minutes only count while the helper has nothing, so switching between the two never counts twice.
+const HOST = 'com.work_village.usage';
+const STALE_MS = 30 * 60_000;
 const tick = () => chrome.alarms.create('minute', { periodInMinutes: 1 });
 
 chrome.runtime.onInstalled.addListener(() => {
   tick();
   chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true });
+  void poll(true);
 });
-chrome.runtime.onStartup.addListener(tick);
+chrome.runtime.onStartup.addListener(() => {
+  tick();
+  void poll(true);
+});
+
+function ask(claude) {
+  return new Promise((resolve) => {
+    try {
+      chrome.runtime.sendNativeMessage(HOST, { claude }, (res) => resolve(chrome.runtime.lastError ? null : res));
+    } catch {
+      resolve(null);
+    }
+  });
+}
+
+/** Ask the helper; keep what it says (with when) in storage, where the side panel reads it. */
+async function poll(withClaude) {
+  const res = await ask(withClaude);
+  const { live = {} } = await chrome.storage.local.get('live');
+  const now = Date.now();
+  if (!res) {
+    await chrome.storage.local.set({ live: { ...live, host: false, checked: now } });
+    return;
+  }
+  const next = { ...live, host: true, checked: now };
+  if (res.codex) next.codex = { ...res.codex, at: now };
+  if (withClaude && res.claude) next.claude = { ...res.claude, at: now };
+  await chrome.storage.local.set({ live: next });
+}
+
+/** Is real usage coming in? Then browser minutes don't count. */
+const hasLive = (live, now) => !!live?.host && ['claude', 'codex'].some((k) => live[k] && now - live[k].at < STALE_MS);
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'minute') return;
+  const now = new Date();
+  const m = now.getHours() * 60 + now.getMinutes();
+  if (m % 3 === 0) await poll(m % 10 === 0);
   if ((await chrome.idle.queryState(600)) === 'locked') return;
-  const { minutes = 0 } = await chrome.storage.local.get('minutes');
+  const { live, minutes = 0 } = await chrome.storage.local.get(['live', 'minutes']);
+  if (hasLive(live, Date.now())) return;
   await chrome.storage.local.set({ minutes: minutes + 1 });
 });
