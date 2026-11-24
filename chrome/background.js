@@ -45,7 +45,12 @@ async function poll(withClaude) {
 // The side panel's setup card: "try the helper now" (just installed, or the panel just opened).
 chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   if (!msg?.check) return false;
-  void poll(true).then(async () => reply({ host: !!(await chrome.storage.local.get('live')).live?.host }));
+  void (async () => {
+    // Already answering? Then the regular polls are enough: no extra `claude -p /usage` on every panel open.
+    const { live } = await chrome.storage.local.get('live');
+    if (!live?.host) await poll(false);
+    reply({ host: !!(await chrome.storage.local.get('live')).live?.host });
+  })();
   return true; // answering later
 });
 

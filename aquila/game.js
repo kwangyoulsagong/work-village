@@ -433,7 +433,9 @@ let saveTimer = 0;
 function save() {
   if (MODE !== 'life') return; // a sandbox or a friend's town is never saved; the life town is safe
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => void aquila.storage.set('save', S).catch(() => {}), 800);
+  // The life town as it is now: if a visit or chaos swaps S in the meantime, it's still this one that's written.
+  const town = S;
+  saveTimer = setTimeout(() => void aquila.storage.set('save', town).catch(() => {}), 800);
 }
 
 // ── Economy: usage → coins, growth, animals' produce, babies ──────────────────────────────────────────────────────
@@ -1370,6 +1372,7 @@ function spawnFamily() {
     const f = FAMILIES[i];
     people.push(
       make('villager', doorOf(i), {
+        who: `h${i}a`,
         look: villagerLook(i, { ...f.look, top: jobFor(i).top }, f.gender),
         home: i,
         gender: f.gender,
@@ -1381,6 +1384,7 @@ function spawnFamily() {
     );
     people.push(
       make('villager', doorOf(i), {
+        who: `h${i}s`,
         look: villagerLook(i + 60, { ...f.look, top: shade(f.look.top) }, i % 3 ? 'm' : 'f'),
         home: i,
         speed: 0.8,
@@ -1393,6 +1397,7 @@ function spawnFamily() {
       const g = i % 4 ? 'f' : 'm';
       people.push(
         make('villager', doorOf(i), {
+          who: `h${i}e`,
           look: villagerLook(i + 200, { ...f.look, top: ['#8a6a8a', '#6a7a5a', '#9a7a5a', '#5a6a8a'][i % 4] }, g, { elder: true }),
           home: i,
           speed: 0.5,
@@ -1407,6 +1412,7 @@ function spawnFamily() {
   if (S.spouse != null)
     people.push(
       make('spouse', HOME_DOOR, {
+        who: 'sp',
         look: FAMILIES[S.spouse].look,
         home: -1,
         speed: 1,
@@ -1419,6 +1425,7 @@ function spawnFamily() {
   for (let k = 0; k < S.kids; k++)
     people.push(
       make('kid', HOME_DOOR, {
+        who: `k${k}`,
         look: { hair: '#4a2f1f', top: kidTops[k], legs: '#4b4560' },
         home: -1,
         speed: (S.kidAges[k] ?? 0) < 3 ? 0.4 : 0.9,
@@ -1430,6 +1437,8 @@ function spawnFamily() {
     );
   if (S.dog) people.push(make('dog', HOME_DOOR, { home: -1, speed: 1.6, puppy: S.dogAge < 5 }));
   if (S.cat) people.push(make('petcat', HOME_DOOR, { home: -1, speed: 1.4 }));
+  // A chaos town passed between friends: whoever fell stays gone (chaos.js ghost()).
+  if (MODE === 'chaos' && S.gone?.length) people = people.filter((p) => !p.who || !S.gone.includes(p.who));
   people.push(...guestPeople()); // friends walking around (visit.js)
 }
 function shade(hex) {

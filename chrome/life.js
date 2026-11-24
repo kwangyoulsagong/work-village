@@ -526,6 +526,7 @@ function folkPeople() {
     const base = { hair: HAIRS[(k * 3) % HAIRS.length], top: job.top, legs: LEG_COLORS[(k * 2) % LEG_COLORS.length] };
     out.push(
       make('villager', doorOf(k % homes), {
+        who: `f${k}`,
         look: villagerLook(id, base, gender),
         home: k % homes,
         gender,

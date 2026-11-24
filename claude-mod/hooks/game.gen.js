@@ -1500,6 +1500,13 @@ function leaveChaos() {
   me.hidden = false;
   applyLayout(S.mapSeed);
   carveGroves();
+  // Back at your own door (you may have been walking in a friend's town).
+  task = null;
+  me.path = [];
+  me.act = null;
+  [me.x, me.y] = [HOME_DOOR[0] * T + T / 2, HOME_DOOR[1] * T + T - 2];
+  me.px = me.x;
+  me.py = me.y;
   ensureLots(S.houses + S.ruins);
   spawnFamily();
   spawnAnimals();
@@ -1535,7 +1542,7 @@ function lotAt(x, y, reach = 20) {
 /** Everyone nearby runs the other way, with a "!" over their head. */
 function panic(x, y, radius) {
   for (const e of people) {
-    if (e.hidden || dist(e.x, e.y, x, y) > radius) continue;
+    if (e.hidden || e.zombie || e.kind === 'guest' || dist(e.x, e.y, x, y) > radius) continue;
     e.act = null;
     e.goal = null;
     e.busy = false;
@@ -1568,6 +1575,7 @@ function wreckLandmarksNear(x, y, r) {
       cache.dirty = true;
     }
 }
+const ZOMBIE_SPEED = 1.15; // a shade faster than a stroll (1): a fleeing villager gets away, for a while
 const ZOMBIE_LOOK = { hair: '#3a4a2a', top: '#6a7a5a', legs: '#4a4a3a', skin: '#9ccf8a' };
 
 /** Off they go, spinning; they land as a ghost. */
@@ -1583,15 +1591,20 @@ function launch(e) {
 /** A zombie shuffles after the nearest living villager; a bite makes another zombie. */
 function zombieThink(e) {
   e.frame++;
-  if (e.path.length && e.frame % 24 !== 0) return step(e);
-  const prey = people
-    .filter((p) => !p.zombie && !p.hidden && p.kind !== 'dog' && p.kind !== 'petcat')
-    .sort((a, b) => dist(a.x, a.y, e.x, e.y) - dist(b.x, b.y, e.x, e.y))[0];
-  if (!prey) return false;
-  if (dist(prey.x, prey.y, e.x, e.y) < 9) {
+  e.speed = ZOMBIE_SPEED;
+  let prey = null;
+  let best = Infinity;
+  for (const p of people) {
+    if (p.zombie || p.hidden || p.kind === 'dog' || p.kind === 'petcat' || p.kind === 'guest') continue;
+    const d = dist(p.x, p.y, e.x, e.y);
+    if (d < best) [prey, best] = [p, d];
+  }
+  if (!prey) return e.path.length ? step(e) : false;
+  // A bite whenever one is in reach (checked every step, not only when re-routing).
+  if (best < 12) {
     prey.zombie = true;
     prey.look = { ...ZOMBIE_LOOK, top: prey.look?.top ?? ZOMBIE_LOOK.top };
-    prey.speed = 0.7;
+    prey.speed = ZOMBIE_SPEED;
     prey.act = null;
     prey.goal = null;
     prey.path = [];
@@ -1600,20 +1613,29 @@ function zombieThink(e) {
     paintChaosUi();
     return true;
   }
+  if (e.path.length && e.frame % 8 !== 0) return step(e);
   route(e, tileOf(prey));
-  if (!prey.scared) {
-    prey.scared = 40;
+  if (!prey.scared && best < 60) {
+    prey.scared = 24; // a burst of running, then tired: that's when they're caught
     const [tx] = tileOf(prey);
     const away = prey.x < e.x ? -1 : 1;
     route(prey, nearestWalkable(Math.max(0, Math.min(COLS - 1, tx + away * 6)), ROAD_Y));
-    prey.speed = 1.6;
+    prey.speed = 1.4;
   }
   return step(e);
 }
 
+/** The pen's animals as the town counts them: one less of a kind when it falls in a chaos town. */
+const PEN_COUNT = { chicken: 'chickens', cow: 'cows', sheep: 'sheep', pig: 'pigs', goat: 'goats', horse: 'horses', alpaca: 'alpacas', donkey: 'donkeys', turkey: 'turkeys' };
 function ghost(e) {
-  if (e.kind === 'me') return;
+  if (e.kind === 'me' || e.kind === 'guest') return;
   const isAnimal = animals.includes(e);
+  // Remembered in the sandbox (never the life town: chaos S is never saved), so a code passed on keeps them gone.
+  if (MODE === 'chaos') {
+    if (e.who) (S.gone ??= []).push(e.who);
+    const k = PEN_COUNT[e.kind];
+    if (isAnimal && k && S[k] > 0) S[k]--;
+  }
   people = people.filter((p) => p !== e);
   animals = animals.filter((a) => a !== e);
   if (isAnimal) S.chaosStats.animals++;
@@ -1690,19 +1712,13 @@ function useTool(x, y) {
       break;
     }
     case 'meteor':
-      fx.push({ k: 'meteor', x, y, t: 24 });
-      setTimeout(() => {
-        fx.push({ k: 'flash', t: 5 }, { k: 'dust', x, y, t: 30 });
-        for (let i = 0; i < S.houses; i++) if (dist(x, y, ...lotCenter(i)) < 40) wreckLot(i);
-        wreckLandmarksNear(x, y, 36);
-        killWithin(x, y, 40);
-        scorch(x, y, 36);
-      }, 750);
+      // It hits when the falling rock reaches the ground (chaosVisual), not on a separate timer.
+      fx.push({ k: 'meteor', x, y, t: METEOR_FALL });
       say('☄️ 운석이 떨어졌어요!');
       panic(x, y, 120);
       break;
     case 'zombie': {
-      const z = make('villager', [Math.round(x / T), ROAD_Y], { look: ZOMBIE_LOOK, zombie: true, speed: 0.7, home: -1, needs: { energy: 100, hunger: 0, social: 0 } });
+      const z = make('villager', [Math.round(x / T), ROAD_Y], { look: ZOMBIE_LOOK, zombie: true, speed: ZOMBIE_SPEED, home: -1, needs: { energy: 100, hunger: 0, social: 0 } });
       z.x = x;
       z.y = Math.max(ROAD_Y * T + 6, y);
       people.push(z);
@@ -1758,7 +1774,7 @@ function chaosTick() {
     e.sick++;
     e.speed = 0.5;
     for (const o of people) if (!o.sick && dist(e.x, e.y, o.x, o.y) < 14 && Math.random() < 0.05) o.sick = 1;
-    if (e.sick > 320 && Math.random() < 0.01) ghost(e);
+    if (e.sick > 100 && Math.random() < 0.03) ghost(e); // ~12 s in, then a few seconds more
   }
   // Bananas: whoever steps on one goes down, stars and all.
   for (const b of S.bananas.slice()) {
@@ -1785,6 +1801,12 @@ function chaosTick() {
   // Fire: burns down what it's on, may jump to the next house.
   fires = fires.filter((f) => {
     f.t--;
+    // Walking into the flames: people and animals on the spot go down (residents also go with the house).
+    for (const e of [...people, ...animals])
+      if (!e.hidden && e.kind !== 'guest' && Math.abs(e.x - f.x) < 12 && Math.abs(e.y - f.y) < 34) {
+        ghost(e);
+        if (Math.random() < 0.3) story('🔥 불길에 휩쓸렸어요.');
+      }
     if (f.lot >= 0 && f.t === 60) {
       wreckLot(f.lot);
       scorch(f.x, f.y + 10, 18);
@@ -1799,11 +1821,22 @@ function chaosTick() {
   return true;
 }
 
-/** Effects move every frame (60 fps), scaled by the time since the last one. */
+const METEOR_FALL = 8; // ticks (1 s) from the sky to the ground
+function meteorImpact(x, y) {
+  fx.push({ k: 'flash', t: 5 }, { k: 'dust', x, y, t: 30 });
+  for (let i = 0; i < S.houses; i++) if (dist(x, y, ...lotCenter(i)) < 40) wreckLot(i);
+  wreckLandmarksNear(x, y, 36);
+  killWithin(x, y, 40);
+  scorch(x, y, 36);
+}
+
+/** Effects move every frame, scaled by the time since the last one (k: ticks' worth, 8 a second). */
 function chaosVisual(k) {
   if (MODE !== 'chaos') return;
+  const landed = [];
   fx = fx.filter((f) => {
     f.t -= k;
+    if (f.k === 'meteor' && f.t <= 0) landed.push(f);
     if (f.k === 'fly') {
       f.x += f.vx * k;
       f.y += f.vy * k;
@@ -1814,6 +1847,7 @@ function chaosVisual(k) {
     if (f.t <= 0 && f.k === 'fly') tomb(f.x, Math.max(f.y0, ROAD_Y * T + 12)); // where they came down
     return f.t > 0;
   });
+  for (const m of landed) meteorImpact(m.x, m.y);
 }
 
 function drawChaos(g) {
@@ -1870,9 +1904,9 @@ function drawChaos(g) {
       }
       for (let i = 0; i < 4; i++) R(g, Math.round(x + Math.cos(f.t / 3 + i) * 12), y - 10 - i * 7, 2, 2, '#8a6a4a');
     } else if (f.k === 'meteor') {
-      const k = 24 - f.t;
-      const mx = x - 60 + k * 2.5;
-      const my = y - 120 + k * 5;
+      const p = Math.min(1, 1 - f.t / METEOR_FALL); // 0 high in the sky → 1 on the ground
+      const mx = x - 60 + p * 60;
+      const my = y - 120 + p * 120;
       for (let i = 0; i < 6; i++) disc(g, mx - i * 4, my - i * 8, 5 - Math.floor(i / 2), i ? `rgba(255, 160, 60, ${0.6 - i * 0.1})` : '#5a4a48');
     }
   }
@@ -3122,6 +3156,7 @@ function folkPeople() {
     const base = { hair: HAIRS[(k * 3) % HAIRS.length], top: job.top, legs: LEG_COLORS[(k * 2) % LEG_COLORS.length] };
     out.push(
       make('villager', doorOf(k % homes), {
+        who: `f${k}`,
         look: villagerLook(id, base, gender),
         home: k % homes,
         gender,
@@ -4080,22 +4115,31 @@ async function packCode(obj) {
   const z = await zipBytes(new TextEncoder().encode(JSON.stringify(obj)));
   let s = '';
   for (let i = 0; i < z.length; i += 0x8000) s += String.fromCharCode(...z.subarray(i, i + 0x8000));
-  return CODE_HEAD + btoa(s);
+  return CODE_HEAD + btoa(s) + '.'; // the dot ends the code, whatever chat follows it
 }
 async function unpackCode(text) {
-  const t = String(text ?? '').replace(/\s+/g, '');
-  const at = t.indexOf(CODE_HEAD);
+  const all = String(text ?? '');
+  const at = all.indexOf(CODE_HEAD);
   if (at < 0) return null;
-  const body = /^[A-Za-z0-9+/]+=*/.exec(t.slice(at + CODE_HEAD.length))?.[0]; // whatever follows the code is chat
-  if (!body) return null;
-  try {
-    const bin = atob(body);
-    const raw = await unzipBytes(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
-    const obj = JSON.parse(new TextDecoder().decode(raw));
-    return obj && typeof obj === 'object' ? obj : null;
-  } catch {
-    return null;
+  // A messenger may wrap the code over lines, and chat may follow it. New codes end with a dot; for older ones,
+  // try the longest run of whitespace-separated pieces that decodes (chat glued on fails to inflate).
+  const rest = all.slice(at + CODE_HEAD.length);
+  const dot = rest.indexOf('.');
+  const pieces = (dot >= 0 ? rest.slice(0, dot) : rest).split(/\s+/).filter(Boolean);
+  for (let n = pieces.length; n > 0; n--) {
+    const body = /^[A-Za-z0-9+/]+=*/.exec(pieces.slice(0, n).join(''))?.[0];
+    if (!body) continue;
+    try {
+      const bin = atob(body);
+      const raw = await unzipBytes(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      const obj = JSON.parse(new TextDecoder().decode(raw));
+      if (obj && typeof obj === 'object') return obj;
+    } catch {
+      /* shorter */
+    }
+    if (dot >= 0) break; // a dotted code is exactly that much
   }
+  return null;
 }
 
 /** Your own life town, wherever you are right now. */
@@ -4199,10 +4243,10 @@ function settleTown(chaos) {
   me.path = [];
   me.act = null;
   me.hidden = false;
-  [me.x, me.y] = [HOME_DOOR[0] * T + T / 2, HOME_DOOR[1] * T + T - 2];
+  applyLayout(S.mapSeed);
+  [me.x, me.y] = [HOME_DOOR[0] * T + T / 2, HOME_DOOR[1] * T + T - 2]; // their door, now that their map is laid out
   me.px = me.x;
   me.py = me.y;
-  applyLayout(S.mapSeed);
   if (!chaos) carveGroves();
   ensureLots(S.houses + (S.ruins ?? 0));
   guests = [];
@@ -4805,7 +4849,9 @@ let saveTimer = 0;
 function save() {
   if (MODE !== 'life') return; // a sandbox or a friend's town is never saved; the life town is safe
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => void aquila.storage.set('save', S).catch(() => {}), 800);
+  // The life town as it is now: if a visit or chaos swaps S in the meantime, it's still this one that's written.
+  const town = S;
+  saveTimer = setTimeout(() => void aquila.storage.set('save', town).catch(() => {}), 800);
 }
 
 // ── Economy: usage → coins, growth, animals' produce, babies ──────────────────────────────────────────────────────
@@ -5742,6 +5788,7 @@ function spawnFamily() {
     const f = FAMILIES[i];
     people.push(
       make('villager', doorOf(i), {
+        who: `h${i}a`,
         look: villagerLook(i, { ...f.look, top: jobFor(i).top }, f.gender),
         home: i,
         gender: f.gender,
@@ -5753,6 +5800,7 @@ function spawnFamily() {
     );
     people.push(
       make('villager', doorOf(i), {
+        who: `h${i}s`,
         look: villagerLook(i + 60, { ...f.look, top: shade(f.look.top) }, i % 3 ? 'm' : 'f'),
         home: i,
         speed: 0.8,
@@ -5765,6 +5813,7 @@ function spawnFamily() {
       const g = i % 4 ? 'f' : 'm';
       people.push(
         make('villager', doorOf(i), {
+          who: `h${i}e`,
           look: villagerLook(i + 200, { ...f.look, top: ['#8a6a8a', '#6a7a5a', '#9a7a5a', '#5a6a8a'][i % 4] }, g, { elder: true }),
           home: i,
           speed: 0.5,
@@ -5779,6 +5828,7 @@ function spawnFamily() {
   if (S.spouse != null)
     people.push(
       make('spouse', HOME_DOOR, {
+        who: 'sp',
         look: FAMILIES[S.spouse].look,
         home: -1,
         speed: 1,
@@ -5791,6 +5841,7 @@ function spawnFamily() {
   for (let k = 0; k < S.kids; k++)
     people.push(
       make('kid', HOME_DOOR, {
+        who: `k${k}`,
         look: { hair: '#4a2f1f', top: kidTops[k], legs: '#4b4560' },
         home: -1,
         speed: (S.kidAges[k] ?? 0) < 3 ? 0.4 : 0.9,
@@ -5802,6 +5853,8 @@ function spawnFamily() {
     );
   if (S.dog) people.push(make('dog', HOME_DOOR, { home: -1, speed: 1.6, puppy: S.dogAge < 5 }));
   if (S.cat) people.push(make('petcat', HOME_DOOR, { home: -1, speed: 1.4 }));
+  // A chaos town passed between friends: whoever fell stays gone (chaos.js ghost()).
+  if (MODE === 'chaos' && S.gone?.length) people = people.filter((p) => !p.who || !S.gone.includes(p.who));
   people.push(...guestPeople()); // friends walking around (visit.js)
 }
 function shade(hex) {

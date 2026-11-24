@@ -24,7 +24,7 @@ app.whenReady().then(async () => {
   await js('localStorage.clear()'); await win.webContents.reload(); await wait(1200);
   const today = new Date().toLocaleDateString('sv');
   const check = [];
-  const ok = (name, cond) => check.push((cond ? 'ok   ' : 'FAIL ') + name);
+  const ok = (name, cond) => { check.push((cond ? 'ok   ' : 'FAIL ') + name); if (process.env.V) console.log(check.at(-1)); };
 
   // Two life towns, kept in window.__A / window.__B; `be(X)` makes X the town on screen.
   await js(`
@@ -104,6 +104,28 @@ app.whenReady().then(async () => {
   await js(`$('chaosExit').click(); return 1`); await wait(300);
   ok('A back to its untouched life town', await js(`return MODE === 'life' && S === __A && S.houses === 14 && !(S.wrecked?.length)`));
   ok('no zombies outside chaos', await js(`return !people.some(p => p.zombie)`));
+
+  // Review findings, each pinned.
+  // A save scheduled just before opening a friend's code writes your own town, not theirs.
+  ok('a pending save never writes a friend\'s town', await js(`be(__B); save(); $('theirCode').value = ${JSON.stringify(codeA)}; $('openCode').click(); await new Promise(r => setTimeout(r, 1300)); const s = await aquila.storage.get('save'); const okay = MODE === 'visit' && s && s.mapSeed === 2222; $('visitExit').click(); return okay`));
+  // You start at the friend's door, and come home to yours.
+  ok('visiting starts at their door, home at yours', await js(`be(__B); $('theirCode').value = ${JSON.stringify(codeA)}; $('openCode').click(); await new Promise(r => setTimeout(r, 300)); const there = Math.abs(me.x - (HOME_DOOR[0] * T + T / 2)) < 40; $('visitExit').click(); await new Promise(r => setTimeout(r, 300)); return there && S.mapSeed === 2222 && Math.abs(me.x - (HOME_DOOR[0] * T + T / 2)) < 40`));
+  // Chat after a code: Latin letters and digits too.
+  for (const chat of ['\nok see you 123', ' ok', '\nabc=']) {
+    const opened = await js(`be(__B); $('theirCode').value = ${JSON.stringify(codeA)} + ${JSON.stringify(chat)}; $('openCode').click(); await new Promise(r => setTimeout(r, 300)); const v = MODE === 'visit'; if (v) $('visitExit').click(); return v`);
+    ok(`a code with ${JSON.stringify(chat)} after it opens`, opened);
+  }
+  const oldStyle = codeA.replace(/\.$/, '');
+  ok('an older code without the end dot opens, chat after it too', await js(`be(__B); $('theirCode').value = ${JSON.stringify(oldStyle)} + '\\nok 12'; $('openCode').click(); await new Promise(r => setTimeout(r, 300)); const v = MODE === 'visit'; if (v) $('visitExit').click(); return v`));
+  // A chaos town passed on keeps its dead dead.
+  await js(`be(__A); nick = '사공'; enterChaos(3); return 1`); await wait(600);
+  for (const i of [0, 1, 2, 3]) await click('smash', ...(await lot(i)));
+  await click('nuke', (await lot(6))[0], 7 * 16); await wait(1200);
+  const sent = await js(`return { villagers: people.filter(p => ['villager', 'kid', 'spouse'].includes(p.kind)).length, chickens: S.chickens, code: await myCode() }`);
+  await js(`leaveChaos(); be(__B); nick = '민준'; return 1`);
+  const passed = await js(`$('theirCode').value = ${JSON.stringify(sent.code)}; $('openCode').click(); await new Promise(r => setTimeout(r, 600)); const r = { villagers: people.filter(p => ['villager', 'kid', 'spouse'].includes(p.kind)).length, chickens: S.chickens }; $('chaosExit').click(); return r`);
+  ok(`the fallen stay gone in a chaos town passed on (${sent.villagers} → ${passed.villagers} villagers, ${sent.chickens} → ${passed.chickens} chickens)`, passed.villagers === sent.villagers && passed.chickens === sent.chickens);
+  ok('both life towns still untouched after all that', await js(`return __A.houses === 14 && !(__A.wrecked?.length) && __B.houses === 8 && !(__B.gone)`));
 
   console.log(check.join('\n'));
   console.log(JSON.stringify({ errors, failed: check.filter((x) => x.startsWith('FAIL')).length }));

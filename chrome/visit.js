@@ -23,22 +23,31 @@ async function packCode(obj) {
   const z = await zipBytes(new TextEncoder().encode(JSON.stringify(obj)));
   let s = '';
   for (let i = 0; i < z.length; i += 0x8000) s += String.fromCharCode(...z.subarray(i, i + 0x8000));
-  return CODE_HEAD + btoa(s);
+  return CODE_HEAD + btoa(s) + '.'; // the dot ends the code, whatever chat follows it
 }
 async function unpackCode(text) {
-  const t = String(text ?? '').replace(/\s+/g, '');
-  const at = t.indexOf(CODE_HEAD);
+  const all = String(text ?? '');
+  const at = all.indexOf(CODE_HEAD);
   if (at < 0) return null;
-  const body = /^[A-Za-z0-9+/]+=*/.exec(t.slice(at + CODE_HEAD.length))?.[0]; // whatever follows the code is chat
-  if (!body) return null;
-  try {
-    const bin = atob(body);
-    const raw = await unzipBytes(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
-    const obj = JSON.parse(new TextDecoder().decode(raw));
-    return obj && typeof obj === 'object' ? obj : null;
-  } catch {
-    return null;
+  // A messenger may wrap the code over lines, and chat may follow it. New codes end with a dot; for older ones,
+  // try the longest run of whitespace-separated pieces that decodes (chat glued on fails to inflate).
+  const rest = all.slice(at + CODE_HEAD.length);
+  const dot = rest.indexOf('.');
+  const pieces = (dot >= 0 ? rest.slice(0, dot) : rest).split(/\s+/).filter(Boolean);
+  for (let n = pieces.length; n > 0; n--) {
+    const body = /^[A-Za-z0-9+/]+=*/.exec(pieces.slice(0, n).join(''))?.[0];
+    if (!body) continue;
+    try {
+      const bin = atob(body);
+      const raw = await unzipBytes(Uint8Array.from(bin, (c) => c.charCodeAt(0)));
+      const obj = JSON.parse(new TextDecoder().decode(raw));
+      if (obj && typeof obj === 'object') return obj;
+    } catch {
+      /* shorter */
+    }
+    if (dot >= 0) break; // a dotted code is exactly that much
   }
+  return null;
 }
 
 /** Your own life town, wherever you are right now. */
@@ -142,10 +151,10 @@ function settleTown(chaos) {
   me.path = [];
   me.act = null;
   me.hidden = false;
-  [me.x, me.y] = [HOME_DOOR[0] * T + T / 2, HOME_DOOR[1] * T + T - 2];
+  applyLayout(S.mapSeed);
+  [me.x, me.y] = [HOME_DOOR[0] * T + T / 2, HOME_DOOR[1] * T + T - 2]; // their door, now that their map is laid out
   me.px = me.x;
   me.py = me.y;
-  applyLayout(S.mapSeed);
   if (!chaos) carveGroves();
   ensureLots(S.houses + (S.ruins ?? 0));
   guests = [];

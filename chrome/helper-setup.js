@@ -222,5 +222,6 @@ if (-not $Claude) { Write-Host '(claude 명령을 못 찾았어요. Codex 사용
   (document.querySelector('.foot') ?? document.body.lastElementChild).after(card);
   chrome.storage.onChanged.addListener((changes, area) => area === 'local' && changes.live && void refresh());
   void refresh();
-  void check().then(refresh); // the panel just opened: ask now instead of waiting for the next 3-minute poll
+  // The panel just opened without a known helper: ask now instead of waiting for the next 3-minute poll.
+  void chrome.storage.local.get('live').then(({ live }) => !live?.host && check().then(refresh));
 })();

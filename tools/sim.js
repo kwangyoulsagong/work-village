@@ -9,7 +9,7 @@ const dir = process.argv[2] || require('path').join(__dirname, '..', 'aquila'); 
 const results = [];
 for (let t = 0; t < 200; t++) {
   const sb = { ResizeObserver, IntersectionObserver: class { observe() {} }, requestAnimationFrame: () => 0, cancelAnimationFrame: () => {}, window: { addEventListener() {}, devicePixelRatio: 1, innerHeight: 900 }, console, Math, Date, JSON, Object, Array, Number, String, Promise, parseInt, setTimeout: noop, clearTimeout: noop, setInterval: () => 0, clearInterval: noop,
-    document: { addEventListener() {}, visibilityState: 'visible', getElementById: el, createElement: el, querySelectorAll: () => [], createTextNode: () => ({}) },
+    document: { addEventListener() {}, visibilityState: 'visible', getElementById: el, createElement: el, querySelector: () => null, querySelectorAll: () => [], createTextNode: () => ({}) },
     aquila: { storage: { get: async () => null, set: async () => true }, power: async () => ({ saver: true }), usage: async () => [], on: noop, chip: async () => true } };
   vm.createContext(sb);
   vm.runInContext(src, sb);
