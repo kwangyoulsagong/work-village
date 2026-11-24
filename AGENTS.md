@@ -9,7 +9,9 @@ local helper) or, with neither, the minutes the browser is open. Plain HTML/JS, 
 
 - `aquila/` — the game (source of truth) + the Aquila extension. Edit the game here.
 - `chrome/` — Chrome MV3 side panel. `./build-chrome.sh` copies the game in; `chrome-shim.js` answers `window.aquila`;
-  `background.js` polls the native helper (`chrome/host/`, registered by `chrome/install-host.sh`) or counts minutes.
+  `background.js` polls the native helper (`chrome/host/`) or counts minutes. Without the helper, `helper-setup.js`
+  (Chrome only, added by `build-chrome.sh`) offers a one-paste installer for macOS / Linux / Windows; there are Windows
+  users, so keep the helper and installer working there (`npm run test:chrome` checks the generated PowerShell).
 - `./install-aquila.sh` copies `aquila/` into `~/.aquila/extensions/work-village/` (Aquila doesn't follow symlinks).
 
 ## Rules

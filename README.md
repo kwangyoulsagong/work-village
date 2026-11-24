@@ -11,7 +11,8 @@ Claude·Codex로 일한 만큼 자라는 2D 픽셀 마을 시뮬레이션. [Aqui
 
 **Chrome** (`chrome/`): `./build-chrome.sh` → `chrome://extensions` → 개발자 모드 → "압축해제된 확장 프로그램 로드" → `chrome/` 폴더.
 
-- `chrome/install-host.sh`를 한 번 실행하면 이 맥의 **Claude·Codex 사용량**으로 자랍니다. Chrome의 네이티브 메시징으로 로컬 도우미(`chrome/host/`)가 `claude -p /usage`와 `~/.codex/sessions`를 읽기만 합니다. 서버도 네트워크도 없습니다. 되돌리기: `./install-host.sh --remove`.
+- 이 컴퓨터의 **Claude·Codex 사용량**으로 키우려면 로컬 도우미가 필요합니다. 도우미가 없으면 사이드 패널에 "사용량 연동" 카드가 뜹니다. **받기**를 누르고, 복사한 한 줄을 터미널(Windows는 PowerShell)에 붙여 넣으면 설치되고, 패널이 저절로 연결을 알아챕니다(macOS·Windows·Linux, Node.js 필요). Chrome은 확장이 프로그램을 설치하지 못하게 막아서 붙여 넣기 한 번은 직접 해야 합니다. 개발용으로는 `chrome/install-host.sh`(macOS)도 그대로 씁니다.
+- 도우미(`chrome/host/`)는 Chrome의 네이티브 메시징으로 `claude -p /usage`와 `~/.codex/sessions`를 읽기만 합니다. 서버도 네트워크도 없습니다. 지우기: 설치 파일 첫머리의 Undo 명령(`--remove` / `-Remove`).
 - 도우미가 없거나 둘 다 사용량이 없으면 **브라우저를 켜 둔 시간**으로 자랍니다(1시간 = 10코인, 화면 잠금 중엔 안 셈).
 
 ## 폴더
