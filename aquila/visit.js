@@ -62,7 +62,7 @@ function myCard() {
 function townForCode() {
   const t = { ...S };
   // Also what only the owner's own town uses (who likes whom, the grain of a life): the code stays short.
-  for (const k of ['usage', 'story', 'chronicle', 'hall', 'merchant', 'over', 'rel', 'lovers', 'rumours', 'life', 'leaving']) delete t[k];
+  for (const k of ['usage', 'story', 'chronicle', 'hall', 'merchant', 'over', 'rel', 'lovers', 'rumours', 'life', 'leaving', 'notesTaken', 'cooked', 'week', 'caravan', 'visitor', 'strike']) delete t[k];
   return t;
 }
 
@@ -72,8 +72,9 @@ const myCode = () =>
 // ── Other people's characters ──────────────────────────────────────────────────────────────────────────────────────
 
 function guestLook(card) {
-  const base = OUTFIT[Math.max(0, Math.min(OUTFIT.length - 1, card.era ?? 0))];
-  const st = card.style ?? {};
+  // A code is anyone's text: the era a whole number in range, the style an object (or nothing).
+  const base = OUTFIT[Math.max(0, Math.min(OUTFIT.length - 1, Math.floor(Number(card.era) || 0)))];
+  const st = card.style && typeof card.style === 'object' ? card.style : {};
   return { ...base, hair: st.hairColor ?? base.hair, top: st.top?.c ?? base.top, style: st.hair ?? undefined };
 }
 function addGuest(card) {

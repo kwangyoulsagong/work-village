@@ -396,6 +396,7 @@ function drawTools(g, f) {
 let chaosRound = 0; // a new round, a new number: timers from an old round see it and do nothing
 function juiceReset() {
   chaosRound++;
+  seaTrip = 0; //   a trip out to sea doesn't carry on in another town (pastimes.js)
   drones = []; //  village.js / motion.js effects don't follow you into another town
   leaps = [];
   pops = [];

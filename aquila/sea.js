@@ -112,7 +112,7 @@ function spawnBoats() {
   });
   // Yours, if you have one (pastimes.js): it flies a red flag.
   const mine = MODE === 'life' ? myBoat() : null;
-  if (mine) boats.push({ type: mine.id, x: (waterX0() + 3) * T, y: 6.9 * T, v: 0.3, f: 3, mine: true });
+  if (mine) boats.push({ type: mine.id, x: (waterX0() + 3) * T, y: 9.6 * T, v: 0.3, f: 3, mine: true }); // clear of the pier
 }
 function seaTick(k) {
   if (!hasSea()) return;

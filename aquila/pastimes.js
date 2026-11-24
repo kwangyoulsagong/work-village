@@ -27,6 +27,10 @@ const VISITOR_RULES = [
   { name: '흰 사슴', kind: 'whitedeer', why: '동상', ok: (n) => n.statue + n.holo >= 1, odds: 0.15 },
 ];
 function visitorDay() {
+  if (S.visitor && S.visitor.day !== S.days) {
+    S.visitor = null; // yesterday's visitor has gone home
+    spawnAnimals();
+  }
   const n = { flowers: 0, well: 0, fountain: 0, tree: 0, statue: 0, holo: 0 };
   for (const d of S.decor ?? []) if (d.k in n) n[d.k]++;
   const can = VISITOR_RULES.filter((v) => v.ok(n) && Math.random() < v.odds);
@@ -36,7 +40,7 @@ function visitorDay() {
   const key = `visitor:${v.name}`;
   const first = !S.dex.includes(key);
   if (first) S.dex.push(key);
-  story(`✨ ${v.why}에 이끌려 ${josa(v.name, '이', '가')} 놀러 왔어요!${first ? ' 도감에 올렸어요.' : ''}`);
+  if (first || Math.random() < 0.3) story(`✨ ${v.why}에 이끌려 ${josa(v.name, '이', '가')} 놀러 왔어요!${first ? ' 도감에 올렸어요.' : ''}`);
   spawnAnimals();
 }
 const PEACOCK = [['..g.g.g.....', '.gbgbgbg..o.', 'gbgbgbgbgoen', '.gbgbgbbbbo.', '...obbbbbo..', '....y..y....']];
@@ -86,7 +90,7 @@ function cookDay() {
   if (!S.cooked?.includes(r.id)) {
     S.cooked = [...(S.cooked ?? []), r.id];
     story(`🍳 처음 만든 요리: ${r.name}. 온 가족이 맛있대요!`);
-  } else if (Math.random() < 0.25) story(`🍳 오늘 저녁은 ${r.name}이에요.`);
+  } else if (Math.random() < 0.25) story(`🍳 오늘 저녁은 ${josa(r.name, '이에요', '예요')}.`);
 }
 
 // ── The middle ages: a joust on the square, once a week ───────────────────────────────────────────────────────────
@@ -210,17 +214,18 @@ function newsForCode() {
 }
 /** What a caravan from a town of that era brings (decided here, never read from the code). */
 function caravanGift(era) {
-  const e = Math.max(0, Math.min(5, Number(era) || 0));
+  const e = Math.max(0, Math.min(5, Math.floor(Number(era) || 0)));
   return [['berries', 5, '열매 다섯 바구니'], ['wood', 5, '통나무 다섯 개'], ['stone', 5, '돌 다섯 개'], ['coins', 20, '20코인'], ['coins', 30, '30코인'], ['coins', 40, '40코인']][e];
 }
 /** A friend's note arrived at home: their caravan comes for the day, with a gift (once per note). */
 function caravanArrives(obj) {
   const name = String(obj.from?.name ?? '이웃').slice(0, 8);
-  const id = `${name}|${String(obj.text ?? '').slice(0, 24)}|${Number(obj.x) || 0}`;
+  // At most one gift a day from each friend, however many notes (or edited copies) come in.
+  const id = `${S.days}|${name}`;
   S.notesTaken ??= [];
   if (S.notesTaken.includes(id)) return;
-  S.notesTaken = [...S.notesTaken, id].slice(-30);
-  const era = Math.max(0, Math.min(5, Number(obj.from?.era) || 0));
+  S.notesTaken = [...S.notesTaken.filter((k) => +k.split('|')[0] >= S.days - 7), id].slice(-30);
+  const era = Math.max(0, Math.min(5, Math.floor(Number(obj.from?.era) || 0)));
   const [kind, n, what] = caravanGift(era);
   if (kind === 'coins') S.coins += n;
   else stock(kind, n);
@@ -315,7 +320,7 @@ function pastimesDay() {
   strikeDay();
   if (S.era === 2 && S.days % 7 === 3) {
     const champs = S.friends.map((_, i) => i).filter((i) => i < occupied() && i !== S.spouse);
-    if (champs.length) story(`🐎 광장에서 마상 시합이 열려요! 우승 후보는 ${nameOf(champs[Math.floor(Math.random() * champs.length)])}예요.`);
+    if (champs.length) story(`🐎 광장에서 마상 시합이 열려요! 우승 후보는 ${josa(nameOf(champs[Math.floor(Math.random() * champs.length)]), '이에요', '예요')}.`);
   }
 }
 function pastimesTick() {

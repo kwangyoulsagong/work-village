@@ -52,7 +52,7 @@ app.whenReady().then(async () => {
   const code = await js(`story('💕 테스트 소식'); const c = await myCode(); const o = await unpackCode(c); return { news: o.news };`);
   ok(Array.isArray(code.news) && code.news.length >= 1, 'news in an invite code: ' + JSON.stringify(code));
   const car = await js(`const note = { k: 'note', from: { name: '친구', era: 4 }, seed: S.mapSeed, text: '안녕', x: PLAZA.x * T, y: 120 };
-    const c0 = S.coins; takeNote(note); const c1 = S.coins; takeNote(note); return { gift: c1 - c0, again: S.coins - c1, caravan: S.caravan };`);
+    const c0 = S.coins; takeNote(note); const c1 = S.coins; takeNote({ ...note, x: 99, from: { name: '친구', era: 2.5 } }); return { gift: c1 - c0, again: S.coins - c1, caravan: S.caravan };`);
   ok(car.gift === 30 && car.again === 0 && car.caravan?.name === '친구', 'a caravan with a gift, once per note: ' + JSON.stringify(car));
   await js(`window.__camAt = PLAZA.x - 2; return 1;`);
   await wait(700);
