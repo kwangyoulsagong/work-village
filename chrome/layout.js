@@ -175,7 +175,12 @@ function wireCamera() {
     });
     for (const ev of ['pointerup', 'pointerleave']) b.addEventListener(ev, () => clearInterval(held));
   }
-  $('camMe').addEventListener('click', () => (lifeCam = null));
+  // Straight to you: no glide across the map.
+  $('camMe').addEventListener('click', () => {
+    lifeCam = null;
+    camX = prevCam = Math.max(0, Math.min(W - VIEW_W, me.x - VIEW_W / 2));
+    frame();
+  });
   mini.addEventListener('click', (ev) => {
     const r = mini.getBoundingClientRect();
     moveCam(((ev.clientX - r.left) / r.width) * W - VIEW_W / 2);
