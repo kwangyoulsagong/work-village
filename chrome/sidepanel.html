@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>작은 마을</title>
+    <style>
+      /* Toss-style: grey ground, white rounded cards without borders, big bold numbers, one blue for actions,
+         short 해요-style copy. Light and dark. The town itself stays pixel art. */
+      :root {
+        color-scheme: light;
+        --bg: #f2f4f6;
+        --card: #ffffff;
+        --fill: #f2f4f6;
+        --text: #191f28;
+        --text-2: #4e5968;
+        --text-3: #8b95a1;
+        --line: #e5e8eb;
+        --blue: #3182f6;
+        --blue-soft: #e8f3ff;
+        --green: #03b26c;
+        --red: #f04452;
+        --yellow: #ffc342;
+        --hud: rgba(255, 255, 255, 0.9);
+        --font: 'Pretendard', -apple-system, 'Apple SD Gothic Neo', system-ui, sans-serif;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --bg: #17171c;
+          --card: #202027;
+          --fill: #2c2c35;
+          --text: #e5e8eb;
+          --text-2: #b0b8c1;
+          --text-3: #7e8794;
+          --line: #2c2c35;
+          --blue-soft: #1c2b42;
+          --hud: rgba(32, 32, 39, 0.88);
+        }
+      }
+      * { box-sizing: border-box; }
+      body { margin: 0; padding: 12px; background: var(--bg); color: var(--text); font: 14px/1.5 var(--font); letter-spacing: -0.01em; }
+      button { font: inherit; color: inherit; }
+      .card { background: var(--card); border-radius: 16px; padding: 14px 16px; }
+      .card + .card, .stack > * + * { margin-top: 8px; }
+
+      /* The town */
+      .town { padding: 8px; }
+      .stage { position: relative; width: fit-content; max-width: 100%; margin: 0 auto; border-radius: 10px; overflow: hidden; }
+      canvas#world { display: block; margin: 0 auto; image-rendering: pixelated; touch-action: none; cursor: grab; }
+      .hud { position: absolute; top: 6px; display: flex; gap: 4px; pointer-events: none; }
+      .hud.left { left: 6px; }
+      .hud.right { right: 6px; }
+      .pill {
+        background: var(--hud); backdrop-filter: blur(6px); border-radius: 999px; padding: 2px 9px;
+        font-size: 12px; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text);
+      }
+      .pill .unit { color: var(--text-3); font-weight: 600; margin-left: 2px; }
+      .mini { display: block; width: 100%; height: 22px; margin-top: 8px; border-radius: 6px; cursor: pointer; }
+      .row { display: flex; align-items: center; gap: 6px; margin-top: 8px; }
+      .grow { flex: 1; }
+      .hint { color: var(--text-3); font-size: 12px; }
+      .row .btn { white-space: nowrap; }
+      @media (max-width: 340px) { .row .hint { display: none; } }
+
+      /* Buttons */
+      .btn {
+        border: 0; border-radius: 10px; padding: 7px 12px; font-size: 13px; font-weight: 600;
+        background: var(--fill); color: var(--text-2); cursor: pointer; transition: background 120ms, transform 120ms;
+      }
+      .btn:hover { filter: brightness(0.97); }
+      .btn:active { transform: scale(0.97); }
+      .btn:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+      .btn.primary { background: var(--blue); color: #ffffff; }
+      .btn.big { width: 100%; padding: 12px; border-radius: 12px; font-size: 15px; }
+      .btn.text { background: none; color: var(--blue); padding: 4px 2px; }
+      .btn[aria-pressed='true'] { background: var(--blue-soft); color: var(--blue); }
+      .icon { width: 34px; padding: 7px 0; }
+
+      /* My town: a headline, big numbers, rows */
+      .eyebrow { font-size: 13px; color: var(--text-3); font-weight: 600; }
+      .headline { font-size: 18px; font-weight: 700; margin-top: 2px; }
+      .numbers { display: flex; gap: 16px; margin-top: 12px; }
+      .numbers div { display: flex; flex-direction: column; }
+      .numbers b { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .numbers span { font-size: 12px; color: var(--text-3); }
+      .rows { margin-top: 12px; display: grid; gap: 10px; }
+      .rowline { display: flex; align-items: center; gap: 10px; font-size: 14px; }
+      .rowline .label { color: var(--text-2); flex: none; min-width: 64px; }
+      .rowline .value { flex: 1; min-width: 0; text-align: right; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .progress { height: 6px; background: var(--fill); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+      .progress i { display: block; height: 100%; width: 0; background: var(--blue); border-radius: 999px; transition: width 320ms; }
+      .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+      .chip { background: var(--fill); border-radius: 8px; padding: 4px 8px; font-size: 12px; color: var(--text-2); white-space: nowrap; }
+      .chip b { color: var(--text); font-weight: 700; }
+
+      /* Tabs: a segmented control */
+      .segment { display: flex; background: var(--fill); border-radius: 10px; padding: 3px; gap: 2px; margin-bottom: 10px; }
+      .segment button { flex: 1; border: 0; background: none; border-radius: 8px; padding: 6px 4px; font-size: 13px; font-weight: 600; color: var(--text-3); cursor: pointer; white-space: nowrap; }
+      .segment button[aria-selected='true'] { background: var(--card); color: var(--text); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08); }
+      .tab-body { max-height: 280px; overflow: auto; }
+      .tab-body[hidden] { display: none; }
+      ul.list { margin: 0; padding: 0; list-style: none; }
+      .story li { display: flex; gap: 10px; align-items: baseline; padding: 8px 0; }
+      .story li + li { border-top: 1px solid var(--line); }
+      .story .day { flex: none; width: 42px; color: var(--text-3); font-size: 12px; font-variant-numeric: tabular-nums; }
+      .story .dot { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--text-3); transform: translateY(-2px); }
+      .dot.war { background: var(--red); } .dot.ill { background: var(--green); } .dot.ach { background: var(--yellow); }
+      .dot.love { background: #ff6b9a; } .dot.dex { background: var(--blue); } .dot.build { background: #a0794b; }
+      .dot.shop { background: #8b5cf6; } .dot.weather { background: #6bb6ff; }
+      ul.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; }
+      ul.grid li { background: var(--fill); border-radius: 8px; padding: 6px 8px; font-size: 12px; }
+
+      /* Sheets over the town */
+      .pick { position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; background: rgba(0, 0, 0, 0.4); padding: 8px; }
+      .pick[hidden] { display: none; }
+      .sheet { background: var(--card); border-radius: 16px; padding: 18px 16px 14px; width: 100%; display: flex; flex-direction: column; gap: 6px; }
+      .sheet h2 { margin: 0; font-size: 18px; font-weight: 700; }
+      .sheet p { margin: 0 0 8px; font-size: 13px; color: var(--text-2); }
+      .choice { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; width: 100%; border: 0; border-radius: 12px; padding: 12px 14px; background: var(--fill); cursor: pointer; }
+      .choice b { font-size: 15px; }
+      .choice span { font-size: 12px; color: var(--text-3); }
+      .choice:hover { background: var(--blue-soft); }
+      .two { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+      .eras { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+      .eras button { border: 0; border-radius: 10px; padding: 10px 4px; background: var(--fill); font-weight: 600; cursor: pointer; }
+      .sign-box { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 6px; background: var(--card); border-radius: 12px; padding: 6px; }
+      .sign-box[hidden] { display: none; }
+      .sign-box input { flex: 1; min-width: 0; font: inherit; padding: 6px 10px; border: 0; border-radius: 8px; background: var(--fill); color: var(--text); }
+
+      /* Modes */
+      .chaos-only { display: none; }
+      body[data-mode='chaos'] .chaos-only { display: block; }
+      body[data-mode='chaos'] .life-only { display: none; }
+      body[data-mode='chaos'] canvas#world { cursor: crosshair; }
+      .tools { display: grid; grid-template-columns: repeat(auto-fill, minmax(92px, 1fr)); gap: 6px; }
+      .chaos-stats { margin-top: 10px; font-size: 12px; color: var(--text-3); }
+      .foot { display: flex; align-items: center; gap: 8px; padding: 10px 4px 0; }
+
+      /* Today's timeline over the town */
+      .timeline { padding: 2px 2px 10px; }
+      .tl-top { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--text-2); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+      .tl-bar { position: relative; height: 6px; border-radius: 3px; background: var(--fill); }
+      .tl-bar i { position: absolute; inset: 0 auto 0 0; border-radius: 3px; background: var(--blue); opacity: 0.35; }
+      .tl-bar .night { position: absolute; top: 0; bottom: 0; background: rgba(40, 50, 90, 0.18); }
+      .tl-bar .night.a { left: 0; width: 25%; border-radius: 3px 0 0 3px; }
+      .tl-bar .night.b { left: 79.2%; right: 0; border-radius: 0 3px 3px 0; }
+      #daySun { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #ffc83d; box-shadow: 0 0 0 2px var(--card); }
+      #daySun[data-night='true'] { background: #8b9ad8; }
+      .tl-era { display: flex; gap: 2px; margin-top: 8px; }
+      .tl-era span { flex: 1; text-align: center; font-size: 10px; padding: 2px 0; border-radius: 4px; background: var(--fill); color: var(--text-3); white-space: nowrap; overflow: hidden; }
+      .tl-era span.done { background: var(--blue-soft); color: var(--blue); }
+      .tl-era span.now { background: var(--blue); color: #ffffff; font-weight: 700; }
+
+      /* While you were away */
+      .away { background: var(--blue-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
+      .away[hidden] { display: none; }
+      .away__head { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+      .away__head b { font-size: 13px; color: var(--blue); }
+      .away li { font-size: 12px; color: var(--text-2); padding: 3px 0; }
+      .story-view { display: flex; gap: 4px; margin-bottom: 6px; }
+      .story-view .btn { padding: 4px 10px; font-size: 12px; }
+      .buy__pair.grow { flex: 1; }
+      .buy__pair.grow .btn { flex: 1; }
+
+      /* Build menu */
+      .buy { display: flex; align-items: center; gap: 8px; padding: 8px 0; }
+      .buy + .buy { border-top: 1px solid var(--line); }
+      .buy__text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+      .buy__text b { font-size: 14px; font-weight: 600; }
+      .buy__note { font-size: 12px; color: var(--text-3); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .buy__btn { min-width: 76px; font-variant-numeric: tabular-nums; }
+      .buy__pair { display: flex; gap: 4px; }
+      .btn:disabled { opacity: 0.4; cursor: default; filter: none; transform: none; }
+      li.group { font-size: 12px; font-weight: 700; color: var(--text-3); padding: 14px 0 2px; }
+      li.group:first-child { padding-top: 0; }
+      ul.grid li.me { grid-column: 1 / -1; background: var(--blue-soft); color: var(--blue); font-weight: 600; }
+      #toast { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); background: rgba(25, 31, 40, 0.86); color: #ffffff; font-size: 12px; font-weight: 600; padding: 6px 12px; border-radius: 999px; white-space: nowrap; pointer-events: none; }
+      #toast[hidden] { display: none; }
+      body[data-placing='true'] canvas#world { cursor: copy; }
+
+      /* Smaller panels show less: first the tabs go, then everything but the town. */
+      @media (max-height: 560px) { .extra { display: none !important; } }
+      #hudDay { display: none; }
+      @media (max-height: 420px) { #hudDay { display: inline-flex; } .summary, .foot, .chaos-tools, .timeline { display: none !important; } body { padding: 6px; } }
+      @media (max-width: 300px) { .numbers { gap: 10px; } .numbers b { font-size: 17px; } .chips { display: none; } body { padding: 6px; } }
+      @media (prefers-reduced-motion: reduce) { .progress i, .btn { transition: none; } .btn:active { transform: none; } }
+    </style>
+    <link rel="icon" href="icon.png" />
+    <script src="chrome-shim.js"></script>
+  </head>
+  <body>
+    <section class="card town">
+      <div class="timeline life-only">
+        <div class="tl-top"><span id="dayLabel">1일차</span><span id="dayTime"></span></div>
+        <div class="tl-bar" aria-hidden="true"><b class="night a"></b><b class="night b"></b><i id="dayFill"></i><span id="daySun"></span></div>
+        <div class="tl-era" id="dayEra"></div>
+      </div>
+      <div class="away life-only" id="away" hidden>
+        <div class="away__head"><b id="awayTitle"></b><button class="btn text" id="awayClose">확인</button></div>
+        <ul class="list" id="awayList"></ul>
+      </div>
+      <div class="stage">
+        <canvas id="world"></canvas>
+        <div class="hud left">
+          <span class="pill life-only"><span id="coins">0</span><span class="unit">코인</span></span>
+        </div>
+        <div class="hud right">
+          <span class="pill life-only" id="hudDay">1일차</span>
+          <span class="pill" id="weather"></span>
+        </div>
+        <div id="toast" hidden></div>
+        <div class="pick" id="over" hidden>
+          <div class="sheet">
+            <h2>이번 인생은 여기까지예요</h2>
+            <p id="overText"></p>
+            <button class="btn primary big" id="again">새 마을 시작하기</button>
+          </div>
+        </div>
+        <div class="pick" id="mode" hidden>
+          <div class="sheet">
+            <h2>어떻게 즐길까요?</h2>
+            <p>언제든 바꿀 수 있어요.</p>
+            <button class="choice" id="modeLife"><b>인생 모드</b><span>내가 일한 만큼 마을이 자라요. 지켜보기만 하면 돼요.</span></button>
+            <button class="choice" id="modeChaos"><b>인성 파탄 모드</b><span>다 지어진 마을을 마음껏 부숴요. 내 마을은 그대로예요.</span></button>
+          </div>
+        </div>
+        <div class="pick" id="eraPick" hidden>
+          <div class="sheet">
+            <h2>어느 시대 마을을 부술까요?</h2>
+            <p>고른 시대의 마을이 다 지어진 채로 나와요.</p>
+            <div class="eras" id="eraButtons"></div>
+            <button class="btn text" id="eraBack">돌아가기</button>
+          </div>
+        </div>
+        <div class="pick" id="pick" hidden>
+          <div class="sheet">
+            <h2>누구로 살아볼까요?</h2>
+            <p>능력치는 랜덤으로 정해지고, 잘 맞는 직업을 갖게 돼요.</p>
+            <div class="two">
+              <button class="btn primary big" data-gender="f">여성</button>
+              <button class="btn primary big" data-gender="m">남성</button>
+            </div>
+          </div>
+        </div>
+        <div class="sign-box" id="signBox" hidden>
+          <input id="signText" maxlength="24" placeholder="방명록에 남길 말을 써 주세요" />
+          <button class="btn primary" id="signOk">남기기</button>
+        </div>
+      </div>
+      <canvas id="mini" class="mini" aria-label="마을 전체 지도. 누르면 그곳으로 가요"></canvas>
+      <div class="row">
+        <button class="btn icon" id="camLeft" aria-label="왼쪽으로">◀</button>
+        <button class="btn icon" id="camRight" aria-label="오른쪽으로">▶</button>
+        <button class="btn life-only" id="camMe">내 캐릭터로</button>
+        <span class="grow"></span>
+        <span class="hint">끌어서 둘러볼 수 있어요</span>
+      </div>
+    </section>
+
+    <section class="card chaos-only chaos-tools">
+      <div class="eyebrow">무엇으로 부술까요?</div>
+      <div class="tools" id="chaosTools" style="margin-top: 10px"></div>
+      <div class="chaos-stats" id="chaosStats"></div>
+      <div class="row">
+        <button class="btn" id="chaosReset">마을 다시 짓기</button>
+        <span class="grow"></span>
+        <button class="btn primary" id="chaosExit">내 마을로 돌아가기</button>
+      </div>
+    </section>
+
+    <section class="card life-only summary">
+      <div class="eyebrow" id="house"></div>
+      <div class="headline" id="now"></div>
+      <div class="numbers">
+        <div><b id="level">Lv.1</b><span>레벨</span></div>
+        <div><b id="pop">1</b><span>인구</span></div>
+        <div><b id="bag">0</b><span>바구니</span></div>
+      </div>
+      <div class="rows">
+        <div>
+          <div class="rowline"><span class="label">다음 목표</span><span class="value" id="goal"></span></div>
+          <div class="progress"><i id="goalbar"></i></div>
+        </div>
+        <div>
+          <div class="rowline"><span class="label">경험치</span><span class="value" id="xpText"></span></div>
+          <div class="progress"><i id="xp"></i></div>
+        </div>
+      </div>
+      <div class="chips" id="family"></div>
+    </section>
+
+    <section class="card extra">
+      <div class="segment" role="tablist">
+        <button role="tab" data-tab="story" aria-selected="true">이야기</button>
+        <button class="life-only" role="tab" data-tab="build" id="buildTab">짓기</button>
+        <button role="tab" data-tab="ach" id="achCount">업적</button>
+        <button role="tab" data-tab="dex" id="dexCount">도감</button>
+        <button class="life-only" role="tab" data-tab="job" id="jobCount">직업</button>
+      </div>
+      <div class="tab-body" data-body="story">
+        <div class="story-view life-only"><button class="btn" data-story="all" aria-pressed="true">전체</button><button class="btn" data-story="big" aria-pressed="false">연대기</button></div>
+        <ul class="list story" id="story"></ul>
+      </div>
+      <div class="tab-body" data-body="build" hidden><ul class="list" id="buildList"></ul></div>
+      <div class="tab-body" data-body="ach" hidden><ul class="list grid" id="achList"></ul></div>
+      <div class="tab-body" data-body="dex" hidden><ul class="list grid" id="dexList"></ul></div>
+      <div class="tab-body" data-body="job" hidden><ul class="list grid" id="jobList"></ul></div>
+    </section>
+
+    <div class="foot life-only">
+      <span class="hint grow" id="hint">Claude·Codex를 쓰는 만큼 마을이 자라요. 주간 사용량 1%가 코인 10이에요.</span>
+      <button class="btn text" id="toChaos">인성 파탄 모드</button>
+    </div>
+
+    <script src="art.js"></script>
+    <script src="ai.js"></script>
+    <script src="extras.js"></script>
+    <script src="chaos.js"></script>
+    <script src="jobs.js"></script>
+    <script src="layout.js"></script>
+    <script src="life.js"></script>
+    <script src="fun.js"></script>
+    <script src="game.js"></script>
+  </body>
+</html>
