@@ -435,8 +435,9 @@ function story(text) {
 }
 
 let saveTimer = 0;
+let wiping = false; // starting over: nothing may be written any more
 function save() {
-  if (MODE !== 'life') return; // a sandbox or a friend's town is never saved; the life town is safe
+  if (MODE !== 'life' || wiping) return; // a sandbox or a friend's town is never saved; the life town is safe
   clearTimeout(saveTimer);
   // The life town as it is now: if a visit or chaos swaps S in the meantime, it's still this one that's written.
   const town = S;
@@ -1527,7 +1528,7 @@ function person(g, e, c) {
     return;
   }
   const st = S.style;
-  const look = { ...c, hair: st.hairColor ?? c.hair };
+  const look = { ...c, hair: st.hairColor ?? S.hair ?? c.hair, skin: c.skin ?? S.skin }; // c.skin: only when ill
   if (st.top) look.top = st.top.c;
   const hairStyle = st.hair;
   const at = drawPerson(g, { ...e, gender: hairStyle ? null : S.gender }, look, { hairStyle });
@@ -1981,7 +1982,7 @@ function paintUi() {
   $('level').textContent = `Lv.${lv}`;
   $('xp').style.width = `${Math.round(((S.xp - xpFor(lv)) / into) * 100)}%`;
   $('xpText').textContent = `${fmt(S.xp - xpFor(lv))} / ${fmt(into)}`;
-  $('house').textContent = [era().name, era().title, myJob()?.name].filter(Boolean).join(' · ');
+  $('house').textContent = [...new Set([era().name, era().title, myJob()?.name].filter(Boolean))].join(' · ');
   $('hudDay').textContent = `${S.days}일차 · ${SEASONS[Math.max(0, S.season)]}`;
   checkAchievements();
   $('pop').textContent = fmt(population());
@@ -2078,10 +2079,42 @@ function paintUi() {
   void aquila.chip(`${fmt(S.coins)}${ripe ? ' 수확' : ''}`).catch(() => {});
 }
 
+/** Skin and natural hair you can pick at the start (clothes change with the era; these stay). */
+const MY_HAIRS = ['#1c1c28', '#3a2418', '#7a4a2a', '#c8642a', '#e8c468', '#a83a2a'];
+const HAIR_NAMES = ['검은색', '흑갈색', '갈색', '주황색', '금색', '빨간색'];
+const pickLook = { skin: null, hair: null };
+function wirePickLooks() {
+  pickLook.skin = SKINS[Math.floor(Math.random() * SKINS.length)]; // ready-picked at random; change if you like
+  pickLook.hair = MY_HAIRS[Math.floor(Math.random() * MY_HAIRS.length)];
+  for (const [id, list, key, names] of [['skinPick', SKINS, 'skin', null], ['hairPick', MY_HAIRS, 'hair', HAIR_NAMES]]) {
+    const box = $(id);
+    if (!box) continue;
+    const paint = () => {
+      for (const b of box.children) b.setAttribute('aria-pressed', String(b.dataset.c === pickLook[key]));
+    };
+    box.replaceChildren(
+      ...list.map((c, i) => {
+        const b = el('button');
+        b.dataset.c = c;
+        b.style.background = c;
+        b.setAttribute('aria-label', names ? names[i] : `피부색 ${i + 1}`);
+        b.addEventListener('click', () => {
+          pickLook[key] = c;
+          paint();
+        });
+        return b;
+      }),
+    );
+    paint();
+  }
+}
+
 /** The one choice at the start: who you live as. Traits are rolled, a job follows. */
 function pickGender(gender) {
   if (S.gender) return;
   S.gender = gender === 'm' ? 'm' : 'f';
+  S.skin = pickLook.skin ?? undefined;
+  S.hair = pickLook.hair ?? undefined;
   S.traits = rollTraits();
   S.temper = TEMPERS[Math.floor(Math.random() * TEMPERS.length)].id; // born with it, like the abilities
   updateMyJob(true);
@@ -2092,6 +2125,25 @@ function pickGender(gender) {
   save();
   paintUi();
   wake();
+}
+
+/** Start over from nothing: every key the game saved (town, album, records, name) is removed, then a fresh page. */
+async function startOver() {
+  wiping = true;
+  clearTimeout(saveTimer);
+  const keys = new Set(['save', 'album', 'chaosBest', 'nick']);
+  try {
+    for (const k of (await aquila.storage.keys()) ?? []) keys.add(k);
+  } catch {
+    /* only the known keys, then */
+  }
+  for (const k of keys) await aquila.storage.remove(k).catch(() => {});
+  location.reload();
+}
+function wireStartOver() {
+  $('startOver')?.addEventListener('click', () => ($('resetPick').hidden = false));
+  $('resetNo')?.addEventListener('click', () => ($('resetPick').hidden = true));
+  $('resetYes')?.addEventListener('click', () => void startOver());
 }
 
 async function start() {
@@ -2144,7 +2196,8 @@ async function start() {
   wireChaos();
   wireVisit();
   if (!S.gender) $('mode').hidden = false;
-  for (const b of document.querySelectorAll('#pick button')) b.addEventListener('click', () => pickGender(b.dataset.gender));
+  wirePickLooks();
+  for (const b of document.querySelectorAll('#pick [data-gender]')) b.addEventListener('click', () => pickGender(b.dataset.gender));
   try {
     const p = await aquila.power();
     saver = !!p.saver;
@@ -2191,6 +2244,7 @@ async function start() {
     wake();
   }).observe(canvas);
   wireTabs();
+  wireStartOver();
   wireBuild();
   wireFun();
   welcomeBack();

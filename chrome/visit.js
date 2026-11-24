@@ -55,7 +55,7 @@ const homeState = () => VISIT?.home ?? (MODE === 'chaos' ? lifeState : null) ?? 
 /** Who you are, as a friend sees you: your name and your character's look. */
 function myCard() {
   const h = homeState();
-  return { name: nick || '이웃', gender: h.gender ?? 'f', style: h.style ?? null, era: h.era ?? 0 };
+  return { name: nick || '이웃', gender: h.gender ?? 'f', style: h.style ?? null, era: h.era ?? 0, skin: h.skin ?? null, hair: h.hair ?? null };
 }
 
 /** This town without what only matters to its owner (usage baseline, the long story). */
@@ -75,7 +75,8 @@ function guestLook(card) {
   // A code is anyone's text: the era a whole number in range, the style an object (or nothing).
   const base = OUTFIT[Math.max(0, Math.min(OUTFIT.length - 1, Math.floor(Number(card.era) || 0)))];
   const st = card.style && typeof card.style === 'object' ? card.style : {};
-  return { ...base, hair: st.hairColor ?? base.hair, top: st.top?.c ?? base.top, style: st.hair ?? undefined };
+  const hex = (c) => (typeof c === 'string' && /^#[0-9a-f]{6}$/i.test(c) ? c : undefined); // colours from a code: checked
+  return { ...base, hair: hex(st.hairColor) ?? hex(card.hair) ?? base.hair, top: hex(st.top?.c) ?? base.top, style: st.hair ?? undefined, skin: hex(card.skin) };
 }
 function addGuest(card) {
   if (!card) return;

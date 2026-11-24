@@ -14,6 +14,8 @@ window.addEventListener('message', (e) => {
   switch (m.method) {
     case 'storage.get': return reply(m.id, store[p.key] ?? null);
     case 'storage.set': store[p.key] = JSON.parse(JSON.stringify(p.value)); return reply(m.id, true);
+    case 'storage.remove': localStorage.removeItem('st:' + p.key); return reply(m.id, true);
+    case 'storage.keys': return reply(m.id, Object.keys(localStorage).filter((k) => k.startsWith('st:')).map((k) => k.slice(3)));
     case 'usage.get': return reply(m.id, window.__usage);
     case 'power.get': return reply(m.id, { saver: false, onBattery: false });
     case 'chip.set': window.__chips.push(p.text); return reply(m.id, true);

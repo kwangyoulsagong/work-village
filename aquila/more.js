@@ -374,6 +374,6 @@ function tagVariants(list) {
     S.variants ??= [];
     if (S.variants.includes(key)) continue;
     S.variants.push(key);
-    story(`✨ 희귀한 ${VARIANTS.find((v) => v.id === a.variant).name} ${ANIMAL_NAMES[a.kind]}이(가) 나타났어요!`);
+    story(`✨ 희귀한 ${VARIANTS.find((v) => v.id === a.variant).name} ${josa(ANIMAL_NAMES[a.kind], '이', '가')} 나타났어요!`);
   }
 }

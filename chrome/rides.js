@@ -334,7 +334,7 @@ const rideSpeed = () => (me.riding ? (RIDES.find((r) => r.id === me.riding)?.spe
 /** What you look like riding: your clothes on the rider. */
 function riderLook() {
   const o = OUTFIT[S.era];
-  return { hair: S.style.hairColor ?? o.hair, top: S.style.top?.c ?? o.top, legs: o.legs };
+  return { hair: S.style.hairColor ?? S.hair ?? o.hair, top: S.style.top?.c ?? o.top, legs: o.legs, skin: S.skin };
 }
 /** You on your ride (instead of walking). True when drawn. */
 function drawMeRiding(g, e) {
