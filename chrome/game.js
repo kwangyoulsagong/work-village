@@ -177,7 +177,7 @@ const ACHIEVEMENTS = [
   ['level-20', 'Lv.20', () => levelOf(S.xp) >= 20],
 ];
 function checkAchievements() {
-  if (MODE === 'chaos') return;
+  if (MODE !== 'life') return;
   for (const [id, name, ok] of ACHIEVEMENTS)
     if (!S.ach.includes(id) && ok()) {
       S.ach.push(id);
@@ -380,7 +380,7 @@ const SEASONS = ['봄', '여름', '가을', '겨울'];
 const seasonNow = () => Math.floor((Date.now() / 86_400_000 + 3) / 7) % 4;
 
 function tickDay() {
-  if (MODE === 'chaos') return;
+  if (MODE !== 'life') return;
   if (S.lastDay === today()) return;
   const first = !S.lastDay;
   S.lastDay = today();
@@ -425,7 +425,7 @@ function story(text) {
 
 let saveTimer = 0;
 function save() {
-  if (MODE === 'chaos') return; // the sandbox is never saved; the life town is safe
+  if (MODE !== 'life') return; // a sandbox or a friend's town is never saved; the life town is safe
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => void aquila.storage.set('save', S).catch(() => {}), 800);
 }
@@ -433,7 +433,7 @@ function save() {
 // ── Economy: usage → coins, growth, animals' produce, babies ──────────────────────────────────────────────────────
 
 function absorb(list) {
-  if (MODE === 'chaos') return 0; // counted when you're back (the baseline lives in the life town)
+  if (MODE !== 'life') return 0; // counted when you're back (the baseline lives in the life town)
   if (!Array.isArray(list) || S.over) return 0;
   let gain = 0;
   for (const u of list) {
@@ -524,7 +524,7 @@ const era = () => ERAS[S.era];
 const plotSpot = (i) => [PLOT_AT[i][0], PLOT_AT[i][1] - 1];
 
 function nextTask() {
-  if (MODE === 'chaos') return null;
+  if (MODE !== 'life') return null; // visiting: just a stroll
   if (!S.gender || S.over || S.sickDays > 0) return null;
   const ripe = S.plots.findIndex((p) => p.planted && p.g >= GROW);
   if (ripe >= 0) return { to: plotSpot(ripe), tool: 'basket', what: `${era().crop} 수확`, act: () => harvest(ripe) };
@@ -1308,6 +1308,7 @@ function paintCache() {
   for (const l of lotCandidates().slice(0, 6)) emptyLot(g, l.x, l.s ? SOUTH_BOTTOM() : ROAD_Y * T - 1);
   house(g, HOME.x, HOME.w, true);
   paintChaos(g);
+  paintVisit(g);
   cache.dirty = false;
 }
 
@@ -1423,6 +1424,7 @@ function spawnFamily() {
     );
   if (S.dog) people.push(make('dog', HOME_DOOR, { home: -1, speed: 1.6, puppy: S.dogAge < 5 }));
   if (S.cat) people.push(make('petcat', HOME_DOOR, { home: -1, speed: 1.4 }));
+  people.push(...guestPeople()); // friends walking around (visit.js)
 }
 function shade(hex) {
   const n = parseInt(hex.slice(1), 16);
@@ -1613,6 +1615,7 @@ function frame() {
     }
   }
   drawWishes(ctx);
+  drawVisit(ctx);
   if (bubble) {
     const x = Math.round(bubble.x);
     const y = Math.round(bubble.y) - 32;
@@ -1655,7 +1658,7 @@ function frame() {
 
 /** The view follows you; true when it moved. */
 function follow() {
-  if (MODE === 'life' && lifeFollow()) return true;
+  if (MODE !== 'chaos' && lifeFollow()) return true;
   if (MODE === 'chaos') {
     chaosCam = Math.max(0, Math.min(W - VIEW_W, chaosCam));
     if (Math.abs(chaosCam - camX) < 0.5) return false;
@@ -1934,7 +1937,7 @@ function paintUi() {
       return li;
     })),
   );
-  if (MODE === 'chaos') return;
+  if (MODE !== 'life') return;
   const ripe = S.plots.some((p) => p.planted && p.g >= GROW);
   void aquila.chip(`${fmt(S.coins)}${ripe ? ' 수확' : ''}`).catch(() => {});
 }
@@ -1986,6 +1989,7 @@ async function start() {
   ensureLots(S.houses + S.ruins);
   wireCamera();
   wireChaos();
+  wireVisit();
   if (!S.gender) {
     $('mode').hidden = false;
     for (const b of document.querySelectorAll('#pick button'))

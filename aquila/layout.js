@@ -44,7 +44,7 @@ function applyLayout(seed) {
     { id: 'plaza', w: 6, place: (x) => (PLAZA.x = x) },
   ]);
   // Blocks you moved yourself (build menu) keep your order.
-  const order = MODE === 'life' && Array.isArray(S.coreOrder) && S.coreOrder.length === core.length ? S.coreOrder : null;
+  const order = MODE !== 'chaos' && Array.isArray(S.coreOrder) && S.coreOrder.length === core.length ? S.coreOrder : null;
   if (order) core.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   const total = core.reduce((a, b) => a + b.w + 2, -2);
   let x = Math.max(12, Math.min(COLS - 12 - total, HOME.x + 1 - Math.floor(total / 2) + ri(-5, 5)));
@@ -203,7 +203,7 @@ function drawMini() {
     g.fillRect(Math.round(x * sx) - 2 * dpr, mini.height / 2 - 2 * dpr, 4 * dpr, 4 * dpr);
   };
   dot((HOME.x + 1.5) * T, '#ffd23f');
-  if (MODE === 'life') dot(me.x, '#e8404b');
+  if (!me.hidden) dot(me.x, '#e8404b');
 }
 
 // ── House lots: north of the road, and south of it where woods were cleared. Built ones are remembered (S.lots) ───

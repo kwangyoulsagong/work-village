@@ -189,6 +189,7 @@ function stock(kind, n) {
 /** One step of a villager's life: walk, act, or decide what's next. */
 function think(e) {
   if (e.zombie) return zombieThink(e);
+  if (e.kind === 'guest') return guestThink(e);
   if (e.slip > 0) return true; // on the ground, seeing stars
   // Needs run down slowly.
   const n = e.needs;

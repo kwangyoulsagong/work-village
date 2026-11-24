@@ -47,6 +47,8 @@ function sandboxFor(era) {
 
 function enterChaos(era) {
   if (MODE === 'life') lifeState = S;
+  VISIT = null; // a new sandbox is your own
+  guests = [];
   MODE = 'chaos';
   S = sandboxFor(era);
   applyLayout(S.mapSeed); // a new map for every sandbox
@@ -73,6 +75,8 @@ function enterChaos(era) {
 
 function leaveChaos() {
   MODE = 'life';
+  VISIT = null;
+  guests = [];
   S = lifeState ?? fresh();
   lifeState = null;
   fx = [];
@@ -87,6 +91,7 @@ function leaveChaos() {
   cache.dirty = true;
   document.body.dataset.mode = 'life';
   $('signBox').hidden = true;
+  $('visitCard').hidden = true;
   if (!S.gender) $('pick').hidden = false;
   paintUi();
   wake();
@@ -308,6 +313,7 @@ function useTool(x, y) {
 }
 
 function placeSign() {
+  if (MODE === 'visit') return void visitNote();
   if (!signAt) return;
   const text = ($('signText').value || '여기 왔다 감 ㅋ').slice(0, 24);
   S.signs.push({ x: Math.round(signAt[0]), y: Math.round(signAt[1]), text });

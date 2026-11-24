@@ -239,7 +239,7 @@ function holidayTick(k) {
   });
 }
 function drawHoliday(g) {
-  if (!holiday || MODE !== 'life') return;
+  if (!holiday || MODE === 'chaos') return;
   const night = isNight();
   const blink = Math.floor(clockTick() / 4) % 2;
   // Lanterns (Seollal, Chuseok) or lights (Christmas, year's end) strung along the road near the square.
