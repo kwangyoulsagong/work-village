@@ -57,7 +57,9 @@ function claudeUsage() {
     let out = '';
     let child;
     try {
-      child = spawn(bin, ['-p', '/usage', '--no-session-persistence'], { cwd: os.homedir(), env, stdio: ['ignore', 'pipe', 'ignore'] });
+      // Windows: npm installs claude.cmd, which only runs through the shell (a native claude.exe doesn't need it).
+      const shell = process.platform === 'win32' && !/\.exe$/i.test(bin);
+      child = spawn(shell ? `"${bin}"` : bin, ['-p', '/usage', '--no-session-persistence'], { cwd: os.homedir(), env, stdio: ['ignore', 'pipe', 'ignore'], shell, windowsHide: true });
     } catch {
       return resolve(null);
     }
