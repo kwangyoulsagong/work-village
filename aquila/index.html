@@ -80,7 +80,7 @@
       .btn.big { width: 100%; padding: 12px; border-radius: 12px; font-size: 15px; }
       .btn.text { background: none; color: var(--blue); padding: 4px 2px; }
       .btn[aria-pressed='true'] { background: var(--blue-soft); color: var(--blue); }
-      .icon { width: 34px; padding: 7px 0; }
+      .icon { width: 34px; padding: 7px 0; flex: none; }
 
       /* My town: a headline, big numbers, rows */
       .eyebrow { font-size: 13px; color: var(--text-3); font-weight: 600; }
@@ -89,7 +89,7 @@
       .numbers div { display: flex; flex-direction: column; }
       .numbers b { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
       .numbers span { font-size: 12px; color: var(--text-3); }
-      .rows { margin-top: 12px; display: grid; gap: 10px; }
+      .rows { margin-top: 12px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; }
       .rowline { display: flex; align-items: center; gap: 10px; font-size: 14px; }
       .rowline .label { color: var(--text-2); flex: none; min-width: 64px; }
       .rowline .value { flex: 1; min-width: 0; text-align: right; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -98,6 +98,10 @@
       .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
       .chip { background: var(--fill); border-radius: 8px; padding: 4px 8px; font-size: 12px; color: var(--text-2); white-space: nowrap; }
       .chip b { color: var(--text); font-weight: 700; }
+      /* Traits: one even row of five, not five chips that wrap anyhow. */
+      .traits { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; margin-top: 8px; }
+      .traits div { background: var(--fill); border-radius: 8px; padding: 4px 2px; text-align: center; font-size: 11px; color: var(--text-3); line-height: 1.3; min-width: 0; }
+      .traits b { display: block; color: var(--yellow); font-size: 10px; letter-spacing: -1px; white-space: nowrap; overflow: hidden; }
 
       /* Tabs: a segmented control */
       .segment { display: flex; background: var(--fill); border-radius: 10px; padding: 3px; gap: 2px; margin-bottom: 10px; }
@@ -161,9 +165,10 @@
       #daySun { position: absolute; top: 50%; width: 12px; height: 12px; margin: -6px 0 0 -6px; border-radius: 50%; background: #ffc83d; box-shadow: 0 0 0 2px var(--card); }
       #daySun[data-night='true'] { background: #8b9ad8; }
       .tl-era { display: flex; gap: 2px; margin-top: 8px; }
-      .tl-era span { flex: 1; text-align: center; font-size: 10px; padding: 2px 0; border-radius: 4px; background: var(--fill); color: var(--text-3); white-space: nowrap; overflow: hidden; }
-      .tl-era span.done { background: var(--blue-soft); color: var(--blue); }
-      .tl-era span.now { background: var(--blue); color: #ffffff; font-weight: 700; }
+      .tl-era > span { flex: 1; text-align: center; font-size: 10px; padding: 2px 0; border-radius: 4px; background: var(--fill); color: var(--text-3); white-space: nowrap; overflow: hidden; }
+      .tl-era > span.done { background: var(--blue-soft); color: var(--blue); }
+      .tl-era > span.now { background: var(--blue); color: #ffffff; font-weight: 700; }
+      @media (max-width: 380px) { .tl-era .full { display: none; } }
 
       /* While you were away */
       .away { background: var(--blue-soft); border-radius: 12px; padding: 10px 12px; margin-bottom: 10px; }
@@ -210,7 +215,8 @@
       @media (max-height: 560px) { .extra { display: none !important; } }
       #hudDay { display: none; }
       @media (max-height: 420px) { #hudDay { display: inline-flex; } .summary, .foot, .chaos-tools, .timeline { display: none !important; } body { padding: 6px; } }
-      @media (max-width: 300px) { .numbers { gap: 10px; } .numbers b { font-size: 17px; } .chips { display: none; } body { padding: 6px; } }
+      @media (max-width: 340px) { #camLeft, #camRight { display: none; } .row .btn { padding: 7px 10px; } }
+      @media (max-width: 300px) { .numbers { gap: 10px; } .numbers b { font-size: 17px; } .chip { font-size: 11px; padding: 3px 6px; } body { padding: 6px; } .card { padding: 12px; } }
       @media (prefers-reduced-motion: reduce) { .progress i, .btn { transition: none; } .btn:active { transform: none; } }
     </style>
     <link rel="icon" href="icon.png" />
@@ -344,6 +350,7 @@
         </div>
       </div>
       <div class="chips" id="family"></div>
+      <div class="traits" id="traits"></div>
     </section>
 
     <section class="card extra">

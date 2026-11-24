@@ -1000,13 +1000,14 @@ function house(g, tx, w, mine, bottomAt = ROAD_Y * T - 1) {
   switch (S.era) {
     case 0: {
       // A round thatched hut, a little different in every family's hands.
+      // Smaller than the lot, so the huts stand apart with grass between them.
       const cx = left + width / 2;
-      const r = Math.floor(width / 2) - 1;
+      const r = Math.floor(width / 2) - 3;
       disc(g, cx, bottom - 8, r, shadeOf(L.thatch, 0.55));
       disc(g, cx, bottom - 8, r - 1, L.thatch);
       disc(g, cx - 3, bottom - 12, r - 6, lighten(L.thatch, 0.2));
-      for (let j = -8; j < 8; j += 3) R(g, cx - 10, bottom - 8 + j, 20, 1, shadeOf(L.thatch, 0.82));
-      R(g, left + 1, bottom - 2, width - 2, 3, L.thatch);
+      for (let j = -7; j < 7; j += 3) R(g, cx - 8, bottom - 8 + j, 16, 1, shadeOf(L.thatch, 0.82));
+      R(g, left + 3, bottom - 2, width - 6, 3, L.thatch);
       box(g, doorX, bottom - 9, 7, 9, '#3a2616');
       R(g, doorX + 1, bottom - 8, 5, 1, L.cloth);
       if (mine) {
@@ -1046,11 +1047,11 @@ function house(g, tx, w, mine, bottomAt = ROAD_Y * T - 1) {
       wall(bottom - 22, L.brick);
       for (let row = 0; row < 7; row++)
         for (let bx = left + 1 + (row % 2) * 3; bx < left + width - 4; bx += 6) R(g, bx, bottom - 20 + row * 3, 5, 1, shadeOf(L.brick, 0.82));
-      gable(g, left - 3, bottom - 36, width + 6, 15, L.slate, shadeOf(L.slate, 0.8));
-      box(g, left + width - 10, bottom - 41, 6, 13, '#7a3a30');
-      R(g, left + width - 11, bottom - 42, 8, 2, '#5a2a24');
-      disc(g, left + width - 7, bottom - 46, 2, '#d8d8dc');
-      disc(g, left + width - 4, bottom - 50, 2, '#ececf0');
+      // A lighter slate roof with little overhang and one thin chimney: rows of these read as a street, not a wall.
+      gable(g, left - 1, bottom - 34, width + 2, 13, lighten(L.slate, 0.18), shadeOf(L.slate, 0.8));
+      box(g, left + width - 9, bottom - 37, 5, 9, '#7a3a30');
+      R(g, left + width - 10, bottom - 38, 7, 2, '#5a2a24');
+      if ((tx * 5) % 3 === 0) disc(g, left + width - 6, bottom - 42, 2, '#e4e4e8');
       door('#3d4a5a');
       win(left + 4, bottom - 19, { frame: '#e8e0d0', flowers: true });
       win(left + width - 12, bottom - 19, { frame: '#e8e0d0', flowers: true });
@@ -1922,7 +1923,13 @@ function paintUi() {
     chip('용돈', `${fmt(S.pocket)}코인`),
     chip('창고', `나무 ${fmt(S.stock.wood)} · 돌 ${fmt(S.stock.stone)}`),
     chip('동물', `${animalsOwned}마리`),
-    ...(S.traits ? TRAITS.map(([k, name]) => chip(name, '★'.repeat(S.traits[k]) + '☆'.repeat(5 - S.traits[k]), 'trait')) : []),
+  );
+  $('traits').replaceChildren(
+    ...(S.traits ? TRAITS.map(([k, name]) => {
+      const d = el('div', '', name);
+      d.append(el('b', '', '★'.repeat(S.traits[k]) + '☆'.repeat(5 - S.traits[k])));
+      return d;
+    }) : []),
   );
 
   $('over').hidden = !S.over;

@@ -797,7 +797,10 @@ function paintTimeline() {
     eraDots.dataset.era = String(S.era);
     eraDots.replaceChildren(
       ...ERAS.map((e, i) => {
-        const s = el('span', i < S.era ? 'done' : i === S.era ? 'now' : '', e.name);
+        // "원시 시대" → "원시" on a narrow panel: the word 시대 hides first.
+        const s = el('span', i < S.era ? 'done' : i === S.era ? 'now' : '', e.name.replace(/ 시대$/, ''));
+        if (/ 시대$/.test(e.name)) s.append(el('span', 'full', ' 시대'));
+        s.title = e.name;
         return s;
       }),
     );
