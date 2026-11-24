@@ -65,7 +65,8 @@
       .grow { flex: 1; }
       .hint { color: var(--text-3); font-size: 12px; }
       .row .btn { white-space: nowrap; }
-      @media (max-width: 340px) { .row .hint { display: none; } }
+      .row .hint { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+      @media (max-width: 460px) { .row .hint { display: none; } }
 
       /* Buttons */
       .btn {
@@ -181,8 +182,13 @@
       ul.album img { width: 100%; image-rendering: pixelated; border-radius: 8px; display: block; }
       ul.album li.empty { grid-column: 1 / -1; font-size: 13px; color: var(--text-3); padding: 8px 0; }
       ul.grid li.rare { background: var(--rare-bg); color: var(--rare-text); font-weight: 600; }
-      .segment { overflow-x: auto; scrollbar-width: none; }
-      .segment button { min-width: 52px; }
+      .segment { overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; overscroll-behavior-x: contain; }
+      .segment::-webkit-scrollbar { display: none; }
+      /* More tabs to one side: that edge fades, so it reads as "scroll for more". */
+      .segment.more-right { mask-image: linear-gradient(to right, #000 82%, transparent); }
+      .segment.more-left { mask-image: linear-gradient(to left, #000 82%, transparent); }
+      .segment.more-left.more-right { mask-image: linear-gradient(to right, transparent, #000 18%, #000 82%, transparent); }
+      .segment button { flex: 1 0 auto; min-width: 52px; padding: 6px 10px; }
 
       /* Build menu */
       .buy { display: flex; align-items: center; gap: 8px; padding: 8px 0; }

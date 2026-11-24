@@ -306,5 +306,25 @@ function wireTabs() {
     t.addEventListener('click', () => {
       for (const o of tabs) o.setAttribute('aria-selected', String(o === t));
       for (const b of document.querySelectorAll('.tab-body')) b.hidden = b.dataset.body !== t.dataset.tab;
+      t.scrollIntoView?.({ block: 'nearest', inline: 'nearest' });
     });
+  // A narrow panel scrolls the tabs sideways: a mouse wheel does it too, not only a trackpad or a drag.
+  const bar = document.querySelector('.segment');
+  if (!bar) return;
+  const edges = () => {
+    bar.classList.toggle('more-left', bar.scrollLeft > 2);
+    bar.classList.toggle('more-right', bar.scrollLeft + bar.clientWidth < bar.scrollWidth - 2);
+  };
+  bar.addEventListener('scroll', edges, { passive: true });
+  new ResizeObserver(edges).observe(bar);
+  edges();
+  bar.addEventListener(
+    'wheel',
+    (ev) => {
+      if (bar.scrollWidth <= bar.clientWidth || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;
+      bar.scrollLeft += ev.deltaY;
+      ev.preventDefault();
+    },
+    { passive: false },
+  );
 }
