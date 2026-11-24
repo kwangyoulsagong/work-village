@@ -1,0 +1,18 @@
+{
+  "name": "work-village",
+  "private": true,
+  "description": "Dev tools only: the game itself is plain HTML/JS with no build step.",
+  "scripts": {
+    "sim": "node tools/sim.js",
+    "perf": "electron tools/perf.js",
+    "test:life": "electron tools/life-test.js",
+    "test:fx": "electron tools/fx-test.js",
+    "test:more": "electron tools/more-test.js",
+    "test:chaos": "electron tools/chaos-test.js",
+    "test:chrome": "node tools/bg-test.js && electron tools/chrome-test.js",
+    "test": "npm run sim && npm run test:life && npm run test:fx && npm run test:more && npm run test:chrome && npm run perf"
+  },
+  "devDependencies": {
+    "electron": "^45.0.0"
+  }
+}
