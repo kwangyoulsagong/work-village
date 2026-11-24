@@ -572,7 +572,7 @@ function nextTask() {
   // Your job, when there's nothing more pressing (only while you're watching: off screen nobody walks).
   const mine = myJob();
   if (mine && live() && Math.random() < 0.45)
-    return { to: jobPlace(me, mine), tool: mine.tool ?? 'sparkle', what: `${mine.name}로 일하기`, act: () => jobDone(mine) };
+    return { to: jobPlace(me, mine), tool: mine.tool ?? 'sparkle', what: `${mine.name}로 일하기`, act: () => jobDone(mine), job: true };
   const f = S.friends.findIndex((x, i) => i < occupied() && x && x.day !== today() && i !== S.spouse);
   if (f >= 0) return { to: doorOf(f), tool: 'talk', what: `${FAMILIES[f].family}에 놀러 가기`, act: () => visit(f) };
   return null;
@@ -1787,7 +1787,13 @@ function tick() {
     me.dir = 'd';
     moved = true;
   } else if (task && --me.act.t > 0) moved = true;
-  else if (task) {
+  else if (task && !task.job && nextTask()?.what !== task.what) {
+    // Things changed on the way (a thief, a war, the bill came first): don't pay for what's no longer affordable.
+    me.act = null;
+    task = null;
+    rest = 2;
+    moved = true;
+  } else if (task) {
     me.act = null;
     const said = task.act();
     gainXp(3);
