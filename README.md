@@ -9,7 +9,10 @@ Claude·Codex로 일한 만큼 자라는 2D 픽셀 마을 시뮬레이션. [Aqui
 
 **Aquila** (`aquila/`): `./install-aquila.sh`로 `~/.aquila/extensions/work-village/`에 복사한 뒤 확장 패널에서 켭니다(게임을 고칠 때마다 다시 실행하고 패널의 ↻). 권한: 사용량, 저장.
 
-**Chrome** (`chrome/`): `./build-chrome.sh` → `chrome://extensions` → 개발자 모드 → "압축해제된 확장 프로그램 로드" → `chrome/` 폴더. Chrome판은 브라우저를 켜 둔 시간으로 자랍니다(1시간 = 10코인).
+**Chrome** (`chrome/`): `./build-chrome.sh` → `chrome://extensions` → 개발자 모드 → "압축해제된 확장 프로그램 로드" → `chrome/` 폴더.
+
+- `chrome/install-host.sh`를 한 번 실행하면 이 맥의 **Claude·Codex 사용량**으로 자랍니다. Chrome의 네이티브 메시징으로 로컬 도우미(`chrome/host/`)가 `claude -p /usage`와 `~/.codex/sessions`를 읽기만 합니다. 서버도 네트워크도 없습니다. 되돌리기: `./install-host.sh --remove`.
+- 도우미가 없거나 둘 다 사용량이 없으면 **브라우저를 켜 둔 시간**으로 자랍니다(1시간 = 10코인, 화면 잠금 중엔 안 셈).
 
 ## 폴더
 
@@ -26,6 +29,7 @@ Claude·Codex로 일한 만큼 자라는 2D 픽셀 마을 시뮬레이션. [Aqui
 | `extras.js` | 날씨, 재료, 도감, 상인, 하늘, 농장 업그레이드 |
 | `jobs.js` | 직업 24가지와 능력치 맞춤 |
 | `life.js` | 시대별 탈것, 동물 추가, 주민 외모, 직업 수입, 짓기 메뉴, 타임라인 |
+| `more.js` | 사진 앨범, 연말 시상식, 주민 소원, 실제 명절(설·추석·벚꽃·어린이날·핼러윈·크리스마스), 희귀 동물 색 |
 | `fun.js` | 자리 비운 사이, 황금 손님, 연대기, 마을 분위기, 유산, 붕괴 모션, RIP 비석 |
 | `chaos.js` | 인성 파탄 모드 |
 | `game.js` | 상태, 경제, 그리기 루프(30fps), UI |
