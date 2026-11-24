@@ -319,6 +319,27 @@ function wireTabs() {
     bar.classList.toggle('more-right', bar.scrollLeft + bar.clientWidth < bar.scrollWidth - 2);
   };
   bar.addEventListener('scroll', edges, { passive: true });
+  // Drag the row with a mouse; a drag isn't a click on the tab it ends over.
+  let grab = null;
+  bar.addEventListener('pointerdown', (ev) => {
+    if (ev.pointerType !== 'mouse' || bar.scrollWidth <= bar.clientWidth) return;
+    grab = { x: ev.clientX, left: bar.scrollLeft, moved: false };
+  });
+  window.addEventListener('pointermove', (ev) => {
+    if (!grab) return;
+    const dx = ev.clientX - grab.x;
+    if (!grab.moved && Math.abs(dx) < 5) return;
+    grab.moved = true;
+    bar.classList.add('dragging');
+    bar.scrollLeft = grab.left - dx;
+  });
+  window.addEventListener('pointerup', () => {
+    if (grab?.moved) {
+      bar.addEventListener('click', (e) => (e.stopPropagation(), e.preventDefault()), { capture: true, once: true });
+      bar.classList.remove('dragging');
+    }
+    grab = null;
+  });
   new ResizeObserver(edges).observe(bar);
   edges();
   bar.addEventListener(

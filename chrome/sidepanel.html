@@ -218,8 +218,14 @@
       ul.album img { width: 100%; image-rendering: pixelated; border-radius: 8px; display: block; }
       ul.album li.empty { grid-column: 1 / -1; font-size: 13px; color: var(--text-3); padding: 8px 0; }
       ul.grid li.rare { background: var(--rare-bg); color: var(--rare-text); font-weight: 600; }
-      .segment { overflow-x: auto; scrollbar-width: none; scroll-behavior: smooth; overscroll-behavior-x: contain; }
-      .segment::-webkit-scrollbar { display: none; }
+      /* Too many tabs for the width: a thin scrollbar that always shows (styled, so macOS doesn't hide it), and the
+         row can be dragged with a mouse (layout.js), not only swiped on a trackpad. */
+      .segment { overflow-x: auto; scroll-behavior: smooth; overscroll-behavior-x: contain; cursor: grab; }
+      .segment.dragging { cursor: grabbing; scroll-behavior: auto; }
+      .segment::-webkit-scrollbar { height: 5px; }
+      .segment::-webkit-scrollbar-track { background: transparent; margin: 0 10px; }
+      .segment::-webkit-scrollbar-thumb { background: var(--text-3); border-radius: 999px; }
+      .segment:not(.more-left):not(.more-right)::-webkit-scrollbar { height: 0; }
       /* More tabs to one side: that edge fades, so it reads as "scroll for more". */
       .segment.more-right { mask-image: linear-gradient(to right, #000 82%, transparent); }
       .segment.more-left { mask-image: linear-gradient(to left, #000 82%, transparent); }
