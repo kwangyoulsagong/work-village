@@ -12,9 +12,21 @@ Claude를 쓰는 만큼 자라는 픽셀 마을을 Claude Code 안에서 키워�
 
 ## 설치
 
-```sh
-claude --plugin-dir /path/to/work-village/claude-mod
+Claude Code 입력창에서 한 줄이면 돼요(Claude Code 2.1.275 이상).
+
 ```
+/plugin install work-village --marketplace kwangyoulsagong/work-village
+```
+
+터미널(셸)에서는 `claude plugin install work-village --marketplace kwangyoulsagong/work-village`.
+이 저장소를 내려받아 고치는 중이라면 폴더에서 바로 읽게 할 수도 있어요(고친 뒤 `/reload-plugins`):
+
+```sh
+claude plugin marketplace add ~/Desktop/work-village
+claude plugin install work-village@work-village
+```
+
+한 번만 써 보려면 `claude --plugin-dir ~/Desktop/work-village/claude-mod`.
 
 ## 개발
 
