@@ -167,7 +167,7 @@ function enterVisit(obj) {
   MODE = 'visit';
   S = { ...fresh(), ...obj.town, usage: {}, story: [], over: null, sickDays: 0, gender: mine.gender, style: mine.style ?? fresh().style };
   settleTown(false);
-  story(`🧳 ${VISIT.host?.name ?? '이웃'}님 마을에 놀러 왔어요. 구경만 하고, 이 마을은 바뀌지 않아요.`);
+  story(`🧳 ${VISIT.host?.name ?? '이웃'}님이 코드를 만든 순간의 마을에 놀러 왔어요. 주민들 움직임은 각자 화면에서 따로 흘러가요.`);
   document.body.dataset.mode = 'visit';
   $('visitHost').textContent = `${VISIT.host?.name ?? '이웃'}님의 ${ERAS[S.era]?.name ?? ''} 마을`;
   paintUi();
@@ -270,7 +270,7 @@ async function openVisitCard() {
     $('myCode').value = await myCode();
   } else {
     title.textContent = '내 마을 초대 코드';
-    note.textContent = '친구에게 보내면 내 마을을 구경할 수 있어요. 마을은 바뀌지 않아요.';
+    note.textContent = '친구에게 보내면 지금 이 순간의 마을을 구경할 수 있어요. 실시간으로 이어지지는 않아요.';
     $('myCode').value = await myCode();
   }
   $('copyCode').disabled = !$('myCode').value;
