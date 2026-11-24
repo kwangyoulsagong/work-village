@@ -1695,14 +1695,23 @@ function drawMeMarker(g) {
   R(g, x, y + 4, 1, 1, OL);
 }
 
+/**
+ * A view you move yourself (drag, wheel, ◀ ▶, chaos mode) glides there every drawn frame, not at the minds' 8 Hz,
+ * so scrolling is smooth: most of the way within a tick (125 ms).
+ */
+function cameraTick(k) {
+  const target = MODE === 'chaos' ? chaosCam : lifeCam ? lifeCam.x : null;
+  if (target == null) return;
+  const d = Math.max(0, Math.min(W - VIEW_W, target)) - camX;
+  camX = Math.abs(d) < 0.3 ? camX + d : camX + d * (1 - Math.pow(0.03, k));
+}
+
 /** The view follows you; true when it moved. */
 function follow() {
   if (MODE !== 'chaos' && lifeFollow()) return true;
   if (MODE === 'chaos') {
     chaosCam = Math.max(0, Math.min(W - VIEW_W, chaosCam));
-    if (Math.abs(chaosCam - camX) < 0.5) return false;
-    camX = chaosCam;
-    return true;
+    return Math.abs(chaosCam - camX) >= 0.5; // cameraTick() glides there, frame by frame
   }
   // Tests can hold the view somewhere (window.__camAt, in tiles).
   if (typeof window.__camAt === 'number') {
@@ -1810,16 +1819,19 @@ let raf = 0;
 let lastTick = 0;
 let lastFrame = 0;
 /** One animation frame: catch the minds up (8 Hz), move the little things by the time passed, draw. */
-const FPS = 30; // everywhere: smooth enough, half the drawing of 60
-let lastDraw = 0;
+const FPS = 45; // everywhere: smooth scrolling, still well under 60
+let lastRaf = 0;
+let drawDebt = 0; // ms owed to drawing: at 60 Hz, 45 fps draws three frames of every four (a gap check could only halve)
 function loopFrame(now) {
   raf = 0;
   if (!live()) return;
-  if (now - lastDraw < 1000 / FPS - 3) {
+  drawDebt += lastRaf ? Math.min(100, now - lastRaf) : 1000 / FPS;
+  lastRaf = now;
+  if (drawDebt < 1000 / FPS - 1) {
     raf = requestAnimationFrame(loopFrame);
     return;
   }
-  lastDraw = now;
+  drawDebt = Math.min(drawDebt - 1000 / FPS, 1000 / FPS);
   if (!lastTick || now - lastTick > 1000) lastTick = now - FRAME_MS;
   while (now - lastTick >= FRAME_MS) {
     tick();
@@ -1838,6 +1850,7 @@ function loopFrame(now) {
   goldenTick(k);
   fxTick(k);
   holidayTick(k);
+  cameraTick(k);
   frame();
   raf = requestAnimationFrame(loopFrame);
 }
@@ -1849,6 +1862,8 @@ function wake() {
   raf = 0;
   lastTick = 0;
   lastFrame = 0;
+  lastRaf = 0;
+  drawDebt = 0;
   if (live()) raf = requestAnimationFrame(loopFrame);
   else {
     catchUp();

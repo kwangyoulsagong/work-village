@@ -138,9 +138,7 @@ function lifeFollow() {
     return false;
   }
   lifeCam.x = Math.max(0, Math.min(W - VIEW_W, lifeCam.x));
-  if (Math.abs(lifeCam.x - camX) < 0.5) return true;
-  camX += (lifeCam.x - camX) * 0.5;
-  return true;
+  return true; // cameraTick() glides there, frame by frame
 }
 
 function wireCamera() {

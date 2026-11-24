@@ -28,7 +28,7 @@ local helper) or, with neither, the minutes the browser is open. Plain HTML/JS, 
    Electron/Chrome). Use Electron with `show: false` + `webPreferences.offscreen: true` and capture with
    `capturePage()` / `canvas.toDataURL()` — the scripts in `tools/` do this (`npm test`; see tools/README.md). Say
    plainly when something could only be checked offscreen.
-4. **Battery first.** 30 fps everywhere (minds tick 8×/s, drawing interpolates). Static scenery is cached; draw only
+4. **Battery first.** 45 fps everywhere (minds tick 8×/s, drawing interpolates; a moved view glides per frame). Static scenery is cached; draw only
    what's on screen; stop when the panel is hidden. Check frame time after adding anything that draws every frame.
 5. **Serverless, local only.** No network calls. Saves go through `aquila.storage` (Aquila: 512 KB in all; the photo
    album has its own key and stays small) or `chrome.storage`. The native helper only reads ~/.claude / ~/.codex.

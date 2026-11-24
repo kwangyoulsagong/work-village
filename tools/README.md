@@ -6,7 +6,7 @@ Install once with `npm install` (Electron, dev only). Screenshots go to `tools/o
 | Command | What it checks |
 |---|---|
 | `npm run sim` | 200 lives of the economy (all game files in a `vm`, 7 % usage a day): deaths, share reaching the future, days |
-| `npm run perf` | Frame time at 30 fps: a big town, with repaints, chaos mode with everything going |
+| `npm run perf` | Frame time at 45 fps: a big town, with repaints, chaos mode with everything going |
 | `npm run test:life` | Traffic per era, people, wildlife, build menu (buy, place decor, move blocks), jobs tab, save |
 | `npm run test:fx` | Collapse motion, graves, green faces (chaos smash / nuke / plague, a lost war, a plague) |
 | `npm run test:more` | Album, awards, wishes, holidays, rare colours |
