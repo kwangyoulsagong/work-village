@@ -359,7 +359,7 @@ function saveSoon() {
   // Visiting: only your own town is written (the friend's stays a copy that is never saved).
   const town = VISIT.home;
   clearTimeout(homeTimer);
-  homeTimer = setTimeout(() => void aquila.storage.set('save', town).catch(() => {}), 800);
+  homeTimer = setTimeout(() => void writeTown(town), 800);
 }
 
 /** Abroad: a little XP for talking, a crop or two picked to take home; a few a day. */

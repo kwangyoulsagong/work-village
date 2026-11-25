@@ -441,8 +441,45 @@ function save() {
   clearTimeout(saveTimer);
   // The life town as it is now: if a visit or chaos swaps S in the meantime, it's still this one that's written.
   const town = S;
-  saveTimer = setTimeout(() => void aquila.storage.set('save', town).catch(() => {}), 800);
+  saveTimer = setTimeout(() => void writeTown(town), 800);
 }
+
+// The town may be open twice (a side panel in two Chrome windows, or Aquila's panel and its float window). Each copy
+// holds the whole town and saves all of it, so a copy opened before a purchase would write the purchase away. Only one
+// copy leads: the one opened last (or taken over with 여기서 하기). The others stop, save nothing and say so.
+const COPY = Math.random().toString(36).slice(2);
+let follower = false;
+async function leading() {
+  if (follower) return false;
+  const lead = await aquila.storage.get('lead').catch(() => null);
+  if (lead && lead !== COPY) {
+    standAside();
+    return false;
+  }
+  if (!lead) await aquila.storage.set('lead', COPY).catch(() => {}); // lost (started over elsewhere): ours again
+  return true;
+}
+function standAside() {
+  follower = true;
+  clearTimeout(saveTimer);
+  wake();
+  if (typeof document === 'undefined' || document.getElementById('elsewhere')) return;
+  const cover = Object.assign(document.createElement('div'), { id: 'elsewhere', className: 'pick' });
+  cover.style.cssText = 'position: fixed; z-index: 50'; // over the whole panel, however far it's scrolled
+  const sheet = Object.assign(document.createElement('div'), { className: 'sheet' });
+  const here = Object.assign(document.createElement('button'), { className: 'btn primary big', textContent: '여기서 하기' });
+  here.addEventListener('click', () => location.reload()); // a fresh start from the save, leading again
+  sheet.append(
+    Object.assign(document.createElement('h2'), { textContent: '다른 창에서 마을을 열었어요' }),
+    Object.assign(document.createElement('p'), { textContent: '마을은 한 곳에서만 움직여요. 여기서 하면 다른 창이 멈춰요.' }),
+    here,
+  );
+  cover.append(sheet);
+  document.body.append(cover);
+}
+const writeTown = async (town) => {
+  if (!wiping && (await leading())) await aquila.storage.set('save', town).catch(() => {});
+};
 
 // ── Economy: usage → coins, growth, animals' produce, babies ──────────────────────────────────────────────────────
 
@@ -1964,6 +2001,7 @@ function wake() {
   lastFrame = 0;
   lastRaf = 0;
   drawDebt = 0;
+  if (follower) return; // another copy leads: this one stands still
   if (live()) raf = requestAnimationFrame(loopFrame);
   else {
     catchUp();
@@ -2324,6 +2362,11 @@ async function start() {
   });
   document.getElementById('albumTab')?.addEventListener('click', () => paintAlbum());
   setInterval(() => live() && paintTimeline(), 30_000);
+  // This copy leads now; one opened before it stops when it next looks (every few seconds, or when it's clicked into).
+  await aquila.storage.set('lead', COPY).catch(() => {});
+  setInterval(() => !follower && !document.hidden && void leading(), 3000);
+  window.addEventListener('focus', () => void leading());
+  document.addEventListener('pointerdown', () => void leading(), true);
   wake();
 }
 
