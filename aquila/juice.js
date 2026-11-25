@@ -325,6 +325,7 @@ function toolsTick() {
   for (const f of fx) {
     if (f.k === 'ufo') f.n = (f.n ?? 0) + 1; // ticks since it came
     if (f.k === 'ufo' && f.t > 6 && f.n % 3 === 0) {
+      unseat(f.x, ROAD_Y * T + 12, 14); // riders are lifted out of what they ride
       for (const e of [...people, ...animals])
         if (!e.hidden && e.kind !== 'guest' && Math.abs(e.x - f.x) < 14) {
           fx.push({ k: 'beamed', x: e.x, y: e.y, look: e.look, animal: animals.includes(e), t: 20 });
@@ -340,6 +341,7 @@ function toolsTick() {
     }
     if (f.k === 'paw' && !f.landed && f.t <= 6) {
       f.landed = true;
+      unseat(f.x, f.y, 30);
       const i = lotAt(f.x, f.y, 26);
       if (i >= 0) wreckLot(i);
       wreckLandmarksNear(f.x, f.y, 6);

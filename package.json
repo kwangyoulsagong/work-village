@@ -8,7 +8,7 @@
     "test:life": "electron tools/life-test.js",
     "test:fx": "electron tools/fx-test.js",
     "test:more": "electron tools/more-test.js",
-    "test:chaos": "electron tools/chaos-test.js",
+    "test:chaos": "electron tools/chaos-test.js && electron tools/ride-chaos-check.js",
     "test:village": "electron tools/village-test.js",
     "test:juice": "electron tools/juice-test.js",
     "test:sea": "electron tools/sea-test.js",
