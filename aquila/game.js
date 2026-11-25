@@ -517,7 +517,7 @@ function absorb(list) {
   const rainBoost = raining() ? 1.25 : 1;
   for (const p of S.plots) if (p.planted) p.g = Math.min(GROW, p.g + gain * growMul() * rainBoost * farmGrowMul() * weekGrow());
   passiveGathering(gain);
-  if (S.spouse) {
+  if (S.spouse != null) {
     S.sinceKid += gain;
     const every = S.happy >= 70 ? KID_EVERY * 0.7 : KID_EVERY;
     while (S.sinceKid >= every && S.kids < MAX_KIDS) {
