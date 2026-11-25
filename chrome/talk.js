@@ -6,6 +6,8 @@
 let talkWith = null; // the villager whose card is open
 const TALKS_A_DAY = 3; // talks that raise the friendship gauge, per family a day
 const LOVE_AT = 6; // the gauge where asking them out can work
+const PROPOSE_AT = 8; // the gauge where a proposal can work; at MAX_FRIEND it always does
+let parting = null; // the one you pressed 헤어지기 on once: a second press parts
 const SAY = {
   low: ['안녕하세요.', '아, 네… 반가워요.', '날씨가 좋네요.', '무슨 일이에요?'],
   mid: ['또 왔네요! 반가워요.', '요즘 어때요?', '같이 산책할래요?', '오늘 밭은 잘 됐어요?'],
@@ -221,7 +223,8 @@ function paintTalk(line) {
   const card = document.getElementById('talkCard');
   if (!e || (e.car ? !cars.includes(e.car) : !people.includes(e))) return closeTalk();
   const w = whoIs(e);
-  const fr = friendOf(w.head);
+  const fr = friendOf(w.head ?? (e.kind === 'spouse' ? S.spouse : null));
+  if (parting !== e) parting = null;
   card.hidden = false;
   document.getElementById('talkName').textContent = w.name;
   document.getElementById('talkRole').textContent = w.head != null && S.myLover === w.head ? '연인 ♥' : w.role;
@@ -254,8 +257,13 @@ function paintTalk(line) {
   }
   if (w.head != null && S.spouse == null && MODE !== 'visit') {
     if (S.myLover !== w.head) add('💌 고백하기', () => askOut(e), fr.f >= LOVE_AT ? null : `호감 ${LOVE_AT}부터 할 수 있어요`);
-    else add('💍 청혼하기', () => propose(e), fr.f >= MAX_FRIEND ? null : `호감 ${MAX_FRIEND}이 되면 할 수 있어요`);
+    else {
+      const can = fr.f >= PROPOSE_AT;
+      add(can ? `💍 청혼하기 (${Math.round(proposeOdds(fr.f) * 100)}%)` : '💍 청혼하기', () => propose(e), can ? null : `호감 ${PROPOSE_AT}부터 할 수 있어요`);
+    }
   }
+  if (MODE !== 'visit' && (e.kind === 'spouse' || (w.head != null && S.myLover === w.head && S.spouse == null)))
+    add(parting === e ? '💔 정말 헤어지기' : '💔 헤어지기', () => partWith(e));
   if (MODE === 'chaos') add('🥊 때리기', () => openFight(e));
   placeTalk();
 }
@@ -267,7 +275,7 @@ function line(tier) {
 
 function talk(e) {
   const w = whoIs(e);
-  const fr = friendOf(w.head);
+  const fr = friendOf(w.head ?? (e.kind === 'spouse' ? S.spouse : null));
   e.shout = { text: '♪', t: 10 };
   if (w.kid) return paintTalk(`${w.name}: "${line('kid')}"`);
   if (!fr) {
@@ -278,12 +286,13 @@ function talk(e) {
   const day = today();
   if (fr.talkDay !== day) [fr.talkDay, fr.talks] = [day, 0];
   let note = '';
+  if (w.head != null && S.myLover === w.head) S.loverQuiet = 0;
   if (fr.talks < TALKS_A_DAY && fr.f < MAX_FRIEND) {
     fr.talks++;
     fr.f = Math.min(MAX_FRIEND, fr.f + 1 + (trait('charm') >= 4 ? 0.5 : 0));
     note = ' (호감 +1)';
   } else note = ' (오늘은 충분히 얘기했어요)';
-  const tier = S.myLover === w.head ? 'love' : fr.f >= 7 ? 'high' : fr.f >= 3 ? 'mid' : 'low';
+  const tier = e.kind === 'spouse' || S.myLover === w.head ? 'love' : fr.f >= 7 ? 'high' : fr.f >= 3 ? 'mid' : 'low';
   saveSoon();
   paintTalk(`${w.name}: "${line(tier)}"${note}`);
 }
@@ -335,10 +344,24 @@ function askOut(e) {
   }
 }
 
+/** A proposal's chance: sure at full friendship; below it, charm, savings and a furnished home help. */
+function proposeOdds(f) {
+  if (f >= MAX_FRIEND) return 1;
+  const h = home();
+  const rich = Math.min(0.15, (h.coins / buildCost(S.houses)) * 0.15);
+  const homey = Math.min(0.1, (h.furnOwned?.length ?? 0) * 0.02);
+  return Math.min(0.95, Math.max(0.05, 0.25 + (f - PROPOSE_AT) * 0.2 + (trait('charm') - 3) * 0.06 + rich + homey));
+}
+
 function propose(e) {
   const w = whoIs(e);
   const fr = friendOf(w.head);
-  if (fr.f < MAX_FRIEND || S.spouse != null) return;
+  if (fr.f < PROPOSE_AT || S.spouse != null) return;
+  if (Math.random() >= proposeOdds(fr.f)) {
+    fr.f = Math.max(0, fr.f - 1);
+    saveSoon();
+    return paintTalk(`${w.name}: "조금만 더 생각해 볼게요." (호감 −1 · 호감, 매력, 모은 코인, 집 꾸밈이 클수록 잘 돼요)`);
+  }
   S.spouse = w.head;
   S.myLover = null;
   S.sinceKid = 0;
@@ -349,6 +372,71 @@ function propose(e) {
   saveSoon();
   paintUi();
   toast(`${josa(w.name, '과', '와')} 결혼했어요 💍`, 2400);
+}
+
+/** 헤어지기, pressed twice: a lover goes back to being a friend; a spouse moves back home (the children stay with you). */
+function partWith(e) {
+  if (parting !== e) {
+    parting = e;
+    return paintTalk('정말 헤어질까요? 한 번 더 누르면 헤어져요.');
+  }
+  parting = null;
+  const w = whoIs(e);
+  if (e.kind === 'spouse') {
+    closeTalk();
+    divorce();
+  } else {
+    const fr = friendOf(w.head);
+    S.myLover = null;
+    if (fr) fr.f = Math.max(0, fr.f - 3);
+    story(`💔 ${josa(w.name, '과', '와')} 헤어졌어요. 이제 친구로 지내요.`);
+    closeTalk();
+  }
+  saveSoon();
+  paintUi();
+  toast(e.kind === 'spouse' ? '이혼했어요' : '헤어졌어요', 2400);
+}
+
+/** The marriage ends: the spouse goes back to their family's house, the children stay, and the family is sad for a while. */
+function divorce(drifted) {
+  const i = S.spouse;
+  if (i == null) return;
+  const who = FAMILIES[i]?.single ?? '배우자';
+  S.spouse = null;
+  S.myLover = null;
+  S.ex = i;
+  S.sinceKid = 0;
+  const fr = friendOf(i);
+  if (fr) fr.f = 2;
+  S.happy = Math.max(0, S.happy - 20);
+  story(`💔 ${josa(who, '과', '와')} 이혼했어요.${drifted ? ' 오래 함께하지 못해 마음이 멀어졌대요.' : ''} ${josa(who, '은', '는')} 원래 집으로 돌아갔어요.${S.kids ? ' 아이들은 계속 함께 살아요.' : ''}`);
+  spawnFamily();
+  cache.dirty = true;
+}
+
+/** Once a day: a lover you leave alone for days cools off, and one who has cooled may end it. */
+function loveDay() {
+  const fr = friendOf(S.myLover);
+  if (!fr || S.spouse != null) return;
+  S.loverQuiet = (S.loverQuiet ?? 0) + 1;
+  if (S.loverQuiet <= 3) return;
+  fr.f = Math.max(0, fr.f - 1);
+  if (fr.f < LOVE_AT - 1 && Math.random() < 0.25) {
+    story(`💔 ${josa(FAMILIES[S.myLover]?.single ?? '연인', '이', '가')} 이별을 말했어요. 요즘 너무 못 만났대요. 이제 친구로 지내요.`);
+    S.myLover = null;
+    S.loverQuiet = 0;
+  } else if (S.loverQuiet === 4) story(`💌 ${josa(FAMILIES[S.myLover]?.single ?? '연인', '이', '가')} 보고 싶대요. 말을 걸어 주세요.`);
+}
+
+/** Once a day: a happy home brings you closer; a long lonely stretch drifts you apart, and at the bottom it can end. */
+function marriageDay() {
+  const fr = friendOf(S.spouse);
+  if (!fr) return;
+  if (S.happy >= 40) return void (fr.f = Math.min(MAX_FRIEND, fr.f + 0.5));
+  if (S.happy >= 20) return;
+  fr.f = Math.max(0, fr.f - 0.5);
+  if (fr.f <= 2 && Math.random() < 0.1) return divorce(true);
+  if (fr.f <= 4) story(`💔 ${josa(FAMILIES[S.spouse]?.single ?? '배우자', '이', '가')} 요즘 서운해해요. 말을 걸어 주세요.`);
 }
 
 /** Life saves (save() waits a moment, so taps in a row save once); a chaos town is never saved. */

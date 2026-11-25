@@ -69,6 +69,7 @@ const fresh = () => ({
   farm: [], //         farm upgrades owned (see extras.js)
   friends: [],
   spouse: null,
+  ex: null, //          the family you divorced: you don't drift back into marrying them
   kids: 0,
   sinceKid: 0,
   usage: {},
@@ -244,6 +245,8 @@ function liveADay() {
     S.happy = Math.max(0, S.happy - (S.temper === 'loner' ? 7 : S.temper === 'gentle' ? 11 : 15));
     if (S.happy < 30 && (S.spouse != null || S.kids)) story('가족이 요즘 외로워해요. 조금 더 같이 일해 볼까요?');
   }
+  if (S.spouse != null) marriageDay();
+  else if (S.myLover != null) loveDay();
   familyMoment();
   const h = trait('health');
   if (S.sickDays > 0) {
@@ -517,7 +520,7 @@ function absorb(list) {
   const rainBoost = raining() ? 1.25 : 1;
   for (const p of S.plots) if (p.planted) p.g = Math.min(GROW, p.g + gain * growMul() * rainBoost * farmGrowMul() * weekGrow());
   passiveGathering(gain);
-  if (S.spouse) {
+  if (S.spouse != null) {
     S.sinceKid += gain;
     const every = S.happy >= 70 ? KID_EVERY * 0.7 : KID_EVERY;
     while (S.sinceKid >= every && S.kids < MAX_KIDS) {
@@ -742,10 +745,12 @@ function visit(i) {
     S.bag--;
     fr.f = Math.min(MAX_FRIEND, fr.f + 2 + charm);
   } else fr.f = Math.min(MAX_FRIEND, fr.f + 1 + (trait('charm') === 5 || S.temper === 'chatty' ? 1 : 0));
+  if (i === S.myLover) S.loverQuiet = 0;
   lifeCount('visits');
   const who = FAMILIES[i].single;
-  if (fr.f >= MAX_FRIEND && S.spouse == null) {
+  if (fr.f >= MAX_FRIEND && S.spouse == null && i !== S.ex) {
     S.spouse = i;
+    S.myLover = null;
     S.sinceKid = 0;
     story(`${josa(who, '과', '와')} 결혼했어요! 이제 한 집에 살아요.`);
     photoSoon(`${josa(who, '과', '와')} 결혼한 날`);

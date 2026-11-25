@@ -64,6 +64,47 @@ app.whenReady().then(async () => {
   ok(life.card, 'card opens'); ok(life.f1 >= 3 && life.f1 <= 4.5, 'three talks a day count: ' + life.f1); ok(life.sold > 0, 'sell'); ok(life.bought === 3, 'buy');
   ok(!life.names.some((n) => n.includes('때리기')), 'no 때리기 in life mode'); ok(life.names2.some((n) => n.includes('청혼')), 'propose shows');
   ok(life.held, 'held while talking'); ok(life.spouse === 1, 'married'); ok(!life.open, 'card closes');
+  // Divorce by hand: 헤어지기 asks once more, then the spouse goes home and the children stay.
+  const split = await js(`(() => {
+    S.kids = 1; S.kidAges = [3]; S.kidTraits = [rollTraits()]; spawnFamily();
+    const sp = people.find((p) => p.kind === 'spouse'); sp.hidden = false; openTalk(sp);
+    const btn = () => [...document.querySelectorAll('#talkActions button')].find((b) => b.textContent.includes('헤어지기'));
+    const first = btn()?.textContent; btn().click();
+    const asked = document.getElementById('talkLine').textContent, still = S.spouse, second = btn()?.textContent; btn().click();
+    return { first, asked, still, second, spouse: S.spouse, ex: S.ex, kids: S.kids, back: people.some((p) => p.who === 'h1a'), f: S.friends[1].f, story: S.story.slice(0, 3).map((x) => x.text).join(' | ') };
+  })()`);
+  ok(split.first === '💔 헤어지기' && split.still === 1 && split.asked.includes('한 번 더') && split.second === '💔 정말 헤어지기', 'divorce asks once more: ' + JSON.stringify(split));
+  ok(split.spouse == null && split.ex === 1 && split.kids === 1 && split.back && split.f === 2 && split.story.includes('이혼'), 'divorced: spouse home, kids stay: ' + JSON.stringify(split));
+  // A proposal below full friendship: a chance (charm, coins, furniture), and a no costs a point.
+  const odds = await js(`(() => {
+    S.myLover = 2; S.friends[2] = { f: 7, day: '' };
+    const e = people.find((p) => p.who === 'h2a'); e.hidden = false; openTalk(e);
+    const btn = () => [...document.querySelectorAll('#talkActions button')].find((b) => b.textContent.includes('청혼'));
+    const at7 = btn().disabled;
+    S.friends[2].f = 8; paintTalk();
+    const label = btn().textContent, enabled = !btn().disabled;
+    const poor = (S.coins = 0, proposeOdds(8)), rich = (S.coins = 5000, proposeOdds(8));
+    const r = Math.random; Math.random = () => 0.99; propose(e); Math.random = r;
+    const no = { spouse: S.spouse, f: S.friends[2].f, line: document.getElementById('talkLine').textContent };
+    S.friends[2].f = 9; Math.random = () => 0.5; propose(e); Math.random = r;
+    return { at7, label, enabled, poor, rich, no, yes: S.spouse };
+  })()`);
+  ok(odds.at7 && odds.enabled && /청혼하기 \(\d+%\)/.test(odds.label), 'propose from 8 with odds shown: ' + JSON.stringify(odds));
+  ok(odds.rich > odds.poor, 'savings help a proposal: ' + odds.poor + ' → ' + odds.rich);
+  ok(odds.no.spouse == null && odds.no.f === 7 && odds.no.line.includes('생각해'), 'a no costs a point: ' + JSON.stringify(odds.no));
+  ok(odds.yes === 2, 'a yes at 9 marries');
+  // On its own: a long lonely stretch ends a marriage; a lover left alone ends it too.
+  const drift = await js(`(() => {
+    const r = Math.random; Math.random = () => 0;
+    S.happy = 10; S.friends[2].f = 4; let days = 0; while (S.spouse != null && days++ < 99) marriageDay();
+    const divorced = S.spouse == null && S.ex === 2;
+    S.myLover = 3; S.friends[3] = { f: 7, day: '' }; S.loverQuiet = 0; days = 0; while (S.myLover != null && days++ < 10) loveDay();
+    Math.random = r;
+    S.happy = 80; S.spouse = 1; S.friends[1].f = 6; marriageDay(); const closer = S.friends[1].f;
+    return { divorced, broke: S.myLover == null, days, closer };
+  })()`);
+  ok(drift.divorced && drift.broke && drift.days > 3 && drift.closer === 6.5, 'apart on their own, closer when happy: ' + JSON.stringify(drift));
+  await js(`S.spouse = 1; S.ex = null; spawnFamily();`);
   // A tap on a villager on the canvas opens the card.
   const tap = await js(`(() => {
     const e = people.find((p) => p.kind === 'villager' && !p.hidden && p.x > camX + 10 && p.x < camX + VIEW_W - 10);
