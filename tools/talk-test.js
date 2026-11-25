@@ -29,12 +29,17 @@ app.whenReady().then(async () => {
     canvas.dispatchEvent(new MouseEvent('click', { clientX: r.left + ((x - camX) / VIEW_W) * r.width, clientY: r.top + ((y - 8) / H) * r.height, bubbles: true }));
     const open = !document.getElementById('talkCard').hidden;
     const name = document.getElementById('talkName').textContent;
+    const cr = document.getElementById('talkCard').getBoundingClientRect(), sr = canvas.parentElement.getBoundingClientRect();
+    const px = r.left + ((x - camX) / VIEW_W) * r.width;
+    const beside = cr.top >= sr.top && cr.bottom <= sr.bottom + 1 && (cr.left > px || cr.right < px);
     const stopped = c.pause === Infinity;
     talk(talkWith);
-    closeTalk();
-    return { open, name, stopped, going: c.pause === 0 };
+    window.__car = c;
+    return { open, name, stopped, beside };
   })()`);
-  ok(road.open && road.stopped && road.going, 'a traveller stops to talk: ' + JSON.stringify(road));
+  await shot('t0-traveller-popover');
+  road.going = await js('closeTalk(), __car.pause === 0');
+  ok(road.open && road.stopped && road.going && road.beside, 'a traveller stops to talk: ' + JSON.stringify(road));
   // A life town with neighbours and a harvest.
   await js(`document.getElementById('modeLife').click(); pickGender('f');`); await wait(300);
   await js(`S.coins = 500; S.bag = 5; S.houses = 4; S.era = 1; while (S.friends.length < 4) S.friends.push({ f: 0, day: '' }); ensureLots(4); spawnFamily(); cache.dirty = true;`); await wait(300);

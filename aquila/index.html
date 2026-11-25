@@ -156,18 +156,21 @@
       .sign-box { position: absolute; left: 8px; right: 8px; bottom: 8px; display: flex; gap: 6px; background: var(--card); border-radius: 12px; padding: 6px; }
       .sign-box[hidden] { display: none; }
       /* A villager's card (talk.js), and the close-up for 때리기 */
-      .talk-card { position: fixed; left: 8px; right: 8px; bottom: 8px; z-index: 30; background: var(--card); border-radius: 16px; padding: 12px 14px; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25); display: grid; gap: 6px; }
+      .talk-card { position: absolute; left: 8px; top: 8px; z-index: 30; width: min(236px, calc(100% - 16px)); max-height: calc(100% - 16px); overflow-y: auto; scrollbar-width: none; background: var(--card); border-radius: 12px; padding: 10px 12px; box-shadow: 0 4px 18px rgba(0, 0, 0, 0.3); display: grid; gap: 5px; }
       .talk-card[hidden], .fight[hidden] { display: none; }
       .talk-card .head { display: flex; align-items: baseline; gap: 8px; }
-      .talk-card .head b { font-size: 15px; }
+      .talk-card .head b { font-size: 14px; }
+      .talk-card .x { margin-left: auto; border: 0; background: none; color: var(--text-3); font-size: 14px; cursor: pointer; padding: 0 2px; }
       .talk-card .head span { font-size: 12px; color: var(--text-3); }
       .talk-card .gauge { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-2); }
       .talk-card .gauge[hidden] { display: none; }
       .talk-card .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--fill); overflow: hidden; }
       .talk-card .bar i { display: block; height: 100%; background: #f06a8a; }
-      .talk-card .line { font-size: 13px; color: var(--text-2); min-height: 18px; }
+      .talk-card .line { font-size: 12px; color: var(--text-2); }
+      .talk-card .line:empty { display: none; }
       .talk-card .acts { display: flex; flex-wrap: wrap; gap: 6px; }
-      .talk-card .acts .btn { font-size: 12px; padding: 6px 10px; }
+      .talk-card .acts { gap: 4px; }
+      .talk-card .acts .btn { font-size: 12px; padding: 5px 8px; }
       .fight { position: fixed; inset: 0; z-index: 40; background: rgba(20, 10, 16, 0.85); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 16px; }
       .fight .top { width: 100%; max-width: 320px; display: flex; align-items: center; gap: 8px; color: #fff; font-size: 13px; }
       .fight .top b { white-space: nowrap; }
@@ -395,7 +398,7 @@
           </div>
         </div>
         <div class="talk-card" id="talkCard" hidden>
-          <div class="head"><b id="talkName"></b><span id="talkRole"></span></div>
+          <div class="head"><b id="talkName"></b><span id="talkRole"></span><button class="x" id="talkClose" aria-label="닫기">✕</button></div>
           <div class="gauge" id="talkGauge"><span class="bar"><i id="talkFill"></i></span><span id="talkGaugeText"></span></div>
           <div class="line" id="talkLine"></div>
           <div class="acts" id="talkActions"></div>

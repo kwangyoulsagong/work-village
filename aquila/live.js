@@ -57,6 +57,7 @@ async function startLive() {
 async function joinLive(obj) {
   if (!canLive()) return toast('이 앱에서는 실시간 놀러가기를 쓸 수 없어요', 2400);
   if (typeof obj.sdp !== 'string' || !obj.town || typeof obj.town !== 'object') return toast('코드를 읽지 못했어요');
+  if (obj.town.mapSeed === homeState().mapSeed) return toast('내가 만든 실시간 초대 코드예요. 친구에게 보내 주세요', 2600);
   if (MODE !== 'life') return toast('내 마을에서 열어 주세요');
   endLive();
   const pc = newPeer();
@@ -142,7 +143,13 @@ function onLive(data) {
     return;
   }
   const g = peerLink.guest;
-  if (m.t === 'pos' && g) {
+  if (m.t === 'hi' && g && m.from && typeof m.from === 'object') {
+    // Who they really are, from them: name and look (a code can be stale, or pasted by the wrong person).
+    peerLink.peer = m.from;
+    g.name = String(m.from.name ?? '이웃').slice(0, 8);
+    g.look = guestLook(m.from);
+    g.gender = m.from.gender === 'm' ? 'm' : 'f';
+  } else if (m.t === 'pos' && g) {
     g.tx = Math.max(0, Math.min(W, Number(m.x) || 0));
     g.ty = Math.max(0, Math.min(H, Number(m.y) || 0));
     g.hidden = m.h === true;

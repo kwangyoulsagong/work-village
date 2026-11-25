@@ -72,8 +72,30 @@ function openTalk(e) {
   e.path = [];
   e.dir = 'd';
   paintTalk();
+  clearInterval(talkTimer);
+  talkTimer = setInterval(placeTalk, 100); // the view can glide while it's open
+}
+let talkTimer = 0;
+/** The card beside them, as a popover: to their right, or left when there's no room; inside the picture. */
+function placeTalk() {
+  const e = talkWith;
+  const card = document.getElementById('talkCard');
+  if (!e || card.hidden) return;
+  const [x, y] = e.car ? rideAt(e.car) : [e.x, e.y];
+  const stage = canvas.parentElement;
+  const sx = canvas.offsetLeft + ((x - camX) / VIEW_W) * canvas.clientWidth;
+  const sy = canvas.offsetTop + ((y - 12) / H) * canvas.clientHeight;
+  const [w, h] = [card.offsetWidth, card.offsetHeight];
+  const gap = (12 / VIEW_W) * canvas.clientWidth;
+  let left = sx + gap;
+  if (left + w > stage.clientWidth - 8) left = sx - gap - w;
+  left = Math.max(8, Math.min(stage.clientWidth - w - 8, left));
+  const top = Math.max(8, Math.min(stage.clientHeight - h - 8, sy - h / 2));
+  card.style.left = `${Math.round(left)}px`;
+  card.style.top = `${Math.round(top)}px`;
 }
 function closeTalk() {
+  clearInterval(talkTimer);
   release(talkWith);
   talkWith = null;
   document.getElementById('talkCard').hidden = true;
@@ -129,7 +151,7 @@ function paintTalk(line) {
     else add('💍 청혼하기', () => propose(e), fr.f >= MAX_FRIEND ? null : `호감 ${MAX_FRIEND}이 되면 할 수 있어요`);
   }
   if (MODE === 'chaos') add('🥊 때리기', () => openFight(e));
-  add('닫기', closeTalk);
+  placeTalk();
 }
 
 function line(tier) {
@@ -521,6 +543,7 @@ function drawWeapon(g, id, x, y, skin, idle) {
 
 /** Leaving or restarting a town: both cards just close (nobody is hurt or saved). */
 function endTalk() {
+  clearInterval(talkTimer);
   if (fight) cancelAnimationFrame(fight.raf);
   fight = null;
   release(talkWith);
@@ -530,6 +553,7 @@ function endTalk() {
 }
 
 function wireTalk() {
+  document.getElementById('talkClose').addEventListener('click', closeTalk);
   document.getElementById('fightFace').addEventListener('pointerdown', punch);
   document.getElementById('fightStop').addEventListener('click', closeFight);
 }

@@ -22,10 +22,13 @@ app.whenReady().then(async () => {
   const errors = [], fails = [];
   const ok = (c, m) => c || fails.push(m);
   const host = await panel('live-a', errors), guest = await panel('live-b', errors);
-  await host.js(`nick = '집주인'`); await guest.js(`nick = '손님'`);
+  await host.js(`nick = '집주인'; S.gender = 'f'; S.hair = '#111111'; S.skin = '#ffe0c4'`); await guest.js(`nick = '손님'; S.gender = 'm'; S.hair = '#a05a2c'; S.skin = '#8a5636'`);
   await host.js(`openVisitCard(); startLive()`); await wait(3000);
   const offer = await host.js(`document.getElementById('myCode').value`);
   ok(offer.startsWith('작은마을1:'), 'offer code');
+  // Your own live invite doesn't open (it would show you twice).
+  await host.js(`openCode(${JSON.stringify(offer)})`); await wait(300);
+  ok((await host.js('MODE')) === 'life', 'own live code does not open');
   await guest.js(`openCode(${JSON.stringify(offer)})`); await wait(3500);
   const answer = await guest.js(`document.getElementById('myCode').value`);
   const gm = await guest.js(`({ mode: MODE, title: document.getElementById('myCodeTitle').textContent })`);
@@ -41,6 +44,10 @@ app.whenReady().then(async () => {
   // The host walks somewhere; the guest sees them there.
   await host.js(`me.x = 200; me.y = ROAD_Y * T + 10; me.hidden = false;`); await wait(1500);
   const seen = await guest.js(`(() => { const g = guests.find((x) => x.liveWalk); return g && { x: Math.round(g.x), y: Math.round(g.y), tx: g.tx }; })()`);
+  const meOnGuest = await guest.js(`({ g: S.gender, hair: S.hair, skin: S.skin, name: myCard().name })`);
+  ok(meOnGuest.g === 'm' && meOnGuest.hair === '#a05a2c' && meOnGuest.skin === '#8a5636' && meOnGuest.name === '손님', 'guest still looks like themselves: ' + JSON.stringify(meOnGuest));
+  const hostOnGuest = await guest.js(`guests.map((g) => ({ name: g.name, hair: g.look.hair, live: !!g.liveWalk }))`);
+  ok(hostOnGuest.length === 1 && hostOnGuest[0].name === '집주인', 'guest sees the host by the host\'s name: ' + JSON.stringify(hostOnGuest));
   ok(seen && Math.abs(seen.tx - (await host.js('Math.round(me.x)'))) < 3, 'guest sees host position: ' + JSON.stringify(seen));
   // The guest walks (a tap) and the host sees them.
   await guest.js(`me.x = 340; me.y = ROAD_Y * T + 10;`); await wait(1500);
