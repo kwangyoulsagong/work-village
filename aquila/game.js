@@ -471,7 +471,7 @@ function standAside() {
   here.addEventListener('click', () => location.reload()); // a fresh start from the save, leading again
   sheet.append(
     Object.assign(document.createElement('h2'), { textContent: '다른 창에서 마을을 열었어요' }),
-    Object.assign(document.createElement('p'), { textContent: '마을은 한 곳에서만 움직여요. 여기서 하면 다른 창이 멈춰요.' }),
+    Object.assign(document.createElement('p'), { textContent: '마을은 한 곳에서만 움직여요. 이 창을 누르면 여기서 이어서 해요.' }),
     here,
   );
   cover.append(sheet);
@@ -2362,11 +2362,13 @@ async function start() {
   });
   document.getElementById('albumTab')?.addEventListener('click', () => paintAlbum());
   setInterval(() => live() && paintTimeline(), 30_000);
-  // This copy leads now; one opened before it stops when it next looks (every few seconds, or when it's clicked into).
+  // This copy leads now; one opened before it stops when it next looks (every few seconds). Clicked into, an older
+  // copy is the one you're using: it starts afresh from the save and leads (the other one stops in turn).
   await aquila.storage.set('lead', COPY).catch(() => {});
   setInterval(() => !follower && !document.hidden && void leading(), 3000);
-  window.addEventListener('focus', () => void leading());
-  document.addEventListener('pointerdown', () => void leading(), true);
+  const takeOver = () => void leading().then((ours) => ours || location.reload());
+  window.addEventListener('focus', takeOver);
+  document.addEventListener('pointerdown', takeOver, true);
   wake();
 }
 

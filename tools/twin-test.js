@@ -35,11 +35,14 @@ app.whenReady().then(async () => {
   const disk = await a2(`return await aquila.storage.get('save')`);
   ok(disk.furnOwned?.includes('rug_fur') && disk.coins !== 105, 'the rug survives the other copy: ' + JSON.stringify([disk.furnOwned, disk.coins]));
   const st = await b(`return [follower, !!document.getElementById('elsewhere'), raf, await aquila.storage.get('lead'), COPY]`); ok(st[0] && st[1] && !st[2], 'the other copy stands still under a cover ' + JSON.stringify(st));
-  // Clicked into, an older copy notices at once.
+  // Clicked into, an older copy takes over at once: it reloads from the save (with the rug) and leads.
   const c = await open();
   await wait(300);
-  await a2(`document.dispatchEvent(new PointerEvent('pointerdown')); await new Promise((r) => setTimeout(r, 300)); return true`);
-  ok(await a2(`return follower`), 'clicking into a copy that no longer leads stops it');
+  await a2(`document.dispatchEvent(new PointerEvent('pointerdown')); return true`).catch(() => {});
+  await wait(2500);
+  ok((await a2(`return !follower && (await aquila.storage.get('lead')) === COPY && S.furnOwned?.join()`)) === 'rug_fur', 'clicking into an older copy makes it lead, rug and all');
+  await c(`save(); await new Promise((r) => setTimeout(r, 1200)); return true`);
+  ok(await c(`return follower`), 'the copy opened before it stops');
   // 여기서 하기 on B: B reloads with the rug and leads; C stops.
   await b(`document.querySelector('#elsewhere button').click(); return true`).catch(() => {});
   await wait(2500);
