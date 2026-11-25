@@ -1531,6 +1531,7 @@ const OUTFIT = [
 function person(g, e, c) {
   if (e.sick || e.plague || (e.kind === 'me' && S.sickDays > 0)) c = { ...c, skin: SICK_SKIN };
   if (e.baby) return drawBaby(g, e, c);
+  if (e.small) return void drawKid(g, e, c);
   if (e.kind !== 'me') {
     const at = drawPerson(g, e, c, c?.style ? { hairStyle: c.style } : undefined);
     if (c?.skin) lookExtras(g, c, at);

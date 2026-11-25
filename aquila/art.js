@@ -147,8 +147,12 @@ function drawPerson(g, e, c, extra) {
   spr(g, LEGS[side][legs], pal, x, y + 14, flip);
   spr(g, BODY[side], pal, x, y + 11 + bob, flip);
   if (e.gender === 'f' && !extra?.hairStyle) longHair(g, side, flip, pal, x, y + bob);
-  spr(g, HEAD[side], pal, x, y + bob, flip);
-  if (e.gender === 'f' && !extra?.hairStyle) frontLocks(g, side, flip, pal, x, y + bob);
+  // The old stoop: the head lower (more from the side, where it also leans forward) over a rounded back.
+  const stoop = c?.elder ? (side === 'r' ? 2 : 1) : 0;
+  const hx = x + (stoop && side === 'r' ? (flip ? -1 : 1) : 0);
+  if (stoop && side === 'r') R(g, flip ? x + 8 : x + 3, y + 10 + bob, 2, 2, pal.t); // the hump of the back
+  spr(g, HEAD[side], pal, hx, y + bob + stoop, flip);
+  if (e.gender === 'f' && !extra?.hairStyle) frontLocks(g, side, flip, pal, hx, y + bob + stoop);
   return { x, y: y + bob, side, flip, pal };
 }
 
@@ -166,6 +170,38 @@ function longHair(g, side, flip, pal, x, y) {
 function frontLocks(g, side, flip, pal, x, y) {
   if (side !== 'd') return;
   spr(g, ['oh........ho', 'oh........ho', 'oh........ho'], pal, x, y + 6, flip);
+}
+
+/** A child: 10 × 10, a big head on a short body (kids of the town, and yours from 3 to 7). */
+const KID_HEAD = {
+  d: ['..oooooo..', '.ohhHhhhho', 'ohhhhhhhho', 'ohsshhssho', 'osewssewso', 'obssmmssbo', '.osssssso.'],
+  r: ['..oooooo..', '.ohhhhhhho', 'ohhhhhhhho', 'ohhhhsssso', 'ohhssssewo', 'ohssssbsmo', '.osssssso.'],
+  u: ['..oooooo..', '.ohhhhhho.', 'ohhhhhhhho', 'ohhhhhhhho', 'ohhhhhhhho', 'ohhhhhhhho', '.ohhhhhho.'],
+};
+const KID_BODY = { d: ['..otttto..', '.osttttso.'], r: ['...ottto..', '...otsto..'], u: ['..otttto..', '.osttttso.'] };
+const KID_LEGS = {
+  d: [['..ofoofo..'], ['..ofo.oo..'], ['..ofoofo..'], ['..oo.ofo..']],
+  r: [['...ofo....'], ['..of..of..'], ['...off....'], ['..of..of..']],
+};
+KID_LEGS.u = KID_LEGS.d;
+function drawKid(g, e, c) {
+  const dir = faceOf(e);
+  const side = dir === 'l' || dir === 'r' ? 'r' : dir;
+  const flip = dir === 'l';
+  const { legs, bob } = poseOf(e);
+  const x = Math.round(e.x) - 5;
+  const y = Math.round(e.y) - 10;
+  const pal = PERSON_PAL(c);
+  shadow(g, e.x, e.y, 7);
+  spr(g, KID_LEGS[side][legs], pal, x, y + 9, flip);
+  spr(g, KID_BODY[side], pal, x, y + 7 + bob, flip);
+  spr(g, KID_HEAD[side], pal, x, y + bob, flip);
+  // Pigtails for girls, a cowlick for boys.
+  if (e.gender === 'f' && side !== 'u') {
+    R(g, x - 1, y + 3 + bob, 2, 3, pal.h);
+    if (side === 'd') R(g, x + 9, y + 3 + bob, 2, 3, pal.h);
+  } else if (e.gender !== 'f') R(g, x + 5, y - 1 + bob, 1, 1, pal.h);
+  return { x, y: y + bob, side, flip, pal };
 }
 
 /** A baby: a round bundle with a face. */
