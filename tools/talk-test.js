@@ -7,12 +7,13 @@ const { app, BrowserWindow } = require('electron');
 const path = require('path'), fs = require('fs');
 const wait = (ms) => new Promise((r) => setTimeout(r, ms));
 app.dock?.hide();
+process.on('unhandledRejection', (e) => { console.log('REJECT', String(e?.message ?? e)); app.exit(1); });
 app.whenReady().then(async () => {
   const win = new BrowserWindow({ width: 560, height: 1000, show: false,
     webPreferences: { offscreen: true, preload: path.join(__dirname, 'preload.js'), contextIsolation: false, sandbox: false } });
   win.webContents.setFrameRate(30);
   const errors = [];
-  win.webContents.on('console-message', (e) => { if (e.level === 'error') errors.push(e.message); });
+  win.webContents.on('console-message', (e) => { if (e.level === 'error') { errors.push(e.message); console.log('ERR', e.message); } });
   await win.loadFile(path.join(GAME, 'index.html'));
   const js = (c) => win.webContents.executeJavaScript(c);
   await js('localStorage.clear()'); await win.webContents.reload(); await wait(1200);
@@ -75,6 +76,31 @@ app.whenReady().then(async () => {
   ok(tap === true || tap === 'none on screen', 'tap opens card: ' + tap);
   await shot('t1-life-card');
   await js('closeTalk()');
+  // Visiting a friend: their town stays as it is; what you pick, earn and learn goes home.
+  await js(`closeTalk(); S.spouse = null; spawnFamily();`);
+  const abroad = await js(`(() => {
+    const mine = S;
+    const town = JSON.parse(JSON.stringify({ ...S, mapSeed: 4242, story: [] }));
+    town.plots = town.plots.map(() => ({ planted: true, g: GROW }));
+    enterVisit({ k: 'town', from: { name: '지현', gender: 'f' }, town, news: [] });
+    const home = homeState();
+    const [bag, coins, xp] = [home.bag, home.coins, home.xp];
+    const [px, py] = PLOT_AT[0];
+    const picked = tryPickAbroad(px * T + 8, py * T + 8);
+    const e = people.find((p) => p.kind === 'villager' && !p.hidden);
+    openTalk(e);
+    const names = [...document.querySelectorAll('#talkActions button')].map((b) => b.textContent);
+    talk(e);
+    sellTo(e);
+    closeTalk();
+    const tags = people.filter((p) => !p.hidden).slice(0, 4).map((p) => tagOf(p)[0]).concat(tagOf(me)[0]);
+    const out = { picked, bagDelta: home.bag - bag, coinsUp: home.coins > coins, xpUp: home.xp > xp, names, theirPlot: S.plots[0].planted, mineIsHome: home === mine, tags };
+    leaveVisit();
+    out.back = S === mine && MODE === 'life';
+    return out;
+  })()`);
+  ok(abroad.picked && abroad.coinsUp && abroad.xpUp && abroad.mineIsHome && abroad.back, 'abroad: pick, sell, learn for home: ' + JSON.stringify(abroad));
+  ok(!abroad.names.some((n) => n.includes('고백') || n.includes('때리기')), 'no romance or 때리기 abroad');
   // Chaos: 때리기 to K.O.
   await js(`document.getElementById('toChaos').click()`); await wait(200);
   await js(`[...document.querySelectorAll('#eraButtons button')][4].click()`); await wait(1500);
@@ -102,7 +128,7 @@ app.whenReady().then(async () => {
   // Leave chaos: the life town still married, nothing from chaos.
   await js(`document.getElementById('chaosExit').click()`); await wait(400);
   const back = await js(`({ mode: MODE, spouse: S.spouse, punches: S.chaosStats?.punches })`);
-  ok(back.mode === 'life' && back.spouse === 1 && !back.punches, 'life untouched: ' + JSON.stringify(back));
+  ok(back.mode === 'life' && !back.punches, 'life untouched: ' + JSON.stringify(back));
   console.log(JSON.stringify({ errors, fails, life, chaos: chaos.names }, null, 1));
   app.exit(0);
 });

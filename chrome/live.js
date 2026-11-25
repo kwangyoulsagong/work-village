@@ -231,6 +231,7 @@ function wireLive() {
   canvas.addEventListener('click', (ev) => {
     if (MODE !== 'visit' || dragged || !$('signBox').hidden) return;
     const [x, y] = worldAt(ev);
+    if (tryVillager(x, y) || tryPickAbroad(x, y)) return; // a chat, a crop to take home (talk.js)
     tapWalk(x, y);
   });
   window.addEventListener('pagehide', () => endLive());

@@ -14,18 +14,121 @@ const SAY = {
   kid: ['아저씨/아줌마 안녕!', '같이 놀아요!', '사탕 있어요?', '헤헤.'],
 };
 
-/** Who someone is, for the card: a name and what they are to you. */
+// ── Names: made up per town, and people come from all over (written in Hangul) ─────────────────────────────────────
+
+const KO1 = ['민', '서', '지', '하', '도', '유', '시', '은', '예', '수', '주', '채', '윤', '다', '나', '태', '현', '우', '소', '라', '가', '로', '아', '건', '세', '이', '연', '한', '새', '보'];
+const KO2 = ['준', '아', '윤', '우', '진', '린', '은', '호', '율', '원', '안', '온', '희', '결', '빈', '오', '나', '현', '서', '람', '솔', '별', '봄', '찬'];
+const KO_OLD1 = ['순', '말', '춘', '옥', '복', '정', '덕', '만', '영', '팔', '갑', '상', '봉', '금', '분', '판'];
+const KO_OLD2 = ['자', '순', '례', '분', '배', '복', '수', '봉', '식', '돌', '희', '남', '이', '녀'];
+const ORIGINS = [
+  { flag: '🇰🇷', land: '한국' }, // names made of syllables (KO1/KO2, old-fashioned for elders)
+  { flag: '🇯🇵', land: '일본', gen: { f: [['유', '하', '사', '미', '아', '리', '나', '치', '메', '카', '모', '에', '후', '키', '코', '마', '시', '아야', '스미', '하루'], ['코', '미', '나', '에', '카', '리', '호', '네', '요', '사', '노', '키']], m: [['하', '유', '소', '켄', '다', '료', '히', '타', '카', '신', '렌', '코', '마', '요', '쇼', '데', '이', '아키'], ['토', '타', '키', '지', '스케', '로', '야', '마', '이치', '헤이', '오', '세이']] } },
+  { flag: '🇨🇳', land: '중국', gen: { f: [['메이', '링', '샤오', '윈', '팡', '징', '후이', '란', '유에', '칭', '슈', '리', '안', '쉐', '잉', '춘'], ['링', '핑', '잉', '롄', '팡', '화', '칭', '루', '윈', '메이', '아이', '쥐안']], m: [['웨이', '하오', '준', '레이', '밍', '첸', '펑', '량', '타오', '쥔', '보', '카이', '즈', '원', '자', '신'], ['밍', '웨이', '하오', '펑', '룽', '청', '양', '량', '후아', '진', '쥔', '칭']] } },
+  { flag: '🇻🇳', land: '베트남', gen: { f: [['린', '마이', '투', '란', '흐엉', '짱', '응옥', '타오', '하', '비', '미', '안', '홍', '꾸인', '투이'], ['안', '린', '마이', '하', '비', '짱', '응아', '타오', '란', '투', '오앙']], m: [['민', '안', '남', '둥', '훙', '꽝', '롱', '탄', '후이', '바오', '풍', '캉', '득', '띠엔', '빈'], ['안', '남', '둥', '훙', '롱', '탄', '바오', '풍', '캉', '꾸앙', '빈', '하이']] } },
+  { flag: '🇮🇳', land: '인도', gen: { f: [['아', '라', '비', '데', '산', '니', '카', '프리', '디', '미', '이', '푸', '타', '수', '아누', '시', '마'], ['야', '나', '샤', '카', '티', '니', '라', '디', '바티', '자', '리아', '미타']], m: [['아', '라', '비', '데', '산', '니', '카', '로', '아르', '라후', '시', '바', '수', '마', '하', '디'], ['준', '훌', '크람', '브', '제이', '킬', '트', '르', '한', '렌', '니시', '빈', '시', '락']] } },
+  { flag: '🇳🇬', land: '나이지리아', gen: { f: [['치', '아', '은', '페', '이', '토', '부', '아이', '지', '에', '오', '세', '니', '아다', '이페'], ['오마', '마카', '고지', '미', '페', '루', '키', '샤', '데', '니', '오마', '요미', '부오', '케']], m: [['춘', '에', '오', '투', '아데', '세', '이', '쿤', '다', '바', '은남', '오순', '치', '에메', '올루'], ['디', '카', '비', '데', '운', '레', '요', '순', '케', '미', '와', '세운', '지', '도']] } },
+  { flag: '🇺🇸', land: '미국', f: ['에밀리', '올리비아', '엘라', '루시', '애니', '케이트', '그레이스', '클레어', '몰리', '헤일리', '제니', '노라', '에이미', '사라', '레베카', '줄리', '메건', '앨리스', '에바', '미아', '조이', '테일러', '릴리', '헤더', '페니', '스텔라', '로즈', '바이올렛'], m: ['제이크', '노아', '리암', '벤', '맥스', '샘', '타일러', '라이언', '잭', '루크', '에단', '밀로', '조시', '네이선', '오웬', '칼렙', '헨리', '윌', '데이브', '톰', '마이크', '크리스', '앤디', '브래드', '케빈', '댄', '스콧', '팀'] },
+  { flag: '🇫🇷', land: '프랑스', f: ['클로에', '레아', '마농', '쥘리', '카미유', '엠마', '이네스', '루이즈', '상드린', '엘로디', '마리', '조에', '아멜리', '브리지트', '셀린', '다프네', '에디트', '파니', '지젤', '엘렌', '이렌', '자닌', '로르', '마틸드'], m: ['루이', '위고', '레오', '쥘', '가브리엘', '아르튀르', '라파엘', '폴', '앙투안', '테오', '니콜라', '바티스트', '피에르', '장', '마르셀', '프랑수아', '앙리', '알랭', '기욤', '로맹', '세드릭', '에티엔', '파스칼', '뤽'] },
+  { flag: '🇪🇸', land: '스페인', f: ['루시아', '카르멘', '마리아', '롤라', '파울라', '엘레나', '이사벨', '알바', '소피아', '클라라', '아나', '마르타', '이레네', '라우라', '노에미', '로시오', '필라르', '돌로레스', '크리스티나', '베아트리스', '인마', '네레아', '아이타나', '시아'], m: ['마테오', '파블로', '디에고', '카를로스', '하비에르', '알바로', '후안', '미겔', '세르히오', '다니엘', '이케르', '루이스', '안토니오', '마누엘', '라파', '호르헤', '다비드', '곤살로', '이반', '라울', '페드로', '엔리케', '하이메', '우고'] },
+  { flag: '🇧🇷', land: '브라질', f: ['줄리아', '라리사', '비아', '아나', '루아나', '카밀라', '마리아나', '이자벨라', '레티시아', '가브리엘라', '라우라', '브루나', '탈리타', '페르난다', '아드리아나', '지젤리', '하켈', '타티아나', '파트리시아', '클라리시', '엘로이자', '소냐', '바네사', '파비아나'], m: ['가브리엘', '루카스', '티아고', '페드루', '마테우스', '하파엘', '브루누', '펠리피', '지오구', '이고르', '카이우', '엔조', '조앙', '안드레', '마르쿠', '파울루', '호드리구', '세자르', '에두아르두', '레안드루', '다닐루', '비토르', '자이르', '넬송'] },
+  { flag: '🇷🇺', land: '러시아', f: ['안나', '나타샤', '올가', '소냐', '마샤', '이리나', '타냐', '베라', '다샤', '폴리나', '알료나', '니나', '류다', '스베타', '카탸', '옥사나', '갈리나', '지나', '라리사', '마리나', '율리야', '크세니야', '아냐', '레나'], m: ['이반', '드미트리', '미샤', '알렉세이', '세르게이', '보리스', '파벨', '니키타', '올레그', '안톤', '일리야', '유리', '표도르', '블라디미르', '콘스탄틴', '그리샤', '바샤', '코랴', '사샤', '페탸', '레오니드', '아르툠', '막심', '뱌체슬라프'] },
+  { flag: '🇪🇬', land: '이집트', f: ['야스민', '레일라', '누르', '파리다', '살마', '후다', '라니아', '다리아', '아미라', '말락', '나디아', '시린', '파티마', '하나', '자이나브', '마르얌', '아야', '라일라', '사나', '다나', '가다', '하디르', '루브나', '사피야'], m: ['오마르', '카림', '유세프', '아마드', '하산', '타렉', '사미르', '무스타파', '칼리드', '나빌', '아델', '지아드', '마흐무드', '이브라힘', '셰리프', '함디', '와엘', '아므르', '라미', '파리드', '바셈', '에삼', '하템', '후삼'] },
+];
+/** A town is like a country: most of its people come from there, and one in five from somewhere else. */
+const townOrigin = (seed) => ORIGINS[hashOf(seed, 'land') % ORIGINS.length];
+/** A number from a seed and a key, the same every time (a town's names never change). */
+function hashOf(seed, key) {
+  let h = (seed >>> 0) ^ 0x9e3779b9;
+  for (const ch of String(key)) h = Math.imul(h ^ ch.charCodeAt(0), 0x85ebca6b) >>> 0;
+  h ^= h >>> 13;
+  return Math.imul(h, 0xc2b2ae35) >>> 0;
+}
+/** Someone's name and flag, from their town and who they are. Elders of Korea have old-fashioned names. */
+function personName(seed, key, gender, elder) {
+  const h = hashOf(seed, key);
+  const o = h % 5 ? townOrigin(seed) : ORIGINS[Math.floor(h / 5) % ORIGINS.length];
+  const k = Math.floor(h / 97);
+  // Two parts put together: hundreds of names a country (a list only where made-up ones would sound wrong).
+  const parts = o.gen ? o.gen[gender === 'm' ? 'm' : 'f'] : !o.f ? (elder ? [KO_OLD1, KO_OLD2] : [KO1, KO2]) : null;
+  if (parts) {
+    const [a, b] = parts;
+    const first = a[k % a.length];
+    let second = b[Math.floor(k / a.length) % b.length];
+    if (second === first) second = b[(Math.floor(k / a.length) + 1) % b.length]; // no "둥둥"
+    let name = first + second;
+    if (name.length < 2) name += b[(k >> 7) % b.length]; // one syllable is too short
+    return { name, flag: o.flag };
+  }
+  const list = gender === 'm' ? o.m : o.f;
+  return { name: list[k % list.length], flag: o.flag };
+}
+/** Each town names its own families (FAMILIES is shared by every file: stories, cards, codes). */
+function nameTown(seed) {
+  const used = new Set();
+  FAMILIES.forEach((f, i) => {
+    let n = personName(seed, `h${i}`, f.gender);
+    for (let t = 1; used.has(n.name) && t < 8; t++) n = personName(seed, `h${i}#${t}`, f.gender);
+    used.add(n.name);
+    f.single = n.name;
+    f.family = `${n.name}네`;
+    f.flag = n.flag;
+  });
+}
+const nameFor = (e, elder) => personName(S.mapSeed ?? 0, e.who ?? `${Math.round(e.x)}`, e.gender, elder);
+
+/** Who someone is, for the card and the name tag: a name and what they are to you. */
 function whoIs(e) {
   const i = e.home;
   const fam = i >= 0 && FAMILIES[i] ? FAMILIES[i] : null;
   if (e.car) return { name: e.car.type === 'runner' ? '달리던 사람' : '지나가던 사람', role: '나그네' };
-  if (e.kind === 'spouse') return { name: FAMILIES[S.spouse].single, role: '내 배우자', heart: true };
-  if (e.kind === 'kid') return { name: '우리 아이', role: '내 아이', kid: true };
-  if (e.who?.startsWith('h') && e.who.endsWith('a') && fam) return { name: fam.single, role: e.job?.name ?? '주민', head: i };
-  if (e.who?.startsWith('h') && e.who.endsWith('s') && fam) return { name: `${fam.family} 아이`, role: '꼬마', kid: true };
-  if (e.who?.startsWith('h') && e.who.endsWith('e') && fam) return { name: `${fam.family} ${e.gender === 'm' ? '할아버지' : '할머니'}`, role: '어르신' };
+  if (e.kind === 'guest') return { name: e.name ?? '이웃', role: '친구', guest: true };
+  if (e.kind === 'spouse') return { name: FAMILIES[S.spouse]?.single ?? '배우자', role: '내 배우자', heart: true };
+  if (e.kind === 'kid') return { name: nameFor(e).name, role: e.baby ? '내 아기' : '내 아이', kid: true, mine: true };
+  if (e.who?.startsWith('h') && e.who.endsWith('a') && fam) return { name: fam.single, role: `${e.job?.name ?? '주민'} ${fam.flag ?? ''}`, head: i };
+  if (e.who?.startsWith('h') && e.who.endsWith('s') && fam) return { name: nameFor(e).name, role: `${fam.family} 아이`, kid: true };
+  if (e.who?.startsWith('h') && e.who.endsWith('e') && fam) {
+    const n = nameFor(e, true);
+    return { name: n.name, role: `${fam.family} ${e.gender === 'm' ? '할아버지' : '할머니'} ${n.flag}` };
+  }
   if (e.zombie) return { name: '좀비', role: '으어어…' };
+  if (e.who?.startsWith('f')) {
+    const n = nameFor(e);
+    return { name: n.name, role: `${e.job?.name ?? '주민'} ${n.flag}` };
+  }
   return { name: e.job ? `${e.job.name} 주민` : '행인', role: e.job?.name ?? '지나가던 사람' };
+}
+
+// ── Name tags under everyone; the colour says what they are to you ────────────────────────────────────────────────
+
+const TAG = { me: '#3182f6', spouse: '#e0475f', lover: '#f06a9a', family: '#e8892a', friend: '#2f9e5a', other: 'rgba(40, 30, 30, 0.62)' };
+/** [text, colour] of someone's tag. Neighbours' friendship counts only in your own town. */
+function tagOf(e) {
+  if (e === me) return [MODE === 'life' ? nick || '나' : myCard().name, TAG.me];
+  const w = whoIs(e);
+  if (w.guest) return [`${w.name}·친구`, TAG.friend];
+  if (MODE !== 'life') return [w.name, TAG.other];
+  if (e.kind === 'spouse') return [`${w.name}·배우자`, TAG.spouse];
+  if (w.mine) return [`${w.name}·가족`, TAG.family];
+  if (w.head != null && S.myLover === w.head) return [`${w.name}·연인`, TAG.lover];
+  if (w.head != null && (S.friends[w.head]?.f ?? 0) >= 5) return [`${w.name}·친구`, TAG.friend];
+  return [w.name, TAG.other];
+}
+/** Each frame, for those on screen (the width is measured once per text). */
+function drawNames(g) {
+  g.font = '6px sans-serif';
+  const one = (e) => {
+    if (e.hidden || e.dying || !onScreen(e.x)) return;
+    const [text, c] = tagOf(e);
+    if (e.tagText !== text) [e.tagText, e.tagW] = [text, Math.min(60, Math.ceil(g.measureText(text).width) + 4)];
+    const x = Math.round(e.x - e.tagW / 2);
+    const y = Math.round(e.y) + 1;
+    g.fillStyle = c;
+    g.fillRect(x, y, e.tagW, 8);
+    g.fillStyle = '#ffffff';
+    g.fillText(text, x + 2, y + 6, 56);
+  };
+  for (const e of people) if (e.kind !== 'dog' && e.kind !== 'petcat' && !e.zombie) one(e);
+  if (MODE !== 'chaos') one(me);
 }
 
 /** The villager under a tap (people only: no pets, not you, not a friend's character). */
@@ -101,7 +204,10 @@ function closeTalk() {
   document.getElementById('talkCard').hidden = true;
 }
 
-const friendOf = (i) => (i != null && i >= 0 ? (S.friends[i] ??= { f: 0, day: '' }) : null);
+/** Your friendship with a family (only in your own town or a chaos copy: a friend's neighbours aren't yours). */
+const friendOf = (i) => (MODE !== 'visit' && i != null && i >= 0 ? (S.friends[i] ??= { f: 0, day: '' }) : null);
+/** Your own town: what you carry, earn and learn, even while visiting (a friend's town is only looked at). */
+const home = () => (MODE === 'visit' ? homeState() : S);
 const cropPrice = () => Math.max(1, Math.round(era().price * priceMul() * farmPriceMul() * weekPrice()));
 /** What they sell you: wood and stone, cheaper for friends. */
 function goodsPrice(kind, i) {
@@ -140,13 +246,13 @@ function paintTalk(line) {
   add('💬 교류하기', () => talk(e));
   if (!w.kid && e.kind !== 'spouse') {
     const p = cropPrice();
-    add(`🌾 팔기 (${p + Math.round(p * Math.min(0.2, (fr?.f ?? 0) * 0.02))}코인)`, () => sellTo(e), S.bag > 0 ? null : '팔 작물이 없어요');
+    add(`🌾 팔기 (${p + Math.round(p * Math.min(0.2, (fr?.f ?? 0) * 0.02))}코인)`, () => sellTo(e), home().bag > 0 ? null : '팔 작물이 없어요');
     for (const [k, name] of [['wood', '🪵 나무'], ['stone', '🪨 돌']]) {
       const cost = goodsPrice(k, w.head) * 3;
-      add(`${name} 3개 사기 (${cost}코인)`, () => buyFrom(e, k), S.coins >= cost ? null : '코인이 모자라요');
+      add(`${name} 3개 사기 (${cost}코인)`, () => buyFrom(e, k), home().coins >= cost ? null : '코인이 모자라요');
     }
   }
-  if (w.head != null && S.spouse == null) {
+  if (w.head != null && S.spouse == null && MODE !== 'visit') {
     if (S.myLover !== w.head) add('💌 고백하기', () => askOut(e), fr.f >= LOVE_AT ? null : `호감 ${LOVE_AT}부터 할 수 있어요`);
     else add('💍 청혼하기', () => propose(e), fr.f >= MAX_FRIEND ? null : `호감 ${MAX_FRIEND}이 되면 할 수 있어요`);
   }
@@ -164,7 +270,11 @@ function talk(e) {
   const fr = friendOf(w.head);
   e.shout = { text: '♪', t: 10 };
   if (w.kid) return paintTalk(`${w.name}: "${line('kid')}"`);
-  if (!fr) return paintTalk(`${w.name}: "${line('low')}"`);
+  if (!fr) {
+    const xp = MODE === 'visit' && !e.car && abroadOk();
+    if (xp) homeXp(1), saveSoon();
+    return paintTalk(`${w.name}: "${line('low')}"${xp ? ' (경험치 +1)' : ''}`);
+  }
   const day = today();
   if (fr.talkDay !== day) [fr.talkDay, fr.talks] = [day, 0];
   let note = '';
@@ -179,13 +289,14 @@ function talk(e) {
 }
 
 function sellTo(e) {
-  if (S.bag <= 0) return;
+  const h = home();
+  if (h.bag <= 0) return;
   const w = whoIs(e);
   const f = friendOf(w.head)?.f ?? 0;
   const p = cropPrice();
   const got = p + Math.round(p * Math.min(0.2, f * 0.02));
-  S.bag--;
-  S.coins += got;
+  h.bag--;
+  h.coins += got;
   e.shout = { text: '고마워요!', t: 14 };
   saveSoon();
   paintUi();
@@ -195,9 +306,10 @@ function sellTo(e) {
 function buyFrom(e, kind) {
   const w = whoIs(e);
   const cost = goodsPrice(kind, w.head) * 3;
-  if (S.coins < cost) return;
-  S.coins -= cost;
-  S.stock[kind] = (S.stock[kind] ?? 0) + 3;
+  const h = home();
+  if (h.coins < cost) return;
+  h.coins -= cost;
+  h.stock[kind] = (h.stock[kind] ?? 0) + 3;
   cache.dirty = true;
   saveSoon();
   paintUi();
@@ -240,8 +352,49 @@ function propose(e) {
 }
 
 /** Life saves (save() waits a moment, so taps in a row save once); a chaos town is never saved. */
+let homeTimer = 0;
 function saveSoon() {
-  if (MODE === 'life') save();
+  if (MODE === 'life') return save();
+  if (MODE !== 'visit' || !VISIT?.home) return;
+  // Visiting: only your own town is written (the friend's stays a copy that is never saved).
+  const town = VISIT.home;
+  clearTimeout(homeTimer);
+  homeTimer = setTimeout(() => void aquila.storage.set('save', town).catch(() => {}), 800);
+}
+
+/** Abroad: a little XP for talking, a crop or two picked to take home; a few a day. */
+const ABROAD_A_DAY = 6;
+function abroadOk() {
+  const h = home();
+  const day = today();
+  if (h.abroad?.day !== day) h.abroad = { day, n: 0 };
+  if (h.abroad.n >= ABROAD_A_DAY) return false;
+  h.abroad.n++;
+  return true;
+}
+function homeXp(n) {
+  const h = home();
+  const before = levelOf(h.xp);
+  h.xp += n;
+  if (levelOf(h.xp) > before) toast(`레벨이 올랐어요! 이제 Lv.${levelOf(h.xp)}이에요`, 2200);
+}
+/** Visiting: a tap on a ripe crop picks it for your bag at home. True when it did. */
+function tryPickAbroad(x, y) {
+  if (MODE !== 'visit') return false;
+  const [tx, ty] = [Math.floor(x / T), Math.floor(y / T)];
+  const i = PLOT_AT.findIndex(([px, py]) => px === tx && py === ty);
+  const p = S.plots?.[i];
+  if (!p?.planted) return false;
+  if (p.g < GROW) return void toast('아직 덜 익었어요'), true;
+  if (!abroadOk()) return void toast('오늘은 충분히 거들었어요. 내일 또 와요'), true;
+  S.plots[i] = { planted: false, g: 0 }; // only on your copy of their town
+  cache.dirty = true;
+  home().bag++;
+  homeXp(2);
+  popAt(x, y);
+  saveSoon();
+  toast(`${josa(era().crop, '을', '를')} 거들어 하나 얻었어요. 가방에 넣었어요`);
+  return true;
 }
 
 // ── 때리기 (chaos mode only): a close-up of their face ────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@
 const FARM = { x: 39 };
 
 function applyLayout(seed) {
+  nameTown(seed); // each town names its own people (talk.js)
   const r = rng(seed);
   const ri = (a, b) => a + Math.floor(r() * (b - a + 1));
   const shuffle = (a) => {

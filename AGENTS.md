@@ -20,7 +20,8 @@ local helper) or, with neither, the minutes the browser is open. Plain HTML/JS, 
    sprites there. Life mode has illness, crime, war, plague, weather; the zombie is a chaos tool and stays one.
 2. **The two modes never share a save.** Chaos mode works on a copy; leaving it restores the life town untouched.
    Visiting a friend's town (`visit.js`, MODE 'visit' or chaos with `VISIT` set) is never saved either: only a
-   guestbook note (pasted at home, or sent live by `live.js`) changes the life town.
+   guestbook note (pasted at home, or sent live by `live.js`) changes the life town, and what you bring home from a
+   visit (crops picked, coins and goods from trading, XP: `talk.js`) goes to your own town (`homeState()`), never theirs.
 3. **Verify offscreen only.** The user works at an office: never open a visible window (no `npm run dev`, no visible
    Electron/Chrome). Use Electron with `show: false` + `webPreferences.offscreen: true` and capture with
    `capturePage()` / `canvas.toDataURL()` — the scripts in `tools/` do this (`npm test`; see tools/README.md). Say

@@ -108,22 +108,9 @@ function guestThink(e) {
   return true;
 }
 
-/** Names over guests (and over you, while you visit). */
+/** Names under everyone: you, friends, villagers (talk.js draws them). */
 function drawVisit(g) {
-  if (!guests.length && !VISIT) return;
-  g.font = '6px sans-serif';
-  const tag = (e, text, bg, up = 0) => {
-    if (e.hidden || !onScreen(e.x)) return;
-    const w = Math.min(50, g.measureText(text).width + 4);
-    const x = Math.round(e.x - w / 2);
-    const y = Math.round(e.y) - 34 - up;
-    g.fillStyle = bg;
-    g.fillRect(x, y, w, 8);
-    g.fillStyle = '#ffffff';
-    g.fillText(text, x + 2, y + 6, 46);
-  };
-  for (const e of guests) tag(e, e.name, 'rgba(40, 30, 30, 0.7)');
-  if (VISIT && !me.hidden) tag(me, myCard().name, 'rgba(49, 130, 246, 0.85)', 9); // above your arrow
+  drawNames(g);
 }
 
 // ── Guestbook signs left by visitors (life towns; chaos towns have their own signs) ────────────────────────────────
@@ -190,7 +177,8 @@ function enterVisit(obj) {
   juiceReset(); // nothing of your own town's effects follows you in
   story(`🧳 ${VISIT.host?.name ?? '이웃'}님이 코드를 만든 순간의 마을에 놀러 왔어요. 주민들 움직임은 각자 화면에서 따로 흘러가요.`);
   document.body.dataset.mode = 'visit';
-  $('visitHost').textContent = `${VISIT.host?.name ?? '이웃'}님의 ${ERAS[S.era]?.name ?? ''} 마을`;
+  const land = townOrigin(S.mapSeed ?? 0);
+  $('visitHost').textContent = `${VISIT.host?.name ?? '이웃'}님의 ${ERAS[S.era]?.name ?? ''} 마을 · ${land.flag} ${land.land}`;
   // The news they sent along, as plain text.
   const news = (Array.isArray(obj.news) ? obj.news : []).filter((s) => typeof s === 'string').slice(0, 3).map((s) => s.slice(0, 60));
   $('visitNews').hidden = !news.length;
