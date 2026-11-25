@@ -206,6 +206,150 @@ function buyFurniture(id) {
   paintUi();
   return true;
 }
+
+// ── Arranging the room: drag a piece; green where it fits, red where it doesn't ─────────────────────────────────────
+
+/** Where each piece stands by default (room pixels, 120 × 96, the floor from y 60) and what it stands on. */
+const SPOT = {
+  bed: [3, 40, 34, 22, 'floor'], bed_canopy: [3, 28, 32, 34, 'floor'],
+  table: [55, 48, 24, 16, 'floor'],
+  seat: [42, 48, 13, 16, 'floor'], seat_sofa: [58, 79, 28, 11, 'floor'],
+  light: [72, 12, 8, 14, 'wall'],
+  rug: [30, 73, 60, 16, 'rug'], rug_fur: [42, 72, 36, 16, 'rug'], rug_persian: [28, 73, 64, 16, 'rug'],
+  pot: [100, 82, 6, 8, 'floor'], loom: [36, 38, 9, 22, 'floor'], plant: [80, 45, 8, 15, 'floor'], chest: [8, 80, 14, 9, 'floor'],
+  gramophone: [59, 37, 12, 14, 'any'], // it may stand on the table
+  tapestry: [8, 12, 16, 22, 'wall'], clock: [80, 26, 7, 26, 'wall'], aquarium: [68, 43, 10, 8, 'wall'], holoframe: [26, 14, 14, 12, 'wall'],
+};
+const FLOOR_Y = 60;
+/** What can't be covered: the window and the shelf on the wall, the hearth (stove, TV…) on both. */
+function fixtures(e) {
+  const hearth = [[96, 59, 16, 10], [90, 30, 26, 30], [90, 30, 26, 30], [94, 24, 18, 36], [90, 32, 26, 28], [92, 30, 22, 30]][e];
+  return { wall: [[44, 9, 26, 21], e === 0 ? [82, 12, 28, 16] : [80, 6, 30, 12], hearth], floor: [hearth] };
+}
+const offsetOf = (id) => S.furnPos?.[id] ?? [0, 0];
+/** The pieces you can move (bought and in the room; the robot vacuum goes where it likes), with their boxes now. */
+function movable() {
+  const ids = [...['rug', 'bed', 'table', 'seat', 'light'].map(inUse), ...(S.furniture ?? [])].filter((id) => id && id !== 'robotvac');
+  return ids.map((id) => {
+    const f = FURNITURE.find((x) => x.id === id);
+    const [x, y, w, h, on] = SPOT[id] ?? SPOT[f.cat];
+    const [dx, dy] = offsetOf(id);
+    return { id, name: f.name, on, x: x + dx, y: y + dy, w, h, dx, dy };
+  });
+}
+const overlaps = (a, b) => a.x < b[0] + b[2] && b[0] < a.x + a.w && a.y < b[1] + b[3] && b[1] < a.y + a.h;
+/** Whether a piece fits where it is: inside its zone, clear of the fixtures and of the pieces on the same layer. */
+function fits(p, all) {
+  if (p.x < 0 || p.x + p.w > 120 || p.y < 0 || p.y + p.h > 96) return false;
+  const bottom = p.y + p.h;
+  if (p.on === 'wall' && bottom > FLOOR_Y - 3) return false;
+  if (p.on === 'floor' && (bottom < FLOOR_Y - 2 || bottom > 96)) return false;
+  if (p.on === 'rug' && p.y < FLOOR_Y) return false;
+  if (p.on === 'rug' || p.on === 'any') return true;
+  const fx = fixtures(Math.max(0, Math.min(5, S.era)));
+  if ((p.on === 'wall' ? fx.wall : fx.floor).some((b) => overlaps(p, b))) return false;
+  return !all.some((q) => q.id !== p.id && q.on === p.on && overlaps(p, [q.x, q.y, q.w, q.h]));
+}
+/** Where a piece of this layer may go at all: the faint green range shown while you drag. */
+function zoneOf(on) {
+  return on === 'wall' ? [0, 0, 120, FLOOR_Y - 3] : on === 'any' ? [0, 0, 120, 96] : [0, on === 'rug' ? FLOOR_Y : FLOOR_Y - 26, 120, on === 'rug' ? 36 : 62];
+}
+let arranging = false;
+let drag = null; // { id, grab: [x, y], from: [dx, dy], at: [dx, dy] }
+/** Draw something moved by its piece's offset (a piece being dragged: where it is now). */
+function shifted(g, id, draw) {
+  const [dx, dy] = drag?.id === id ? drag.at : id ? offsetOf(id) : [0, 0];
+  if (!dx && !dy) return draw();
+  g.save();
+  g.translate(dx, dy);
+  draw();
+  g.restore();
+}
+/** Over the room while arranging: every piece outlined; the one in your hand green or red, and its range. */
+function drawArrange(g) {
+  const all = movable();
+  for (const p of all) {
+    if (drag?.id === p.id) continue;
+    g.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    g.lineWidth = 0.5;
+    g.setLineDash([1.5, 1]);
+    g.strokeRect(p.x + 0.25, p.y + 0.25, p.w - 0.5, p.h - 0.5);
+  }
+  g.setLineDash([]);
+  if (!drag) return;
+  const base = all.find((p) => p.id === drag.id);
+  const [x, y, w, h, on] = [base.x - base.dx + drag.at[0], base.y - base.dy + drag.at[1], base.w, base.h, base.on];
+  const z = zoneOf(on);
+  g.fillStyle = 'rgba(80, 200, 120, 0.16)';
+  g.fillRect(z[0], z[1], z[2], z[3]);
+  g.strokeStyle = 'rgba(47, 184, 106, 0.9)';
+  g.lineWidth = 0.5;
+  g.setLineDash([2, 1.5]);
+  g.strokeRect(z[0] + 0.5, z[1] + 0.5, z[2] - 1, z[3] - 1);
+  g.setLineDash([]);
+  const ok = fits({ id: drag.id, on, x, y, w, h }, all);
+  g.fillStyle = ok ? 'rgba(60, 200, 110, 0.35)' : 'rgba(240, 70, 70, 0.4)';
+  g.fillRect(x, y, w, h);
+  g.strokeStyle = ok ? '#2fb86a' : '#e84a4a';
+  g.lineWidth = 1;
+  g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+}
+/** A point on the canvas, in room pixels. */
+function roomAt(ev) {
+  const r = canvas.getBoundingClientRect();
+  const k = scale * 2;
+  return [((ev.clientX - r.left) / r.width) * (canvas.width / k), ((ev.clientY - r.top) / r.height) * (canvas.height / k)];
+}
+function wireArrange() {
+  const btn = document.getElementById('arrangeBtn');
+  btn?.addEventListener('click', () => {
+    arranging = !arranging && insideView();
+    if (arranging) houseView = true; // the room stays while you arrange, even when your pastime is over
+    drag = null;
+    paintHome();
+    frame();
+  });
+  // Before the camera's own drag: while arranging, a press on the room picks a piece up instead.
+  canvas.addEventListener('pointerdown', (ev) => {
+    if (!arranging || !insideView()) return;
+    ev.stopImmediatePropagation();
+    ev.preventDefault();
+    const [x, y] = roomAt(ev);
+    const order = { wall: 0, any: 0, floor: 1, rug: 2 }; // what's in front is picked first
+    const hit = movable()
+      .filter((p) => x >= p.x - 1 && x <= p.x + p.w + 1 && y >= p.y - 1 && y <= p.y + p.h + 1)
+      .sort((a, b) => order[a.on] - order[b.on] || a.w * a.h - b.w * b.h)[0];
+    if (!hit) return;
+    drag = { id: hit.id, grab: [x, y], from: [hit.dx, hit.dy], at: [hit.dx, hit.dy] };
+    try {
+      canvas.setPointerCapture(ev.pointerId); // keep the piece while the pointer leaves the picture
+    } catch {
+      /* a pointer that isn't down any more */
+    }
+    frame();
+  }, { capture: true });
+  canvas.addEventListener('pointermove', (ev) => {
+    if (!drag) return;
+    const [x, y] = roomAt(ev);
+    drag.at = [drag.from[0] + Math.round(x - drag.grab[0]), drag.from[1] + Math.round(y - drag.grab[1])];
+    frame();
+  });
+  const drop = () => {
+    if (!drag) return;
+    const all = movable();
+    const base = all.find((p) => p.id === drag.id);
+    const p = { ...base, x: base.x - base.dx + drag.at[0], y: base.y - base.dy + drag.at[1] };
+    if (fits(p, all)) {
+      S.furnPos = { ...(S.furnPos ?? {}), [drag.id]: drag.at };
+      save();
+    } else if (drag.at[0] !== drag.from[0] || drag.at[1] !== drag.from[1]) toast('여기에는 놓을 수 없어요');
+    drag = null;
+    frame();
+  };
+  canvas.addEventListener('pointerup', drop);
+  canvas.addEventListener('pointercancel', drop);
+  canvas.addEventListener('click', (ev) => arranging && insideView() && ev.stopImmediatePropagation(), { capture: true });
+}
 /** Your errand when you picked a pastime (game.js nextTask asks first). */
 function hobbyTask() {
   if (!wantHobby || MODE !== 'life') return null;
@@ -367,60 +511,62 @@ function drawRug(g, e) {
   box(g, 30, 74, 60, 14, e === 5 ? '#9ab4ff' : '#c8503a', OL);
   R(g, 33, 77, 54, 8, e === 5 ? '#b8ccff' : '#e07a5a');
 }
-/** Decorations you bought, as many as you like. */
-function drawFurniture(g, t) {
-  const F = (id) => (S.furniture ?? []).includes(id);
-  if (F('pot')) {
+/** Decorations you bought, as many as you like, each where you put it. */
+const DECO_ART = {
+  pot(g, t) {
     box(g, 100, 82, 6, 8, '#b8643a', OL);
     R(g, 101, 84, 4, 1, '#e8a060');
-  }
-  if (F('loom')) {
+  },
+  loom(g, t) {
     R(g, 36, 38, 1, 22, '#8a5a3a');
     R(g, 44, 38, 1, 22, '#8a5a3a');
     R(g, 36, 38, 9, 2, '#8a5a3a');
     for (let x = 38; x < 44; x += 2) R(g, x, 41, 1, 12, x % 4 ? '#e8c050' : '#d8503a');
-  }
-  if (F('plant')) {
+  },
+  plant(g, t) {
     box(g, 81, 54, 6, 6, '#b8643a', OL);
     disc(g, 84, 49, 4, '#4fa43e');
     disc(g, 82, 46, 2, '#6cc85a');
-  }
-  if (F('tapestry')) {
+  },
+  tapestry(g, t) {
     box(g, 8, 12, 16, 22, '#8a2a3a', OL);
     R(g, 10, 15, 12, 2, '#e8c050');
     R(g, 13, 20, 6, 6, '#e8c050');
     R(g, 10, 29, 12, 2, '#e8c050');
-  }
-  if (F('chest')) {
+  },
+  chest(g, t) {
     box(g, 8, 80, 14, 9, '#8a5a32', OL);
     R(g, 8, 83, 14, 1, '#e8c050');
     R(g, 14, 84, 2, 2, '#e8c050');
-  }
-  if (F('gramophone')) {
+  },
+  gramophone(g, t) {
     box(g, 60, 46, 7, 5, '#6b4428', OL);
     R(g, 63, 41, 1, 5, '#c8a050');
     disc(g, 66, 40, 3, '#e8c050');
     if (t % 8 < 4) R(g, 69, 36, 2, 2, '#4a3a60');
-  }
-  if (F('clock')) {
+  },
+  clock(g, t) {
     box(g, 80, 26, 7, 26, '#6b4428', OL);
     disc(g, 83, 31, 2, '#f4efe6');
     R(g, 83, 39 + (Math.floor(t / 4) % 2 ? 1 : -1), 1, 8, '#e8c050');
-  }
-  if (F('aquarium')) {
+  },
+  aquarium(g, t) {
     box(g, 68, 43, 10, 8, '#8fd0f0', OL);
     R(g, 69 + (Math.floor(t / 3) % 6), 46, 2, 1, '#f08a3a');
     R(g, 69, 50, 8, 1, '#c8b070');
-  }
-  if (F('robotvac')) {
+  },
+  robotvac(g, t) {
     const x = 34 + Math.round((Math.sin(t / 20) + 1) * 26);
     disc(g, x, 90, 4, '#d7e3ee');
     R(g, x - 1, 88, 2, 1, '#5ad7e8');
-  }
-  if (F('holoframe')) {
+  },
+  holoframe(g, t) {
     box(g, 26, 14, 14, 12, '#3a4a66', OL);
     R(g, 28, 16, 10, 8, ['#5ad7e8', '#9a7aff', '#5ee0b0'][Math.floor(t / 8) % 3]);
-  }
+  },
+};
+function drawFurniture(g, t) {
+  for (const id of S.furniture ?? []) if (DECO_ART[id]) shifted(g, id, () => DECO_ART[id](g, t));
 }
 /** The home card under the town and the 집 안 button: shown while you look inside. */
 function paintHome() {
@@ -469,8 +615,40 @@ function paintHome() {
     : wantHobby
       ? '집으로 가는 중이에요'
       : `지금은 밖에 있어요. 할 일을 고르면 집으로 와요 · 가구 ${owned}개`;
+  paintMine();
+}
+/** 내 가구: everything you've bought, in the room or put away (tap one that's put away to bring it back). */
+function paintMine() {
+  const list = document.getElementById('furnMine');
+  if (!list) return;
+  const mine = FURNITURE.filter((f) => ownsFurniture(f.id));
+  const sig = mine.map((f) => f.id + (hasFurniture(f.id) ? 'u' : '')).join() + arranging;
+  if (list.dataset.sig !== sig) {
+    list.dataset.sig = sig;
+    list.replaceChildren(
+      ...(mine.length
+        ? mine.map((f) => {
+            const using = hasFurniture(f.id);
+            const b = Object.assign(document.createElement('button'), { className: 'btn', textContent: using ? f.name : `${f.name} · 넣어 둠` });
+            b.setAttribute('aria-pressed', String(using));
+            b.title = using ? '집에 놓여 있어요' : '누르면 다시 놓아요';
+            b.addEventListener('click', () => {
+              if (!using && buyFurniture(f.id)) toast(`${josa(f.name, '을', '를')} 다시 놓았어요`);
+            });
+            return b;
+          })
+        : [Object.assign(document.createElement('span'), { className: 'hint', textContent: '아직 산 가구가 없어요' })]),
+    );
+  }
+  if (!insideView()) arranging = false;
+  const btn = document.getElementById('arrangeBtn');
+  btn.textContent = arranging ? '다 했어요' : '배치 바꾸기';
+  btn.setAttribute('aria-pressed', String(arranging));
+  btn.disabled = !movable().length;
+  document.getElementById('arrangeNote').hidden = !arranging;
 }
 function wireHome() {
+  wireArrange();
   document.getElementById('homeView')?.addEventListener('click', () => {
     if (insideView()) {
       houseView = false;
@@ -538,7 +716,7 @@ function drawInterior(g) {
   R(g, 0, FLOOR, 120, 36, c.floor);
   for (let y = FLOOR + 4; y < 96; y += 6) R(g, 0, y, 120, 1, c.floor2);
   if (e >= 1) for (let y = FLOOR; y < 96; y += 6) for (let x = (y / 6) % 2 ? 0 : 12; x < 120; x += 24) R(g, x, y, 1, 6, c.floor2);
-  drawRug(g, e);
+  shifted(g, inUse('rug'), () => drawRug(g, e));
   // The window: the sky outside as it is now (in a hut, just a hole in the wall with a hide rolled up over it).
   const sky = night ? '#1c2448' : weather === 'rain' || weather === 'storm' ? '#8a9aa8' : '#8fd3f4';
   if (e === 0) {
@@ -559,7 +737,7 @@ function drawInterior(g) {
   R(g, 46, 19, 22, 1, c.trim);
   }
   if (weather === 'rain' || weather === 'storm') for (let i = 0; i < 6; i++) R(g, 47 + ((i * 7 + t) % 20), 13 + ((i * 5 + t * 2) % 12), 1, 2, '#cfe8f5');
-  drawBed(g, e);
+  shifted(g, inUse('bed'), () => drawBed(g, e));
   // On the wall: herbs drying and a spear (a hut), clay pots on a plank (ancient), then a shelf of books.
   if (e === 0) {
     R(g, 82, 12, 26, 1, '#6b4428');
@@ -595,16 +773,17 @@ function drawInterior(g) {
     for (let i = 0; i < 4; i++) R(g, 92 + i * 6, 30 + ((t + i * 3) % 8), 4, 1, '#5ad7e8');
     box(g, 96, 48, 14, 12, '#d7e3ee', '#3a4a66');
   }
-  drawTable(g, e);
-  drawSeat(g);
-  drawLight(g);
+  shifted(g, inUse('table'), () => drawTable(g, e));
+  shifted(g, inUse('seat'), () => drawSeat(g));
+  shifted(g, inUse('light'), () => drawLight(g));
   // Family about the house: your spouse at the table, the dog on the rug, the cat on the bed.
-  if (S.spouse != null) person(g, { kind: 'spouse', x: 76, y: 66, dir: 'l', path: [], frame: 0, seed: 3, gender: FAMILIES[S.spouse].gender }, FAMILIES[S.spouse].look);
-  if (S.dog) drawAnimal(g, { x: 44, y: 84, dir: 'r', path: [], frame: 0 }, DOG, dogBreed().pal, 12, 9, 10);
-  if (S.cat) drawAnimal(g, { x: 26, y: 47, dir: 'l', path: [], frame: 0 }, CAT, { ...CAT_PAL, y: '#f4f1ea' }, 10, 7, 8);
+  if (S.spouse != null) shifted(g, inUse('table'), () => person(g, { kind: 'spouse', x: 76, y: 66, dir: 'l', path: [], frame: 0, seed: 3, gender: FAMILIES[S.spouse].gender }, FAMILIES[S.spouse].look));
+  if (S.dog) shifted(g, inUse('rug'), () => drawAnimal(g, { x: 44, y: 84, dir: 'r', path: [], frame: 0 }, DOG, dogBreed().pal, 12, 9, 10));
+  if (S.cat) shifted(g, inUse('bed'), () => drawAnimal(g, { x: 26, y: 47, dir: 'l', path: [], frame: 0 }, CAT, { ...CAT_PAL, y: '#f4f1ea' }, 10, 7, 8));
   drawFurniture(g, t);
-  // You, at your pastime (or nobody home yet).
-  if (homeStay) drawHobby(g, homeStay.hobby, t, e);
+  // You, at your pastime (or nobody home yet): a nap is taken wherever the bed is.
+  if (homeStay) shifted(g, homeStay.hobby === 'nap' ? inUse('bed') : null, () => drawHobby(g, homeStay.hobby, t, e));
+  if (arranging) drawArrange(g);
   // A label, top left.
   g.font = '5px sans-serif';
   g.fillStyle = 'rgba(25, 31, 40, 0.7)';

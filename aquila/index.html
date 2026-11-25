@@ -199,6 +199,10 @@
       .home-card[hidden] { display: none !important; }
       .home-card .label-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; font-size: 13px; font-weight: 600; }
       .home-card .label-row > span { flex: none; width: 34px; }
+      .home-card .mine-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 14px; font-size: 13px; font-weight: 600; }
+      .home-card .mine { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+      .home-card .mine .btn { font-size: 12px; padding: 5px 10px; }
+      .home-card #arrangeNote { margin-top: 8px; }
       .home-card select { flex: 1; min-width: 0; font: inherit; font-size: 13px; padding: 6px 8px; border: 0; border-radius: 8px; background: var(--fill); color: var(--text); cursor: pointer; }
       .visit-card select { font: inherit; font-size: 12px; font-weight: 600; padding: 5px 8px; border: 0; border-radius: 8px; background: var(--fill); color: var(--text); cursor: pointer; }
       .visit-card input { flex: 1; min-width: 0; font: inherit; padding: 6px 10px; border: 0; border-radius: 8px; background: var(--fill); color: var(--text); }
@@ -433,6 +437,9 @@
       <div class="label-row"><span>할 일</span><select id="hobbyPick" aria-label="집에서 할 일"></select><button class="btn primary" id="hobbyGo">하기</button></div>
       <div class="label-row"><span>가구</span><select id="furniturePick" aria-label="살 가구"></select><button class="btn" id="furnitureBuy">사기</button></div>
       <div class="hint" id="homeNote" style="margin-top: 8px"></div>
+      <div class="mine-head"><span>내 가구</span><button class="btn" id="arrangeBtn" aria-pressed="false">배치 바꾸기</button></div>
+      <div class="mine" id="furnMine"></div>
+      <div class="hint" id="arrangeNote" hidden>집 안의 가구를 끌어서 옮겨요. 초록이면 놓을 수 있고, 빨강이면 못 놓아요.</div>
     </section>
 
     <section class="card visit-card" id="visitCard" hidden>

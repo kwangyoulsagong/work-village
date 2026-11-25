@@ -16,8 +16,8 @@ Install once with `npm install` (Electron, dev only). Screenshots go to `tools/o
 | `npm run test:juice` | 인성 파탄 모드's feel: score, combo, shake, debris, a challenge, knock-on collapses, the UFO and the cat paw, the result card at 100 %, a fresh round, the life town untouched |
 | `npm run test:sea` | The sea, east or west: nothing built, walking or grazing on the water, boats of each era, traffic turning round at the beach, an older town keeping its map |
 | `npm run test:pastimes` | Relics and the museum's fee, a rare visitor drawn by decorations, cooking, a strike, the week's choice, news in an invite, a note's caravan and gift (once), a boat and a trip to sea, none of it in chaos mode |
-| `npm run test:home` | Free time: varied picks (never twice running), the inside of the house in every era, the 집 안 button, a chosen pastime, furniture (one bed at a time, decorations add up), out again, neighbours' books and kites, none of it in chaos mode |
-| `npm run test:twin` | The town open twice (two Chrome windows, Aquila's panel and float window): the copy opened last leads, an older one stops under a cover and never writes over a purchase, 여기서 하기 takes over |
+| `npm run test:home` | Free time: varied picks (never twice running), the inside of the house in every era, the 집 안 button, a chosen pastime, furniture (one bed at a time, decorations add up), 내 가구 (put away and back), 배치 바꾸기 (a drag that fits stays, onto the window or another piece goes back), out again, neighbours' books and kites, none of it in chaos mode |
+| `npm run test:twin` | The town open twice (two Chrome windows, Aquila's panel and float window): the copy opened last leads, an older one stops under a cover and never writes over a purchase; clicked into, it reloads and takes over |
 | `npm run test:chrome` | `background.js` with a fake Chrome (helper / no helper / check now), the side panel growing from minutes and from usage, and the helper setup card: the macOS installer run for real in a temp HOME, the Windows PowerShell installer checked as text |
 | `npm test` | All of the above |
 | `npx electron tools/ui.js` | The panel at several sizes, light and dark |
