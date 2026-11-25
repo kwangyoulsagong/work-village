@@ -2258,6 +2258,7 @@ async function start() {
   wireChaos();
   wireTalk();
   wireVisit();
+  wireLive();
   if (!S.gender) $('mode').hidden = false;
   wirePickLooks();
   for (const b of document.querySelectorAll('#pick [data-gender]')) b.addEventListener('click', () => pickGender(b.dataset.gender));

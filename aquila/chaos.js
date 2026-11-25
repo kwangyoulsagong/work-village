@@ -53,6 +53,7 @@ function enterChaos(era) {
   if (MODE === 'life') lifeState = S;
   VISIT = null; // a new sandbox is your own
   endTalk();
+  endLive(); // a live friend was in your life town
   guests = [];
   MODE = 'chaos';
   S = sandboxFor(era);

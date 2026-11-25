@@ -20,14 +20,16 @@ local helper) or, with neither, the minutes the browser is open. Plain HTML/JS, 
    sprites there. Life mode has illness, crime, war, plague, weather; the zombie is a chaos tool and stays one.
 2. **The two modes never share a save.** Chaos mode works on a copy; leaving it restores the life town untouched.
    Visiting a friend's town (`visit.js`, MODE 'visit' or chaos with `VISIT` set) is never saved either: only a
-   guestbook note pasted at home changes the life town.
+   guestbook note (pasted at home, or sent live by `live.js`) changes the life town.
 3. **Verify offscreen only.** The user works at an office: never open a visible window (no `npm run dev`, no visible
    Electron/Chrome). Use Electron with `show: false` + `webPreferences.offscreen: true` and capture with
    `capturePage()` / `canvas.toDataURL()` — the scripts in `tools/` do this (`npm test`; see tools/README.md). Say
    plainly when something could only be checked offscreen.
 4. **Battery first.** 45 fps everywhere (minds tick 8×/s, drawing interpolates; a moved view glides per frame). Static scenery is cached; draw only
    what's on screen; stop when the panel is hidden. Check frame time after adding anything that draws every frame.
-5. **Serverless, local only.** No network calls. Saves go through `aquila.storage` (Aquila: 512 KB in all; the photo
+5. **Serverless, local only.** No network calls, with one exception: `live.js` joins two panels on the same network
+   with a WebRTC data channel, `iceServers: []` (local addresses only, no STUN/TURN), the handshake passed by hand as codes.
+   Never add a server, a STUN/TURN host or any other origin. Saves go through `aquila.storage` (Aquila: 512 KB in all; the photo
    album has its own key and stays small) or `chrome.storage`. The native helper only reads ~/.claude / ~/.codex.
 6. **Load order.** Scripts load in the order in `aquila/index.html`; files before `game.js` must not use `game.js`
    constants at top level, only inside functions.
