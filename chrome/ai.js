@@ -213,6 +213,7 @@ function stock(kind, n) {
 
 /** One step of a villager's life: walk, act, or decide what's next. */
 function think(e) {
+  if (e.held) return false; // someone is talking to them (talk.js)
   if (e.zombie) return zombieThink(e);
   if (e.kind === 'guest') return guestThink(e);
   if (e.slip > 0 || e.dying > 0) return true; // on the ground (seeing stars, or not getting up)

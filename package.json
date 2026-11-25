@@ -8,7 +8,9 @@
     "test:life": "electron tools/life-test.js",
     "test:fx": "electron tools/fx-test.js",
     "test:more": "electron tools/more-test.js",
-    "test:chaos": "electron tools/chaos-test.js",
+    "test:chaos": "electron tools/chaos-test.js && electron tools/ride-chaos-check.js",
+    "test:talk": "electron tools/talk-test.js",
+    "test:live": "electron tools/live-test.js",
     "test:village": "electron tools/village-test.js",
     "test:juice": "electron tools/juice-test.js",
     "test:sea": "electron tools/sea-test.js",
@@ -16,7 +18,7 @@
     "test:home": "electron tools/home-test.js",
     "test:visit": "electron tools/visit-test.js",
     "test:chrome": "node tools/bg-test.js && electron tools/chrome-test.js && electron tools/helper-test.js && HELPER_PLATFORM=win electron tools/helper-test.js",
-    "test": "npm run sim && npm run test:life && npm run test:fx && npm run test:more && npm run test:visit && npm run test:village && npm run test:chaos && npm run test:juice && npm run test:sea && npm run test:pastimes && npm run test:home && npm run test:chrome && npm run perf"
+    "test": "npm run sim && npm run test:life && npm run test:fx && npm run test:more && npm run test:visit && npm run test:live && npm run test:village && npm run test:chaos && npm run test:talk && npm run test:juice && npm run test:sea && npm run test:pastimes && npm run test:home && npm run test:chrome && npm run perf"
   },
   "devDependencies": {
     "electron": "^45.0.0"

@@ -95,6 +95,7 @@ const guestPeople = () => guests;
 
 /** A guest strolls up and down the street near the house, stopping now and then. */
 function guestThink(e) {
+  if (e.liveWalk) return liveThink(e); // a friend joined live: where they really are (live.js)
   if (e.path.length) return step(e);
   if (e.wait > 0) {
     e.wait--;
@@ -223,6 +224,7 @@ function enterChaosVisit(obj) {
 
 function leaveVisit() {
   if (!VISIT) return;
+  endLive();
   lifeState = VISIT.home;
   VISIT = null;
   guests = [];
@@ -240,6 +242,10 @@ async function visitNote() {
   $('signBox').hidden = true;
   cache.dirty = true;
   story(`✍️ 방명록: "${text}"`);
+  if (liveNote({ text, x, y })) {
+    toast(`${VISIT.host?.name ?? '친구'}님 마을에 바로 남겼어요`);
+    return paintUi();
+  }
   replyCode = await packCode({ k: 'note', from: myCard(), seed: S.mapSeed, text, x, y });
   openVisitCard();
   paintUi();
@@ -254,7 +260,7 @@ function takeNote(obj) {
   const x = Math.round(Math.max(12, Math.min(W - 12, Number(obj.x) || HOME.x * T)));
   const y = Math.round(Number(obj.y) || (ROAD_Y + 2) * T + 8);
   S.guestbook = [...(S.guestbook ?? []), { x, y, text, name }].slice(-GUESTBOOK_MAX);
-  addGuest(obj.from);
+  if (!obj.live) addGuest(obj.from); // joined live: they're already walking about
   story(`✍️ ${name}님이 놀러 와서 방명록을 남겼어요: "${text}"`);
   caravanArrives(obj); // their caravan, with a small gift, once per note (pastimes.js)
   cache.dirty = true;
@@ -267,6 +273,8 @@ async function openCode(text) {
   const obj = await unpackCode(text);
   if (!obj) return toast('코드를 읽지 못했어요. 끝까지 복사했는지 확인해 주세요', 2600);
   if (obj.k === 'note') return takeNote(obj);
+  if (obj.k === 'live') return joinLive(obj);
+  if (obj.k === 'liveBack') return finishLive(obj);
   if (!obj.town || typeof obj.town !== 'object') return toast('코드를 읽지 못했어요', 2000);
   if (obj.k === 'town' && obj.town.mapSeed === homeState().mapSeed) return toast('내 마을 코드예요. 친구에게 보내 주세요');
   $('theirCode').value = '';

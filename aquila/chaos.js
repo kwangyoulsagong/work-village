@@ -12,6 +12,7 @@ let signAt = null;
 let statsDirty = false; // something fell since the tally was drawn (delayed blasts, plague, zombies)
 
 const CHAOS_TOOLS = [
+  ['talk', '👆', '말 걸기·때리기'],
   ['smash', '🔨', '집 부수기'],
   ['fling', '👊', '날리기'],
   ['nuke', '☢️', '핵'],
@@ -51,6 +52,8 @@ function sandboxFor(era) {
 function enterChaos(era) {
   if (MODE === 'life') lifeState = S;
   VISIT = null; // a new sandbox is your own
+  endTalk();
+  endLive(); // a live friend was in your life town
   guests = [];
   MODE = 'chaos';
   S = sandboxFor(era);
@@ -78,6 +81,7 @@ function enterChaos(era) {
 }
 
 function leaveChaos() {
+  endTalk();
   MODE = 'life';
   VISIT = null;
   guests = [];
@@ -131,7 +135,7 @@ function lotAt(x, y, reach = 20) {
 /** Everyone nearby runs the other way, with a "!" over their head. */
 function panic(x, y, radius) {
   for (const e of people) {
-    if (e.hidden || e.zombie || e.kind === 'guest' || dist(e.x, e.y, x, y) > radius) continue;
+    if (e.hidden || e.zombie || e.burning > 0 || e.kind === 'guest' || dist(e.x, e.y, x, y) > radius) continue;
     e.act = null;
     e.goal = null;
     e.busy = false;
@@ -242,11 +246,42 @@ function ghost(e) {
   tomb(e.x, e.y);
 }
 function killWithin(x, y, r) {
+  unseat(x, y, r);
   for (const e of [...people, ...animals]) if (!e.hidden && dist(e.x, e.y, x, y) < r) ghost(e);
 }
 function scorch(x, y, r) {
   S.scorch.push({ x: Math.round(x), y: Math.round(y), r: Math.round(r) });
   cache.dirty = true;
+}
+
+/** Where something on the road is (its middle, on its lane). */
+const rideAt = (c) => [c.x + (VEHICLE[c.type]?.len ?? 16) / 2, laneBottom(c)];
+/**
+ * Whoever rides through the road (runners, bikes, carts, cars, buses…) within r of a spot gets off and is a villager
+ * on foot from here on, so every tool reaches them like anyone else. Things in the sky fly on. Returns them.
+ */
+function unseat(x, y, r) {
+  if (MODE !== 'chaos') return [];
+  const out = [];
+  cars = cars.filter((c) => {
+    if (c.sky || c.b != null) return true;
+    const [cx, cy] = rideAt(c);
+    if (Math.abs(cx - x) > r + 4 || Math.abs(cy - y) > r + 8) return true;
+    const p = make('villager', [Math.max(0, Math.min(COLS - 1, Math.round(cx / T))), ROAD_Y], {
+      look: c.look,
+      gender: c.gender,
+      home: -1,
+      speed: 1,
+      needs: { energy: 80, hunger: 80, social: 50 },
+    });
+    p.x = p.px = cx;
+    p.y = p.py = cy;
+    people.push(p);
+    out.push(p);
+    if (c.type !== 'runner') fx.push({ k: 'dust', x: cx, y: cy, t: 18 }); // what they rode is left in a heap
+    return false;
+  });
+  return out;
 }
 
 /** On fire: they run about, flames and all, for a couple of seconds, set others alight, then fall. */
@@ -276,6 +311,7 @@ function burnTick() {
         const [tx, ty] = tileOf(e);
         route(e, nearestWalkable(Math.max(0, Math.min(COLS - 1, tx + rand(-5, 5))), ty));
       }
+      if (e.burning % 4 === 0) unseat(e.x, e.y, 12); // running into the road sets riders alight too
       for (const o of people) if (o !== e && !o.burning && !o.hidden && Math.random() < 0.04 && dist(o.x, o.y, e.x, e.y) < 12) ignite(o);
       if (--e.burning === 0) {
         scorch(e.x, e.y + 2, 5);
@@ -314,10 +350,12 @@ function useTool(x, y) {
       const i = lotAt(x, y, 26);
       if (wreckLot(i)) say(`🔨 ${FAMILIES[i].family} 집을 부쉈어요.`);
       else wreckLandmarksNear(x, y, 10);
+      for (const e of unseat(x, y, 16)) ghost(e); // run over by the hammer
       panic(x, y, 60);
       break;
     }
     case 'fling': {
+      unseat(x, y, 20);
       const e = [...people, ...animals].filter((p) => !p.hidden).sort((a, b) => dist(a.x, a.y - 8, x, y) - dist(b.x, b.y - 8, x, y))[0];
       if (e && dist(e.x, e.y - 8, x, y) < 20) {
         launch(e);
@@ -344,6 +382,7 @@ function useTool(x, y) {
       break;
     case 'plague':
       fx.push({ k: 'cloud', x, y, t: 90 });
+      unseat(x, y, 50);
       for (const e of people) if (dist(e.x, e.y, x, y) < 50) e.sick = 1;
       say('🦠 전염병을 퍼뜨렸어요. 사람에서 사람으로 옮아가요.');
       break;
@@ -354,6 +393,7 @@ function useTool(x, y) {
       if (i >= 0) fires.push({ x: lotCenter(i)[0], y: lotCenter(i)[1] + 4, t: 160, lot: i });
       else fires.push({ x, y, t: 120, lot: -1 });
       killWithin(x, y, 14);
+      unseat(x, y, 34);
       for (const e of people) if (!e.hidden && !e.zombie && dist(e.x, e.y - 8, x, y) < 34) ignite(e); // the ones nearby catch fire
       say('⚡ 번개가 내리쳐 불이 붙었어요.');
       panic(x, y, 60);
@@ -361,7 +401,11 @@ function useTool(x, y) {
     }
     case 'fire': {
       const i = lotAt(x, y, 26);
-      fires.push({ x: i >= 0 ? lotCenter(i)[0] : x, y: i >= 0 ? lotCenter(i)[1] + 4 : y, t: 180, lot: i });
+      const f = { x: i >= 0 ? lotCenter(i)[0] : x, y: i >= 0 ? lotCenter(i)[1] + 4 : y, t: 180, lot: i };
+      fires.push(f);
+      // The ones right there catch fire before they can run (riders too).
+      unseat(x, y, 30);
+      for (const e of people) if (!e.hidden && !e.zombie && (dist(e.x, e.y - 8, x, y) < 30 || dist(e.x, e.y, f.x, f.y) < 24)) ignite(e);
       say('🔥 불을 질렀어요. 옆집으로 번질지도 몰라요.');
       panic(x, y, 60);
       break;
@@ -396,6 +440,11 @@ function useTool(x, y) {
       S.bananas.push({ x: Math.round(x), y: Math.round(Math.min(Math.max(y, ROAD_Y * T + 4), ROAD_Y * T + 14)) });
       say('🍌 길에 바나나 껍질을 슬쩍 던져 놨어요.');
       break;
+    case 'talk': {
+      const e = villagerAt(x, y);
+      if (e) openTalk(e);
+      break;
+    }
     case 'sign':
       signAt = [x, y];
       $('signBox').hidden = false;
@@ -440,6 +489,7 @@ function chaosTick() {
   }
   // Bananas: whoever steps on one goes down, stars and all.
   for (const b of S.bananas.slice()) {
+    unseat(b.x, b.y, 4);
     const e = people.find((p) => !p.hidden && !p.zombie && !p.slip && Math.abs(p.x - b.x) < 5 && Math.abs(p.y - b.y) < 6);
     if (!e) continue;
     e.slip = 50;
@@ -457,16 +507,20 @@ function chaosTick() {
   // Tornado: flings people and flattens houses on its way.
   for (const f of fx)
     if (f.k === 'tornado') {
+      unseat(f.x, f.y, 14);
       for (const e of [...people, ...animals]) if (!e.hidden && Math.abs(e.x - f.x) < 12 && Math.abs(e.y - f.y) < 20) launch(e);
       const i = lotAt(f.x, ROAD_Y * T - 16, 14);
       if (i >= 0) wreckLot(i);
     }
+  // Zombies: a car that drives into one stops, and the driver is the next one bitten.
+  for (const z of people) if (z.zombie && !z.hidden) unseat(z.x, z.y, 10);
   // Fire: burns down what it's on, may jump to the next house.
   fires = fires.filter((f) => {
     f.t--;
+    unseat(f.x, f.y, 18);
     // Walking into the flames: people and animals on the spot go down (residents also go with the house).
     for (const e of [...people, ...animals])
-      if (!e.hidden && e.kind !== 'guest' && Math.abs(e.x - f.x) < 12 && Math.abs(e.y - f.y) < 34) {
+      if (!e.hidden && e.kind !== 'guest' && Math.abs(e.x - f.x) < 16 && Math.abs(e.y - f.y) < 34) {
         if (animals.includes(e) || e.kind === 'dog' || e.kind === 'petcat') ghost(e);
         else ignite(e);
       }
