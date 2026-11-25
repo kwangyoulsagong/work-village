@@ -2256,6 +2256,7 @@ async function start() {
   ensureLots(S.houses + S.ruins);
   wireCamera();
   wireChaos();
+  wireTalk();
   wireVisit();
   if (!S.gender) $('mode').hidden = false;
   wirePickLooks();

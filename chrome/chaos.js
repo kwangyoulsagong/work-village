@@ -12,6 +12,7 @@ let signAt = null;
 let statsDirty = false; // something fell since the tally was drawn (delayed blasts, plague, zombies)
 
 const CHAOS_TOOLS = [
+  ['talk', '👆', '말 걸기·때리기'],
   ['smash', '🔨', '집 부수기'],
   ['fling', '👊', '날리기'],
   ['nuke', '☢️', '핵'],
@@ -51,6 +52,7 @@ function sandboxFor(era) {
 function enterChaos(era) {
   if (MODE === 'life') lifeState = S;
   VISIT = null; // a new sandbox is your own
+  endTalk();
   guests = [];
   MODE = 'chaos';
   S = sandboxFor(era);
@@ -78,6 +80,7 @@ function enterChaos(era) {
 }
 
 function leaveChaos() {
+  endTalk();
   MODE = 'life';
   VISIT = null;
   guests = [];
@@ -436,6 +439,11 @@ function useTool(x, y) {
       S.bananas.push({ x: Math.round(x), y: Math.round(Math.min(Math.max(y, ROAD_Y * T + 4), ROAD_Y * T + 14)) });
       say('🍌 길에 바나나 껍질을 슬쩍 던져 놨어요.');
       break;
+    case 'talk': {
+      const e = villagerAt(x, y);
+      if (e) openTalk(e);
+      break;
+    }
     case 'sign':
       signAt = [x, y];
       $('signBox').hidden = false;
