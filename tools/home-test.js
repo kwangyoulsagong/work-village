@@ -61,7 +61,7 @@ app.whenReady().then(async () => {
   const drag = (id, dx, dy, shot) => `{ const p = movable().find((q) => q.id === '${id}'); const r = canvas.getBoundingClientRect(); const k = r.width / 120;
     const at = (x, y) => ({ clientX: r.left + x * k, clientY: r.top + y * k, pointerId: 1, bubbles: true });
     const cx = p.x + p.w / 2, cy = p.y + p.h / 2;
-    canvas.dispatchEvent(new PointerEvent('pointerdown', at(cx, cy))); canvas.dispatchEvent(new PointerEvent('pointermove', at(cx + ${dx}, cy + ${dy})));
+    canvas.dispatchEvent(new PointerEvent('pointerdown', at(cx, cy))); canvas.dispatchEvent(new PointerEvent('pointermove', at(cx + ${dx}, cy + ${dy}))); window.__note = $('arrangeNote').textContent;
     ${shot ? `window.__shot = canvas.toDataURL();` : ''}
     canvas.dispatchEvent(new PointerEvent('pointerup', at(cx + ${dx}, cy + ${dy}))); }`;
   const ar = await js(town(0) + `S.coins = 5000; for (const id of ['table_log', 'seat_stump', 'light_torch', 'rug_fur', 'pot']) buyFurniture(id);
@@ -70,11 +70,14 @@ app.whenReady().then(async () => {
     ${'${D1}'} const potMoved = JSON.stringify(S.furnPos?.pot);
     ${'${D2}'} const potKept = JSON.stringify(S.furnPos?.pot);
     ${'${D3}'} const torchWindow = S.furnPos?.light_torch ?? null;
-    ${'${D4}'} const torchMoved = JSON.stringify(S.furnPos?.light_torch);
+    ${'${D4}'} const torchShelf = window.__note + ' ' + (S.furnPos?.light_torch ?? null);
+    ${'${D5}'} const torchFloor = JSON.stringify(S.furnPos?.light_torch);
+    ${'${D6}'} const potOnTable = window.__note; const potStill = JSON.stringify(S.furnPos?.pot);
+    ${'${D7}'} const hearth = JSON.stringify(S.furnPos?.hearth); const names = movable().map((p) => p.name);
     const camStill = !lifeCam && insideView();
-    return { listed, on, potMoved, potKept, torchWindow, torchMoved, camStill };`
-    .replace('${D1}', drag('pot', -60, 0, true)).replace('${D2}', drag('pot', 0, -50, false)).replace('${D3}', drag('light_torch', -20, 4, false)).replace('${D4}', drag('light_torch', -58, 2, false)));
-  ok(ar.listed.length === 5 && ar.on && ar.potMoved === '[-60,0]' && ar.potKept === '[-60,0]' && ar.torchWindow === null && ar.torchMoved === '[-58,2]' && ar.camStill, 'arranging: ' + JSON.stringify(ar));
+    return { listed, on, potMoved, potKept, torchWindow, torchShelf, torchFloor, potOnTable, potStill, hearth, names, camStill };`
+    .replace('${D1}', drag('pot', -60, 0, true)).replace('${D2}', drag('pot', 0, -50, false)).replace('${D3}', drag('light_torch', -20, 4, false)).replace('${D4}', drag('light_torch', 6, 0, false)).replace('${D5}', drag('light_torch', 0, 60, false)).replace('${D6}', drag('pot', 20, -26, false)).replace('${D7}', drag('hearth', 0, 20, false)));
+  ok(ar.listed.length === 5 && ar.on && ar.potMoved === '[-60,0]' && ar.potKept === '[-60,0]' && ar.torchWindow === null && ar.torchShelf === '횃불: 약초 걸이와 겹쳐요 null' && ar.torchFloor === '[0,60]' && ar.potOnTable === '토기 항아리: 통나무 탁자와 겹쳐요' && ar.potStill === '[-60,0]' && ar.hearth === '[0,20]' && ['짚 침대', '모닥불', '약초 걸이'].every((n) => ar.names.includes(n)) && ar.camStill, 'arranging: ' + JSON.stringify(ar));
   fs.writeFileSync(path.join(OUT, 'home-arrange.png'), Buffer.from((await js(`return window.__shot`)).split(',')[1], 'base64'));
   await js(`{ const p = movable().find((q) => q.id === 'table_log'); const r = canvas.getBoundingClientRect(); const k = r.width / 120;
     canvas.dispatchEvent(new PointerEvent('pointerdown', { clientX: r.left + (p.x + 5) * k, clientY: r.top + (p.y + 5) * k, pointerId: 1 }));

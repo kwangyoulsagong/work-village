@@ -214,45 +214,65 @@ const SPOT = {
   bed: [3, 40, 34, 22, 'floor'], bed_canopy: [3, 28, 32, 34, 'floor'],
   table: [55, 48, 24, 16, 'floor'],
   seat: [42, 48, 13, 16, 'floor'], seat_sofa: [58, 79, 28, 11, 'floor'],
-  light: [72, 12, 8, 14, 'wall'],
+  light: [72, 12, 8, 14, 'stand'], // on the wall or on the floor (a lamp stands anywhere)
   rug: [30, 73, 60, 16, 'rug'], rug_fur: [42, 72, 36, 16, 'rug'], rug_persian: [28, 73, 64, 16, 'rug'],
   pot: [100, 82, 6, 8, 'floor'], loom: [36, 38, 9, 22, 'floor'], plant: [80, 45, 8, 15, 'floor'], chest: [8, 80, 14, 9, 'floor'],
   gramophone: [59, 37, 12, 14, 'any'], // it may stand on the table
   tapestry: [8, 12, 16, 22, 'wall'], clock: [80, 26, 7, 26, 'wall'], aquarium: [68, 43, 10, 8, 'wall'], holoframe: [26, 14, 14, 12, 'wall'],
 };
+/** What every house has, bought or not: the era's plain bed, table and rug, the hearth (fire, stove, TV…), the shelf. */
+const BUILT = {
+  bed: { names: ['짚 침대', '침대'], spot: (e) => (e === 0 ? [6, 50, 26, 12, 'floor'] : SPOT.bed) },
+  table: { names: ['돌 식탁', '식탁'], spot: (e) => (e === 0 ? [58, 56, 18, 7, 'floor'] : SPOT.table) },
+  rug: { names: ['가죽 깔개', '깔개'], spot: (e) => (e === 0 ? SPOT.rug_fur : SPOT.rug) },
+  hearth: {
+    names: ['모닥불', '벽난로', '벽난로', '난로', 'TV', '홀로그램 난로'],
+    spot: (e) => [...[[96, 59, 16, 10], [90, 30, 26, 30], [90, 30, 26, 30], [94, 24, 18, 36], [90, 32, 26, 28], [92, 30, 24, 30]][e], 'floor', 'tall'],
+  },
+  shelf: { names: ['약초 걸이', '항아리 선반', '책장'], spot: (e) => (e === 0 ? [82, 12, 28, 17, 'wall'] : [80, 6, 30, 12, 'wall']) },
+};
 const FLOOR_Y = 60;
-/** What can't be covered: the window and the shelf on the wall, the hearth (stove, TV…) on both. */
-function fixtures(e) {
-  const hearth = [[96, 59, 16, 10], [90, 30, 26, 30], [90, 30, 26, 30], [94, 24, 18, 36], [90, 32, 26, 28], [92, 30, 22, 30]][e];
-  return { wall: [[44, 9, 26, 21], e === 0 ? [82, 12, 28, 16] : [80, 6, 30, 12], hearth], floor: [hearth] };
-}
+const WINDOW = [44, 9, 26, 21]; // a hole in the wall: nothing hangs over it
+const era5 = () => Math.max(0, Math.min(5, S.era));
 const offsetOf = (id) => S.furnPos?.[id] ?? [0, 0];
-/** The pieces you can move (bought and in the room; the robot vacuum goes where it likes), with their boxes now. */
+/** The key a category's piece moves by: the one you bought, or the house's own. */
+const pieceKey = (cat) => inUse(cat) ?? cat;
+/** Everything in the room you can move (the robot vacuum goes where it likes; the window is part of the wall). */
 function movable() {
-  const ids = [...['rug', 'bed', 'table', 'seat', 'light'].map(inUse), ...(S.furniture ?? [])].filter((id) => id && id !== 'robotvac');
-  return ids.map((id) => {
-    const f = FURNITURE.find((x) => x.id === id);
-    const [x, y, w, h, on] = SPOT[id] ?? SPOT[f.cat];
+  const e = era5();
+  const ids = [pieceKey('rug'), pieceKey('bed'), pieceKey('table'), inUse('seat'), inUse('light'), 'hearth', 'shelf', ...(S.furniture ?? [])];
+  return ids.filter((id) => id && id !== 'robotvac').map((id) => {
+    const built = BUILT[id];
+    const f = built ? null : FURNITURE.find((x) => x.id === id);
+    const [x, y, w, h, on, tall] = built ? built.spot(e) : SPOT[id] ?? SPOT[f.cat];
     const [dx, dy] = offsetOf(id);
-    return { id, name: f.name, on, x: x + dx, y: y + dy, w, h, dx, dy };
+    const name = built ? built.names[Math.min(e, built.names.length - 1)] : f.name;
+    return { id, name, on, tall: !!tall, x: x + dx, y: y + dy, w, h, dx, dy };
   });
 }
-const overlaps = (a, b) => a.x < b[0] + b[2] && b[0] < a.x + a.w && a.y < b[1] + b[3] && b[1] < a.y + a.h;
-/** Whether a piece fits where it is: inside its zone, clear of the fixtures and of the pieces on the same layer. */
-function fits(p, all) {
-  if (p.x < 0 || p.x + p.w > 120 || p.y < 0 || p.y + p.h > 96) return false;
+const overlaps = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+/** Two pieces in each other's way: on the same layer, or something hung on the wall behind a tall one (the hearth). */
+const clash = (p, q) => q.on === p.on || q.on === 'stand' || (q.tall && p.on === 'wall') || (p.tall && q.on === 'wall');
+/** Why a piece can't stay where it is ('' when it can): the room's edge, its zone, the window, another piece. */
+function why(p, all) {
+  if (p.on === 'stand') {
+    const asWall = why({ ...p, on: 'wall' }, all);
+    const asFloor = why({ ...p, on: 'floor' }, all);
+    return !asWall || !asFloor ? '' : p.y + p.h > FLOOR_Y - 3 ? asFloor : asWall;
+  }
+  if (p.x < 0 || p.x + p.w > 120 || p.y < 0 || p.y + p.h > 96) return '방 밖으로 나가요';
   const bottom = p.y + p.h;
-  if (p.on === 'wall' && bottom > FLOOR_Y - 3) return false;
-  if (p.on === 'floor' && (bottom < FLOOR_Y - 2 || bottom > 96)) return false;
-  if (p.on === 'rug' && p.y < FLOOR_Y) return false;
-  if (p.on === 'rug' || p.on === 'any') return true;
-  const fx = fixtures(Math.max(0, Math.min(5, S.era)));
-  if ((p.on === 'wall' ? fx.wall : fx.floor).some((b) => overlaps(p, b))) return false;
-  return !all.some((q) => q.id !== p.id && q.on === p.on && overlaps(p, [q.x, q.y, q.w, q.h]));
+  if (p.on === 'wall' && bottom > FLOOR_Y - 3) return '벽에만 걸 수 있어요';
+  if (p.on === 'floor' && bottom < FLOOR_Y - 2) return '바닥에 놓아야 해요';
+  if (p.on === 'rug' && p.y < FLOOR_Y) return '깔개는 바닥에만 깔 수 있어요';
+  if (p.on === 'rug' || p.on === 'any') return '';
+  if ((p.on === 'wall' || p.tall) && overlaps(p, { x: WINDOW[0], y: WINDOW[1], w: WINDOW[2], h: WINDOW[3] })) return '창문을 가려요';
+  const q = all.find((q) => q.id !== p.id && clash(p, q) && overlaps(p, q));
+  return q ? `${josa(q.name, '과', '와')} 겹쳐요` : '';
 }
 /** Where a piece of this layer may go at all: the faint green range shown while you drag. */
 function zoneOf(on) {
-  return on === 'wall' ? [0, 0, 120, FLOOR_Y - 3] : on === 'any' ? [0, 0, 120, 96] : [0, on === 'rug' ? FLOOR_Y : FLOOR_Y - 26, 120, on === 'rug' ? 36 : 62];
+  return on === 'wall' ? [0, 0, 120, FLOOR_Y - 3] : on === 'any' || on === 'stand' ? [0, 0, 120, 96] : [0, on === 'rug' ? FLOOR_Y : FLOOR_Y - 26, 120, on === 'rug' ? 36 : 62];
 }
 let arranging = false;
 let drag = null; // { id, grab: [x, y], from: [dx, dy], at: [dx, dy] }
@@ -287,12 +307,27 @@ function drawArrange(g) {
   g.setLineDash([2, 1.5]);
   g.strokeRect(z[0] + 0.5, z[1] + 0.5, z[2] - 1, z[3] - 1);
   g.setLineDash([]);
-  const ok = fits({ id: drag.id, on, x, y, w, h }, all);
+  const ok = !why({ ...base, x, y }, all);
   g.fillStyle = ok ? 'rgba(60, 200, 110, 0.35)' : 'rgba(240, 70, 70, 0.4)';
   g.fillRect(x, y, w, h);
   g.strokeStyle = ok ? '#2fb86a' : '#e84a4a';
   g.lineWidth = 1;
   g.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+}
+/** The piece in your hand where it is now, and why it can't stay there ('' when it can). */
+function dragCheck() {
+  const all = movable();
+  const base = all.find((p) => p.id === drag.id);
+  const piece = { ...base, x: base.x - base.dx + drag.at[0], y: base.y - base.dy + drag.at[1] };
+  return { piece, reason: why(piece, all) };
+}
+const ARRANGE_HELP = '집 안의 가구를 끌어서 옮겨요. 초록이면 놓을 수 있고, 빨강이면 못 놓아요.';
+/** The line under 내 가구 while arranging: the help, or what the piece in your hand is doing. */
+function arrangeSay(text = ARRANGE_HELP, ok = null) {
+  const note = document.getElementById('arrangeNote');
+  if (!note) return;
+  note.textContent = text;
+  note.style.color = ok === true ? '#2fb86a' : ok === false ? '#e84a4a' : '';
 }
 /** A point on the canvas, in room pixels. */
 function roomAt(ev) {
@@ -306,6 +341,7 @@ function wireArrange() {
     arranging = !arranging && insideView();
     if (arranging) houseView = true; // the room stays while you arrange, even when your pastime is over
     drag = null;
+    arrangeSay();
     paintHome();
     frame();
   });
@@ -315,7 +351,7 @@ function wireArrange() {
     ev.stopImmediatePropagation();
     ev.preventDefault();
     const [x, y] = roomAt(ev);
-    const order = { wall: 0, any: 0, floor: 1, rug: 2 }; // what's in front is picked first
+    const order = { wall: 0, any: 0, stand: 0, floor: 1, rug: 2 }; // what's in front is picked first
     const hit = movable()
       .filter((p) => x >= p.x - 1 && x <= p.x + p.w + 1 && y >= p.y - 1 && y <= p.y + p.h + 1)
       .sort((a, b) => order[a.on] - order[b.on] || a.w * a.h - b.w * b.h)[0];
@@ -332,18 +368,20 @@ function wireArrange() {
     if (!drag) return;
     const [x, y] = roomAt(ev);
     drag.at = [drag.from[0] + Math.round(x - drag.grab[0]), drag.from[1] + Math.round(y - drag.grab[1])];
+    const { piece, reason } = dragCheck();
+    arrangeSay(reason ? `${piece.name}: ${reason}` : `${piece.name}: 여기에 놓을 수 있어요`, !reason);
     frame();
   });
   const drop = () => {
     if (!drag) return;
-    const all = movable();
-    const base = all.find((p) => p.id === drag.id);
-    const p = { ...base, x: base.x - base.dx + drag.at[0], y: base.y - base.dy + drag.at[1] };
-    if (fits(p, all)) {
+    const { piece, reason } = dragCheck();
+    const moved = drag.at[0] !== drag.from[0] || drag.at[1] !== drag.from[1];
+    if (!reason) {
       S.furnPos = { ...(S.furnPos ?? {}), [drag.id]: drag.at };
       save();
-    } else if (drag.at[0] !== drag.from[0] || drag.at[1] !== drag.from[1]) toast('여기에는 놓을 수 없어요');
+    } else if (moved) toast(`${josa(piece.name, '을', '를')} 못 놓아요. ${reason}`, 2400);
     drag = null;
+    arrangeSay();
     frame();
   };
   canvas.addEventListener('pointerup', drop);
@@ -644,7 +682,6 @@ function paintMine() {
   const btn = document.getElementById('arrangeBtn');
   btn.textContent = arranging ? '다 했어요' : '배치 바꾸기';
   btn.setAttribute('aria-pressed', String(arranging));
-  btn.disabled = !movable().length;
   document.getElementById('arrangeNote').hidden = !arranging;
 }
 function wireHome() {
@@ -716,7 +753,7 @@ function drawInterior(g) {
   R(g, 0, FLOOR, 120, 36, c.floor);
   for (let y = FLOOR + 4; y < 96; y += 6) R(g, 0, y, 120, 1, c.floor2);
   if (e >= 1) for (let y = FLOOR; y < 96; y += 6) for (let x = (y / 6) % 2 ? 0 : 12; x < 120; x += 24) R(g, x, y, 1, 6, c.floor2);
-  shifted(g, inUse('rug'), () => drawRug(g, e));
+  shifted(g, pieceKey('rug'), () => drawRug(g, e));
   // The window: the sky outside as it is now (in a hut, just a hole in the wall with a hide rolled up over it).
   const sky = night ? '#1c2448' : weather === 'rain' || weather === 'storm' ? '#8a9aa8' : '#8fd3f4';
   if (e === 0) {
@@ -737,52 +774,56 @@ function drawInterior(g) {
   R(g, 46, 19, 22, 1, c.trim);
   }
   if (weather === 'rain' || weather === 'storm') for (let i = 0; i < 6; i++) R(g, 47 + ((i * 7 + t) % 20), 13 + ((i * 5 + t * 2) % 12), 1, 2, '#cfe8f5');
-  shifted(g, inUse('bed'), () => drawBed(g, e));
+  shifted(g, pieceKey('bed'), () => drawBed(g, e));
   // On the wall: herbs drying and a spear (a hut), clay pots on a plank (ancient), then a shelf of books.
-  if (e === 0) {
-    R(g, 82, 12, 26, 1, '#6b4428');
-    for (let i = 0; i < 5; i++) R(g, 84 + i * 5, 13, 2, 6 + (i % 2) * 2, ['#7a9a4a', '#a8a04a', '#6a8a3a'][i % 3]);
-    R(g, 84, 26, 24, 1, '#8a5a3a');
-    R(g, 107, 25, 3, 3, '#b8bcc4');
-  } else if (e === 1) {
-    box(g, 80, 14, 30, 4, c.trim);
-    for (let i = 0; i < 4; i++) box(g, 82 + i * 7, 6 + (i % 2), 6, 8 - (i % 2), ['#b8643a', '#c8844a', '#a85a32'][i % 3], OL);
-  } else {
-    box(g, 80, 14, 30, 4, c.trim);
-    for (let i = 0; i < 7; i++) R(g, 82 + i * 4, 6 + (i % 3), 3, 8 - (i % 3), ['#d8503a', '#3a7ad0', '#e8c050', '#5aa04a', '#8a6cc9'][i % 5]);
-  }
+  shifted(g, 'shelf', () => {
+    if (e === 0) {
+      R(g, 82, 12, 26, 1, '#6b4428');
+      for (let i = 0; i < 5; i++) R(g, 84 + i * 5, 13, 2, 6 + (i % 2) * 2, ['#7a9a4a', '#a8a04a', '#6a8a3a'][i % 3]);
+      R(g, 84, 26, 24, 1, '#8a5a3a');
+      R(g, 107, 25, 3, 3, '#b8bcc4');
+    } else if (e === 1) {
+      box(g, 80, 14, 30, 4, c.trim);
+      for (let i = 0; i < 4; i++) box(g, 82 + i * 7, 6 + (i % 2), 6, 8 - (i % 2), ['#b8643a', '#c8844a', '#a85a32'][i % 3], OL);
+    } else {
+      box(g, 80, 14, 30, 4, c.trim);
+      for (let i = 0; i < 7; i++) R(g, 82 + i * 4, 6 + (i % 3), 3, 8 - (i % 3), ['#d8503a', '#3a7ad0', '#e8c050', '#5aa04a', '#8a6cc9'][i % 5]);
+    }
+  });
   // Warmth, by era: a fire pit, a hearth, a stove, a TV, a hologram.
-  if (e === 0) {
-    R(g, 96, 66, 16, 3, '#5a4a40');
-    disc(g, 104, 63, 4, '#f08a2e');
-    disc(g, 104 + ((t % 3) - 1), 61, 2, '#ffe066');
-  } else if (e <= 2) {
-    box(g, 90, 30, 26, 30, '#9a9aa4', OL);
-    R(g, 95, 42, 16, 18, '#2a2028');
-    disc(g, 103, 55, 4, '#f08a2e');
-    disc(g, 103 + ((t % 3) - 1), 52, 2, '#ffe066');
-  } else if (e === 3) {
-    box(g, 94, 38, 18, 22, '#3a3a42', OL);
-    R(g, 98, 46, 10, 6, t % 4 < 2 ? '#f08a2e' : '#e86a2a');
-    R(g, 100, 24, 4, 14, '#3a3a42');
-  } else if (e === 4) {
-    box(g, 90, 32, 26, 18, '#2a2a33', OL);
-    R(g, 92, 34, 22, 14, homeStay?.hobby === 'game' ? ['#5ad7e8', '#ff8ac0', '#ffd23f'][Math.floor(t / 4) % 3] : '#3a4a66');
-    R(g, 100, 50, 6, 10, '#5a5e66');
-  } else {
-    for (let i = 0; i < 4; i++) R(g, 92 + i * 6, 30 + ((t + i * 3) % 8), 4, 1, '#5ad7e8');
-    box(g, 96, 48, 14, 12, '#d7e3ee', '#3a4a66');
-  }
-  shifted(g, inUse('table'), () => drawTable(g, e));
+  shifted(g, 'hearth', () => {
+    if (e === 0) {
+      R(g, 96, 66, 16, 3, '#5a4a40');
+      disc(g, 104, 63, 4, '#f08a2e');
+      disc(g, 104 + ((t % 3) - 1), 61, 2, '#ffe066');
+    } else if (e <= 2) {
+      box(g, 90, 30, 26, 30, '#9a9aa4', OL);
+      R(g, 95, 42, 16, 18, '#2a2028');
+      disc(g, 103, 55, 4, '#f08a2e');
+      disc(g, 103 + ((t % 3) - 1), 52, 2, '#ffe066');
+    } else if (e === 3) {
+      box(g, 94, 38, 18, 22, '#3a3a42', OL);
+      R(g, 98, 46, 10, 6, t % 4 < 2 ? '#f08a2e' : '#e86a2a');
+      R(g, 100, 24, 4, 14, '#3a3a42');
+    } else if (e === 4) {
+      box(g, 90, 32, 26, 18, '#2a2a33', OL);
+      R(g, 92, 34, 22, 14, homeStay?.hobby === 'game' ? ['#5ad7e8', '#ff8ac0', '#ffd23f'][Math.floor(t / 4) % 3] : '#3a4a66');
+      R(g, 100, 50, 6, 10, '#5a5e66');
+    } else {
+      for (let i = 0; i < 4; i++) R(g, 92 + i * 6, 30 + ((t + i * 3) % 8), 4, 1, '#5ad7e8');
+      box(g, 96, 48, 14, 12, '#d7e3ee', '#3a4a66');
+    }
+  });
+  shifted(g, pieceKey('table'), () => drawTable(g, e));
   shifted(g, inUse('seat'), () => drawSeat(g));
   shifted(g, inUse('light'), () => drawLight(g));
   // Family about the house: your spouse at the table, the dog on the rug, the cat on the bed.
-  if (S.spouse != null) shifted(g, inUse('table'), () => person(g, { kind: 'spouse', x: 76, y: 66, dir: 'l', path: [], frame: 0, seed: 3, gender: FAMILIES[S.spouse].gender }, FAMILIES[S.spouse].look));
-  if (S.dog) shifted(g, inUse('rug'), () => drawAnimal(g, { x: 44, y: 84, dir: 'r', path: [], frame: 0 }, DOG, dogBreed().pal, 12, 9, 10));
-  if (S.cat) shifted(g, inUse('bed'), () => drawAnimal(g, { x: 26, y: 47, dir: 'l', path: [], frame: 0 }, CAT, { ...CAT_PAL, y: '#f4f1ea' }, 10, 7, 8));
+  if (S.spouse != null) shifted(g, pieceKey('table'), () => person(g, { kind: 'spouse', x: 76, y: 66, dir: 'l', path: [], frame: 0, seed: 3, gender: FAMILIES[S.spouse].gender }, FAMILIES[S.spouse].look));
+  if (S.dog) shifted(g, pieceKey('rug'), () => drawAnimal(g, { x: 44, y: 84, dir: 'r', path: [], frame: 0 }, DOG, dogBreed().pal, 12, 9, 10));
+  if (S.cat) shifted(g, pieceKey('bed'), () => drawAnimal(g, { x: 26, y: 47, dir: 'l', path: [], frame: 0 }, CAT, { ...CAT_PAL, y: '#f4f1ea' }, 10, 7, 8));
   drawFurniture(g, t);
   // You, at your pastime (or nobody home yet): a nap is taken wherever the bed is.
-  if (homeStay) shifted(g, homeStay.hobby === 'nap' ? inUse('bed') : null, () => drawHobby(g, homeStay.hobby, t, e));
+  if (homeStay) shifted(g, { nap: pieceKey('bed'), cook: 'hearth', game: 'hearth' }[homeStay.hobby] ?? null, () => drawHobby(g, homeStay.hobby, t, e));
   if (arranging) drawArrange(g);
   // A label, top left.
   g.font = '5px sans-serif';
