@@ -19,6 +19,22 @@ app.whenReady().then(async () => {
   const shot = async (n) => fs.writeFileSync(path.join(OUT, n + '.png'), (await win.webContents.capturePage()).toPNG());
   const fails = [];
   const ok = (c, m) => c || fails.push(m);
+  // A brand-new town (no houses yet): only travellers on the road. A tap on one stops them for a chat.
+  const road = await js(`(() => {
+    const c = cars.find((c) => !c.sky && c.x > camX + 20 && c.x < camX + VIEW_W - 20) ?? cars.find((c) => !c.sky);
+    if (!c) return 'no traveller';
+    camX = Math.max(0, c.x - VIEW_W / 2);
+    const [x, y] = rideAt(c);
+    const r = canvas.getBoundingClientRect();
+    canvas.dispatchEvent(new MouseEvent('click', { clientX: r.left + ((x - camX) / VIEW_W) * r.width, clientY: r.top + ((y - 8) / H) * r.height, bubbles: true }));
+    const open = !document.getElementById('talkCard').hidden;
+    const name = document.getElementById('talkName').textContent;
+    const stopped = c.pause === Infinity;
+    talk(talkWith);
+    closeTalk();
+    return { open, name, stopped, going: c.pause === 0 };
+  })()`);
+  ok(road.open && road.stopped && road.going, 'a traveller stops to talk: ' + JSON.stringify(road));
   // A life town with neighbours and a harvest.
   await js(`document.getElementById('modeLife').click(); pickGender('f');`); await wait(300);
   await js(`S.coins = 500; S.bag = 5; S.houses = 4; S.era = 1; while (S.friends.length < 4) S.friends.push({ f: 0, day: '' }); ensureLots(4); spawnFamily(); cache.dirty = true;`); await wait(300);

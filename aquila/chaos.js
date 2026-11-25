@@ -441,6 +441,7 @@ function useTool(x, y) {
       say('🍌 길에 바나나 껍질을 슬쩍 던져 놨어요.');
       break;
     case 'talk': {
+      unseat(x, y, 14); // a rider gets off to talk (or to be hit)
       const e = villagerAt(x, y);
       if (e) openTalk(e);
       break;

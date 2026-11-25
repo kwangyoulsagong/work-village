@@ -18,6 +18,7 @@ const SAY = {
 function whoIs(e) {
   const i = e.home;
   const fam = i >= 0 && FAMILIES[i] ? FAMILIES[i] : null;
+  if (e.car) return { name: e.car.type === 'runner' ? '달리던 사람' : '지나가던 사람', role: '나그네' };
   if (e.kind === 'spouse') return { name: FAMILIES[S.spouse].single, role: '내 배우자', heart: true };
   if (e.kind === 'kid') return { name: '우리 아이', role: '내 아이', kid: true };
   if (e.who?.startsWith('h') && e.who.endsWith('a') && fam) return { name: fam.single, role: e.job?.name ?? '주민', head: i };
@@ -30,7 +31,7 @@ function whoIs(e) {
 /** The villager under a tap (people only: no pets, not you, not a friend's character). */
 function villagerAt(x, y) {
   let best = null;
-  let bestD = 12;
+  let bestD = 14;
   for (const e of people) {
     if (e.hidden || e.kind === 'dog' || e.kind === 'petcat' || e.kind === 'guest' || e.kind === 'me' || e.dying || e.burning > 0) continue;
     const d = Math.hypot(e.x - x, e.y - 8 - y);
@@ -39,24 +40,41 @@ function villagerAt(x, y) {
   return best;
 }
 
-/** Life mode: a tap on a villager opens their card. True when it did. */
+/** Someone going by on the road (on foot, a cart, a bike…) under a tap: they stop for a chat. */
+function travellerAt(x, y) {
+  for (const c of cars) {
+    if (c.sky || c.b != null) continue;
+    const [cx, cy] = rideAt(c);
+    if (Math.abs(cx - x) < 14 && Math.abs(cy - 8 - y) < 14) return { car: c, look: c.look, gender: c.gender, path: [] };
+  }
+  return null;
+}
+
+/** Life mode: a tap on a villager (or a traveller) opens their card. True when it did. */
 function tryVillager(x, y) {
-  const e = villagerAt(x, y);
+  const e = villagerAt(x, y) ?? travellerAt(x, y);
   if (!e) return false;
   openTalk(e);
   return true;
 }
 
+/** Let them go on their way again. */
+function release(e) {
+  if (!e) return;
+  e.held = false;
+  if (e.car) e.car.pause = 0;
+}
 function openTalk(e) {
-  if (talkWith && talkWith !== e) talkWith.held = false;
+  if (talkWith && talkWith !== e) release(talkWith);
   talkWith = e;
   e.held = true; // stands still while you talk
+  if (e.car) e.car.pause = Infinity; // pulls over (trafficTick)
   e.path = [];
   e.dir = 'd';
   paintTalk();
 }
 function closeTalk() {
-  if (talkWith) talkWith.held = false;
+  release(talkWith);
   talkWith = null;
   document.getElementById('talkCard').hidden = true;
 }
@@ -73,7 +91,7 @@ function goodsPrice(kind, i) {
 function paintTalk(line) {
   const e = talkWith;
   const card = document.getElementById('talkCard');
-  if (!e || !people.includes(e)) return closeTalk();
+  if (!e || (e.car ? !cars.includes(e.car) : !people.includes(e))) return closeTalk();
   const w = whoIs(e);
   const fr = friendOf(w.head);
   card.hidden = false;
@@ -505,7 +523,7 @@ function drawWeapon(g, id, x, y, skin, idle) {
 function endTalk() {
   if (fight) cancelAnimationFrame(fight.raf);
   fight = null;
-  if (talkWith) talkWith.held = false;
+  release(talkWith);
   talkWith = null;
   document.getElementById('fight').hidden = true;
   document.getElementById('talkCard').hidden = true;
