@@ -102,6 +102,27 @@ app.whenReady().then(async () => {
     return { fam: /가족/.test(t) && /배우자/.test(t) && /셋째/.test(t) && /꿈:/.test(t) && /가족 추억/.test(t), stat, btn, line };`);
   ok(meTab.fam && /체력 2/.test(meTab.stat) && meTab.btn.includes('📊 가족 능력치') && /유대 \+3/.test(meTab.line), 'family numbers: ' + JSON.stringify(meTab));
 
+  // Your spouse's corner: by their best ability (picked by trying spouses until each kind shows), in two eras.
+  const kinds = await js(town(4) + `const out = {}; for (let i = 0; i < 40; i++) { S.spouse = i; const k = spouseBest(); out[k] ??= i; } return out;`);
+  ok(Object.keys(kinds).length === 5, 'spouse corners: ' + JSON.stringify(kinds));
+  for (const [k, i] of Object.entries(kinds))
+    for (const era of [0, 4]) {
+      await js(town(era) + `S.spouse = ${i}; S.friends[${i}] ??= { f: 6, day: '' }; spawnFamily(); lifeCam = null; houseView = true; homeStay = null; return 1;`);
+      await wait(250);
+      await shot(`family-corner-${k}-${era}.png`);
+    }
+  const cn = await js(town(4) + `paintMe(); return { name: cornerName(), shown: $('meList').textContent.includes('집에 ' + cornerName()) };`);
+  ok(cn.name && cn.shown, 'corner named in the 나 tab: ' + JSON.stringify(cn));
+
+  // Grown up: at 20 a child moves out (starts the day across town, not drawn at home), and is home for a festival.
+  const mv = await js(town(3, [19, 5]) + `S.fam = { bond: [60, 60] }; const r = Math.random; Math.random = () => 0.01; S.days++; liveADay(); Math.random = r;
+    const kid = people.find((p) => p.who === 'k0'); const moved = movedOut(0); const story = S.story.slice(0, 6).map((s) => s.text).find((s) => /독립했어요/.test(s));
+    const home = famPeople().filter((p) => p.kind === 'kid').length; const away = Math.abs(kid.x - (HOME_DOOR[0] * T + T / 2)) > 10 * T;
+    openTalk(kid); const role = $('talkRole').textContent; closeTalk();
+    S.festival = today(); famTicks = 119; familyTick(); const visit = S.fam.visit === today(); const homeNow = famPeople().filter((p) => p.kind === 'kid').length;
+    return { moved, story, home, away, role, visit, homeNow, cake: S.fam.cake === S.days };`);
+  ok(mv.moved && mv.story && mv.home === 1 && mv.away && mv.role === '독립한 내 아이' && mv.visit && mv.homeNow === 2 && mv.cake, 'moving out and coming home: ' + JSON.stringify(mv));
+
   // None of it in chaos mode.
   const c = await js(town(3) + `wantFamily = null; enterChaos(2); requestFamily('dinner'); const r = { want: wantFamily, home: homeStay, tick: familyTick() }; leaveChaos(); return r;`);
   ok(!c.want && !c.home && c.tick === false, 'no family time in chaos mode: ' + JSON.stringify(c));

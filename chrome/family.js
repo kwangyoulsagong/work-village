@@ -2,7 +2,8 @@
 // 하기 button: dinner, a story, a board game, crafts, a pillow fight, songs, a film, a family photo) and out (a picnic,
 // kites, stargazing, with everyone walking along). Doing things together trains a child's abilities (until 14) and
 // their bond with you. Small moments ride along: height marks on the wall, the children's drawings, first words,
-// birthdays and anniversaries with a cake, a child asking for something (a bubble), a family memory log.
+// birthdays and anniversaries with a cake, a child asking for something (a bubble), a family memory log, your
+// spouse's own corner of the room, and grown children who move out and come home for the festivals.
 // Life mode only; nothing here writes a friend's town. Loaded before game.js: game.js names are used only inside
 // functions.
 'use strict';
@@ -27,6 +28,16 @@ function famState() {
 }
 const hasFamily = () => S.spouse != null || S.kids > 0;
 const kidsAt = (min, max = 99) => S.kidAges.map((a, i) => ({ a, i })).filter((k) => k.a >= min && k.a < max);
+const MOVE_OUT_AGE = 20;
+const movedOut = (i) => !!S.fam?.moved?.includes(i);
+/** Home for a festival: a grown child who moved out is back for the day. */
+const homeToday = (i) => !movedOut(i) || S.fam?.visit === today();
+/** Where a child starts the day: at home, or (moved out) at their own place across town. */
+function kidStart(i) {
+  if (!movedOut(i) || homeToday(i)) return HOME_DOOR;
+  const x = HOME.x + (i % 2 ? 1 : -1) * (24 + i * 9);
+  return nearestWalkable(Math.max(1, Math.min(COLS - 2, x)), ROAD_Y);
+}
 
 // ── Things to do together ─────────────────────────────────────────────────────────────────────────────────────────
 
@@ -113,7 +124,7 @@ function familyTask() {
 /** Everyone comes over and stays a while around you. */
 function gatherFamily(dur) {
   const [mx, my] = tileOf(me);
-  people.filter((p) => p.kind === 'spouse' || p.kind === 'kid').forEach((p, i) => {
+  people.filter((p) => p.kind === 'spouse' || (p.kind === 'kid' && homeToday(+p.who.slice(1)))).forEach((p, i) => {
     p.act = null;
     p.busy = true;
     p.hidden = false;
@@ -141,6 +152,7 @@ function familyDone(id) {
   if (sp) sp.f = Math.min(MAX_FRIEND, sp.f + 0.5);
   const grew = [];
   S.kidAges.forEach((age, i) => {
+    if (!homeToday(i)) return;
     f.bond[i] = Math.min(100, (f.bond[i] ?? 30) + (wanted && f.want.k === i ? 15 : 8));
     if (!a.train || age < 3 || age >= 14 || !S.kidTraits[i]) return;
     f.train[i] ??= {};
@@ -208,6 +220,14 @@ function familyDay() {
       story(`🎂 ${josa(who, '이', '가')} 태어난 지 ${age}일 됐어요. 다 같이 케이크를 먹어요.`);
       remember(`${who} ${age}일 잔치`);
     }
+    if (age >= MOVE_OUT_AGE && !movedOut(i) && Math.random() < 0.3) {
+      f.moved ??= [];
+      f.moved.push(i);
+      story(`🏡 ${josa(who, '이', '가')} 독립했어요. 마을 건너편에서 ${josa(bestJob(S.kidTraits[i] ?? rollTraits(), i).name, '으로', '로')} 일하며 살아요. 축제 때 집에 온대요.`);
+      remember(`${josa(who, '이', '가')} 독립했어요`);
+      if (typeof spawnFamily === 'function' && typeof people !== 'undefined' && people.length) spawnFamily();
+    } else if (movedOut(i) && (f.bond[i] ?? 0) >= 50 && Math.random() < 0.1)
+      story(`💌 독립한 ${josa(who, '이', '가')} 안부 편지를 보내왔어요.`);
     if (age >= 3 && age < 14 && (f.bond[i] ?? 0) >= 70 && Math.random() < 0.15)
       story(`🌼 ${josa(who, '이', '가')} 꽃을 꺾어 와서 ${S.gender === 'f' ? '엄마' : '아빠'}한테 줬어요.`);
   });
@@ -228,6 +248,18 @@ function familyTick() {
   if (famOut && (MODE !== 'life' || !task?.what?.startsWith('가족과'))) famOut = null; // the outing was called off
   if (MODE !== 'life' || !hasFamily() || ++famTicks % 120) return false;
   const f = famState();
+  if (festivalToday() && f.moved?.length && f.visit !== today()) {
+    // A festival: the children who moved out come home for the day.
+    f.visit = today();
+    f.cake = S.days;
+    S.happy = Math.min(100, S.happy + 6);
+    for (const i of f.moved) f.bond[i] = Math.min(100, (f.bond[i] ?? 30) + 10);
+    const names = f.moved.map((i) => ORDINAL[i]).join('·');
+    story(`🎉 축제라 독립한 ${josa(names, '이', '가')} 집에 왔어요. 오늘은 다 같이 저녁을 먹어요.`);
+    remember(`축제 날 ${josa(names, '이', '가')} 집에 왔어요`);
+    for (const p of people) if (p.kind === 'kid' && movedOut(+p.who.slice(1))) route(p, nearestWalkable(HOME_DOOR[0], HOME_DOOR[1]));
+    saveSoon();
+  }
   if (f.want) {
     const kid = people.find((p) => p.kind === 'kid' && p.who === `k${f.want.k}`);
     if (kid && !kid.hidden && !kid.shout && onScreen(kid.x)) kid.shout = { text: famAct(f.want.id)?.ask ?? '놀아 줘!', t: 40 };
@@ -295,7 +327,7 @@ function famPeople() {
   const out = [{ kind: 'me', gender: S.gender, look: OUTFIT[S.era] }];
   if (S.spouse != null) out.push({ kind: 'spouse', gender: FAMILIES[S.spouse].gender, look: FAMILIES[S.spouse].look });
   S.kidAges.forEach((a, i) =>
-    out.push({ kind: 'kid', gender: i % 2 ? 'm' : 'f', small: a < 7, baby: a < 3, look: { hair: '#4a2f1f', top: KID_TOPS[i], legs: '#4b4560' } }),
+    homeToday(i) && out.push({ kind: 'kid', gender: i % 2 ? 'm' : 'f', small: a < 7, baby: a < 3, look: { hair: '#4a2f1f', top: KID_TOPS[i], legs: '#4b4560' } }),
   );
   return out;
 }
@@ -405,6 +437,73 @@ function drawFamilyTable(g) {
   });
 }
 
+// ── Your spouse's corner: something of theirs, by what they're best at and the era ───────────────────────────────
+
+const CORNER = {
+  health: ['무거운 돌', '역기', '역기', '아령 선반', '러닝머신', '중력 운동기'],
+  green: ['약초 바구니', '화분 선반', '화분 선반', '화분 선반', '화분 선반', '수경 재배기'],
+  charm: ['조개 목걸이', '청동 거울', '화장대', '화장대', '화장대', '홀로 거울'],
+  trade: ['셈 돌', '주판 책상', '주판 책상', '장부 책상', '노트북 책상', '홀로 장부'],
+  luck: ['네잎 풀', '복주머니', '복주머니', '네잎클로버 액자', '복고양이', '행운 수정'],
+};
+function spouseBest() {
+  if (S.spouse == null) return null;
+  const t = villagerTraits(S.spouse);
+  return TRAITS.reduce((m, x) => (t[x[0]] > t[m[0]] ? x : m))[0];
+}
+const cornerName = () => (spouseBest() ? CORNER[spouseBest()][Math.max(0, Math.min(5, S.era))] : '');
+/** On the floor under the bed's end (left): drawn before the furniture, so anything you put there covers it. */
+function drawSpouseCorner(g, e) {
+  const k = spouseBest();
+  if (!k) return;
+  const t = clockTick();
+  const x = 8;
+  const y = 66;
+  switch (k) {
+    case 'health':
+      if (e === 0) return void box(g, x + 2, y + 6, 9, 6, '#8a8e96', OL);
+      if (e === 4) return void (box(g, x, y + 4, 16, 6, '#2a2a33', OL), R(g, x + 12, y - 4, 2, 8, '#5a5e66'));
+      R(g, x, y + 7, 16, 1, '#5a5e66');
+      box(g, x - 1, y + 4, 3, 7, '#2a2a33');
+      box(g, x + 14, y + 4, 3, 7, '#2a2a33');
+      if (e === 5) R(g, x, y + 12, 16, 1, 'rgba(90, 215, 232, 0.6)');
+      return;
+    case 'green':
+      box(g, x, y + 6, 16, 2, ROOM[e].trim);
+      for (let i = 0; i < 3; i++) {
+        box(g, x + 1 + i * 5, y + 8, 4, 4, e === 5 ? '#d7e3ee' : '#b8643a', OL);
+        R(g, x + 2 + i * 5, y + 3 + (i % 2), 2, 5, '#5aa04a');
+        R(g, x + 1 + i * 5, y + 4 + (i % 2), 1, 2, '#7ac04a');
+      }
+      return;
+    case 'charm':
+      if (e === 0) return void spr(g, ['o...o', '.o.o.', '..w..'], { o: '#c8a050', w: '#f4efe6' }, x + 4, y + 6);
+      box(g, x + 3, y, 10, 9, e === 5 ? '#5ad7e8' : '#c8a050', OL);
+      R(g, x + 5, y + 2, 6, 5, t % 40 < 4 ? '#ffffff' : '#cfe8f5');
+      box(g, x + 1, y + 9, 14, 4, ROOM[e].trim);
+      return;
+    case 'trade':
+      box(g, x, y + 6, 16, 3, ROOM[e].trim, OL);
+      R(g, x + 2, y + 9, 1, 4, ROOM[e].trim);
+      R(g, x + 13, y + 9, 1, 4, ROOM[e].trim);
+      if (e >= 4) box(g, x + 4, y + 1, 8, 5, '#2a2a33', OL), R(g, x + 5, y + 2, 6, 3, e === 5 ? '#9a7aff' : '#5ab4e0');
+      else for (let i = 0; i < 4; i++) R(g, x + 3 + i * 3, y + 4, 2, 2, ['#8a5a3a', '#c89a5a'][i % 2]);
+      return;
+    case 'luck':
+      if (e === 4) {
+        box(g, x + 4, y + 4, 8, 8, '#ffffff', OL);
+        R(g, x + 6, y + 6, 1, 1, OL);
+        R(g, x + 9, y + 6, 1, 1, OL);
+        R(g, x + 12, y + 2 + (Math.floor(t / 8) % 2), 2, 3, '#ffffff'); // the waving paw
+        return;
+      }
+      if (e === 5) return void (disc(g, x + 8, y + 8, 3, t % 16 < 8 ? '#9a7aff' : '#5ad7e8'), R(g, x + 5, y + 11, 6, 2, '#3a4a66'));
+      box(g, x + 4, y + 5, 8, 7, e === 0 ? '#5aa04a' : '#d8503a', OL);
+      R(g, x + 6, y + 7, 4, 1, '#ffd23f');
+      return;
+  }
+}
+
 // ── Out together: a picnic blanket on the grass, a kite in the sky ───────────────────────────────────────────────
 
 function drawFamilyUnder(g) {
@@ -447,7 +546,7 @@ function familyRows() {
     const li = el('li', 'fam');
     const top = el('div', 'stat__top');
     top.append(el('span', '', `${fam.single} · 배우자`), el('b', '', `호감 ${Math.round(friendOf(S.spouse)?.f ?? 0)}/${MAX_FRIEND}`));
-    li.append(top, starsOf(t), el('div', 'stat__note', `${josa(best[1], '이', '가')} 뛰어나요${f.wed != null ? ` · 결혼 ${Math.max(0, S.days - f.wed)}일째` : ''}`));
+    li.append(top, starsOf(t), el('div', 'stat__note', `${josa(best[1], '이', '가')} 뛰어나요 · 집에 ${cornerName()}${f.wed != null ? ` · 결혼 ${Math.max(0, S.days - f.wed)}일째` : ''}`));
     out.push(li);
   }
   S.kidAges.forEach((a, i) => {
@@ -467,6 +566,7 @@ function familyRows() {
       if (like.length) notes.push(`${S.gender === 'f' ? '엄마' : '아빠'}를 닮아 ${josa(like[0][1], '이', '가')} 좋아요`);
     }
     if (t && a >= 7) notes.push(`${a >= 14 ? '직업' : '꿈'}: ${bestJob(t, i).name}`);
+    if (movedOut(i)) notes.push('독립했어요 · 축제 때 와요');
     if (a < 14) notes.push('같이 놀면 능력이 자라요');
     li.append(el('div', 'stat__note', notes.join(' · ')));
     out.push(li);

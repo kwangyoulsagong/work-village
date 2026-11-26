@@ -1497,7 +1497,7 @@ function spawnFamily() {
   const kidTops = ['#f2a65a', '#5ab4e0', '#e05a9a'];
   for (let k = 0; k < S.kids; k++)
     people.push(
-      make('kid', HOME_DOOR, {
+      make('kid', kidStart(k), { // a grown child who moved out starts at their own place (family.js)
         who: `k${k}`,
         look: { hair: '#4a2f1f', top: kidTops[k], legs: '#4b4560' },
         home: -1,

@@ -787,6 +787,7 @@ function drawInterior(g) {
   R(g, 46, 19, 22, 1, c.trim);
   }
   drawFamilyWall(g); // height marks and the children's drawings (family.js)
+  drawSpouseCorner(g, e);
   if (weather === 'rain' || weather === 'storm') for (let i = 0; i < 6; i++) R(g, 47 + ((i * 7 + t) % 20), 13 + ((i * 5 + t * 2) % 12), 1, 2, '#cfe8f5');
   shifted(g, pieceKey('bed'), () => drawBed(g, e));
   // On the wall: herbs drying and a spear (a hut), clay pots on a plank (ancient), then a shelf of books.
