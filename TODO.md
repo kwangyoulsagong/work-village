@@ -23,7 +23,7 @@
       의원 → 수도원 약사 → 왕진 의사 → 의사 → 로봇 의사). 줄기: 의사·간호사·경찰·소방관·선생님·요리사·군인·건축가·화가·춤꾼·어부·농부·
       대장장이·상인·우체부·마부/기관사·선원·사제·악사·이발사·은행원·기자·천문학자·과학자·여관 등. 미래: 로봇 경찰·케어 로봇 간호사·드론
       소방대·AI 조련사·테라포밍·메카 조종사 등. 직업 목록은 지금 열린 직업만 + 다음 시대 개수, 시대가 오르면 "의원 → 수도원 약사" 이야기.
-      새 장비 beret·antenna. sim 72 %(전과 같음).
+      새 장비 beret·antenna. 이름은 시대마다 달라요(행상 → 보부상, 판관 → 재판관 → 치안 판사…). sim 70–75 %(전과 같음).
 - [ ] 3단계: 일터 장면 `aquila/work.js`(새 파일: index.html·build-chrome.sh·tools/sim.js 목록에 추가). 설계:
       workStay {job, t:96, n:96, out:'great'|'ok'|'oops'}; game.js nextTask 직업 분기 `act`에서 startWork(mine) → 장면, 끝나면 jobDone + 결과.
       frame()에서 insideView 전에 workView()면 drawWorkScene. 장면 종류: stage·film·booth·office·court·lab·clinic·temple·kitchen·forge·
