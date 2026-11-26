@@ -248,6 +248,7 @@ function liveADay() {
   if (S.spouse != null) marriageDay();
   else if (S.myLover != null) loveDay();
   familyMoment();
+  familyDay(); // birthdays, anniversaries, first words, a child's wish (family.js)
   const h = trait('health');
   if (S.sickDays > 0) {
     S.sickDays--;
@@ -586,6 +587,8 @@ function nextTask(noJob = false) {
   if (keep) return keep;
   const chosen = hobbyTask(); // a pastime you picked inside (home.js)
   if (chosen) return chosen;
+  const together = familyTask(); // something with the family you picked (family.js)
+  if (together) return together;
   if (S.bag >= 4 || (S.bag > 0 && !S.plots.some((p) => !p.planted)))
     return { to: STALL_SPOT, tool: 'coin', what: '가게에 작물 팔기', act: sell };
   const lm = nextLandmark();
@@ -1679,6 +1682,7 @@ function frame() {
   drawCritters(ctx);
   drawFarmLife(ctx);
   drawVillageUnder(ctx);
+  drawFamilyUnder(ctx);
   drawChimneys(ctx);
   drawParked(ctx);
   drawPastimes(ctx);
@@ -1724,6 +1728,7 @@ function frame() {
   }
   drawWishes(ctx);
   drawVillageOver(ctx);
+  drawFamilyOver(ctx);
   drawJuice(ctx);
   drawPops(ctx, frameK);
   drawMeMarker(ctx);
@@ -1872,6 +1877,7 @@ function tick() {
   moved = juiceTick() || moved;
   moved = pastimesTick() || moved;
   moved = homeTick() || moved;
+  moved = familyTick() || moved;
   if (me.sulk > 0) me.sulk--;
   for (const s of sites) s.left--;
   if (sites.length && sites[0].left <= 0) sites.shift();
@@ -2354,6 +2360,7 @@ async function start() {
   wireTabs();
   wireStartOver();
   wireHome();
+  wireFamily();
   wireStealth();
   wireBuild();
   wireFun();

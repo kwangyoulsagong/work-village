@@ -234,6 +234,10 @@ function paintTalk(line) {
     document.getElementById('talkFill').style.width = `${(Math.min(MAX_FRIEND, fr.f) / MAX_FRIEND) * 100}%`;
     document.getElementById('talkGaugeText').textContent = `호감 ${Math.min(MAX_FRIEND, Math.round(fr.f))}/${MAX_FRIEND}`;
   }
+  const stats = document.getElementById('talkStats');
+  const statLine = MODE === 'life' && (e.kind === 'spouse' || e.kind === 'kid') ? familyStatLine(e) : '';
+  stats.hidden = !statLine;
+  stats.textContent = statLine;
   document.getElementById('talkLine').textContent = line ?? '';
   const box = document.getElementById('talkActions');
   box.replaceChildren();
@@ -247,6 +251,12 @@ function paintTalk(line) {
     box.append(b);
   };
   add('💬 교류하기', () => talk(e));
+  if (MODE === 'life' && (e.kind === 'spouse' || e.kind === 'kid'))
+    add('📊 가족 능력치', () => {
+      closeTalk();
+      document.querySelector('[data-tab="me"]')?.click();
+      document.querySelector('[data-tab="me"]')?.scrollIntoView?.({ block: 'nearest' });
+    });
   if (!w.kid && e.kind !== 'spouse') {
     const p = cropPrice();
     add(`🌾 팔기 (${p + Math.round(p * Math.min(0.2, (fr?.f ?? 0) * 0.02))}코인)`, () => sellTo(e), home().bag > 0 ? null : '팔 작물이 없어요');
@@ -277,7 +287,7 @@ function talk(e) {
   const w = whoIs(e);
   const fr = friendOf(w.head ?? (e.kind === 'spouse' ? S.spouse : null));
   e.shout = { text: '♪', t: 10 };
-  if (w.kid) return paintTalk(`${w.name}: "${line('kid')}"`);
+  if (w.kid) return paintTalk(`${w.name}: "${line('kid')}"${kidTalked(e)}`);
   if (!fr) {
     const xp = MODE === 'visit' && !e.car && abroadOk();
     if (xp) homeXp(1), saveSoon();

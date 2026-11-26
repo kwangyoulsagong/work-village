@@ -400,6 +400,7 @@ function hobbyTask() {
 }
 function requestHobby(id) {
   if (MODE !== 'life' || !S.gender || S.over) return;
+  wantFamily = null; // family.js
   if (homeStay) {
     // Already in: switch to it now.
     homeStay = { hobby: id, t: 96, n: 96 };
@@ -648,11 +649,14 @@ function paintHome() {
   btnBuy.disabled = !pick || hasFurniture(pick.id) || (!ownsFurniture(pick.id) && S.coins < pick.cost);
   btnBuy.textContent = pick && ownsFurniture(pick.id) && !hasFurniture(pick.id) ? '놓기' : '사기';
   const owned = (S.furnOwned ?? []).length + (S.furniture ?? []).filter((id) => !(S.furnOwned ?? []).includes(id)).length;
-  document.getElementById('homeNote').textContent = homeStay
+  document.getElementById('homeNote').textContent = homeStay?.fam
+    ? `가구 ${owned}개`
+    : homeStay
     ? `${hobbyName(HOBBIES.find((h) => h.id === homeStay.hobby) ?? HOBBIES[0])} 하는 중이에요 · 가구 ${owned}개`
     : wantHobby
       ? '집으로 가는 중이에요'
       : `지금은 밖에 있어요. 할 일을 고르면 집으로 와요 · 가구 ${owned}개`;
+  paintFamilyRow(); // family.js
   paintMine();
 }
 /** 내 가구: everything you've bought, in the room or put away (tap one that's put away to bring it back). */
@@ -712,6 +716,15 @@ function homeTick() {
   rest = Math.max(rest, 2);
   me.hidden = true;
   if (--homeStay.t > 0) return true;
+  if (homeStay.fam) {
+    // Time together (family.js) is over.
+    const id = homeStay.fam;
+    homeStay = null;
+    me.hidden = false;
+    $('now').textContent = familyDone(id);
+    paintHome();
+    return true;
+  }
   const h = HOBBIES.find((x) => x.id === homeStay.hobby);
   homeStay = null;
   me.hidden = false;
@@ -773,6 +786,7 @@ function drawInterior(g) {
   R(g, 56, 12, 1, 16, c.trim);
   R(g, 46, 19, 22, 1, c.trim);
   }
+  drawFamilyWall(g); // height marks and the children's drawings (family.js)
   if (weather === 'rain' || weather === 'storm') for (let i = 0; i < 6; i++) R(g, 47 + ((i * 7 + t) % 20), 13 + ((i * 5 + t * 2) % 12), 1, 2, '#cfe8f5');
   shifted(g, pieceKey('bed'), () => drawBed(g, e));
   // On the wall: herbs drying and a spear (a hut), clay pots on a plank (ancient), then a shelf of books.
@@ -818,12 +832,14 @@ function drawInterior(g) {
   shifted(g, inUse('seat'), () => drawSeat(g));
   shifted(g, inUse('light'), () => drawLight(g));
   // Family about the house: your spouse at the table, the dog on the rug, the cat on the bed.
-  if (S.spouse != null) shifted(g, pieceKey('table'), () => person(g, { kind: 'spouse', x: 76, y: 66, dir: 'l', path: [], frame: 0, seed: 3, gender: FAMILIES[S.spouse].gender }, FAMILIES[S.spouse].look));
+  drawFamilyTable(g);
+  if (S.spouse != null && !homeStay?.fam) shifted(g, pieceKey('table'), () => person(g, { kind: 'spouse', x: 76, y: 66, dir: 'l', path: [], frame: 0, seed: 3, gender: FAMILIES[S.spouse].gender }, FAMILIES[S.spouse].look));
   if (S.dog) shifted(g, pieceKey('rug'), () => drawAnimal(g, { x: 44, y: 84, dir: 'r', path: [], frame: 0 }, DOG, dogBreed().pal, 12, 9, 10));
   if (S.cat) shifted(g, pieceKey('bed'), () => drawAnimal(g, { x: 26, y: 47, dir: 'l', path: [], frame: 0 }, CAT, { ...CAT_PAL, y: '#f4f1ea' }, 10, 7, 8));
   drawFurniture(g, t);
   // You, at your pastime (or nobody home yet): a nap is taken wherever the bed is.
-  if (homeStay) shifted(g, { nap: pieceKey('bed'), cook: 'hearth', game: 'hearth' }[homeStay.hobby] ?? null, () => drawHobby(g, homeStay.hobby, t, e));
+  if (homeStay?.fam) drawFamilyAct(g, t, e);
+  else if (homeStay) shifted(g, { nap: pieceKey('bed'), cook: 'hearth', game: 'hearth' }[homeStay.hobby] ?? null, () => drawHobby(g, homeStay.hobby, t, e));
   if (arranging) drawArrange(g);
   // A label, top left.
   g.font = '5px sans-serif';
