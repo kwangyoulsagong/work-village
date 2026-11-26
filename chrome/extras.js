@@ -98,8 +98,8 @@ function materialsFor(kind, arg) {
 }
 const haveMaterials = (m) => S.stock.wood >= m.wood && S.stock.stone >= m.stone;
 function useMaterials(m) {
-  S.stock.wood -= m.wood;
-  S.stock.stone -= m.stone;
+  S.stock.wood = Math.max(0, S.stock.wood - m.wood);
+  S.stock.stone = Math.max(0, S.stock.stone - m.stone);
   cache.dirty = true;
 }
 const materialsText = (m) => [m.wood ? `🪵${m.wood}` : '', m.stone ? `🪨${m.stone}` : ''].filter(Boolean).join(' ');

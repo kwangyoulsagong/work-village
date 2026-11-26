@@ -72,10 +72,11 @@ function goldenTick(k) {
   golden.f += k;
   if (golden.kind === 'star') golden.y += 0.25 * k;
   // Out of sight without a tap: it still leaves a little behind.
-  if (golden.x < viewX - 30 || golden.x > viewX + VIEW_W + 30) collectGolden(0.3);
+  if (golden.x < viewX - 30 || golden.x > viewX + VIEW_W + 30) collectGolden(0.15);
 }
 function goldenPrize() {
-  return Math.max(15, Math.round(S.coins * 0.03 + 10 * (1 + S.era))) * (0.8 + trait('luck') * 0.1);
+  // By era, not by what you hold: savings earned no interest from visitors.
+  return Math.max(15, 10 * (1 + S.era)) * (0.8 + trait('luck') * 0.1);
 }
 function collectGolden(share) {
   if (!golden) return;

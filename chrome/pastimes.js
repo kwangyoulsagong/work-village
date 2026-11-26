@@ -224,6 +224,7 @@ function caravanArrives(obj) {
   const id = `${S.days}|${name}`;
   S.notesTaken ??= [];
   if (S.notesTaken.includes(id)) return;
+  if (S.notesTaken.filter((k) => +k.split('|')[0] === S.days).length >= 3) return; // names are typed by hand: three gifts a day in all
   S.notesTaken = [...S.notesTaken.filter((k) => +k.split('|')[0] >= S.days - 7), id].slice(-30);
   const era = Math.max(0, Math.min(5, Math.floor(Number(obj.from?.era) || 0)));
   const [kind, n, what] = caravanGift(era);

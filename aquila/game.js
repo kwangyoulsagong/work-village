@@ -325,7 +325,10 @@ function war() {
     return;
   }
   const fall = Math.max(1, Math.round(S.houses * (0.2 + Math.random() * 0.2)));
-  for (let i = S.houses - fall; i < S.houses; i++) memorialize(i, '전쟁으로 피난을 떠났어요'); // tales.js
+  // The empty houses stand at the top: they fall first, and only the families below them flee.
+  const emptyFell = Math.min(fall, S.vacant);
+  for (let i = S.houses - fall; i < occupied(); i++) memorialize(i, '전쟁으로 피난을 떠났어요'); // tales.js
+  S.vacant -= emptyFell;
   for (let i = S.houses - fall; i < S.houses; i++) collapseLot(i); // they come down where you can see
   const lost = Math.floor(S.coins * 0.3);
   S.houses -= fall;
@@ -497,7 +500,8 @@ const writeTown = async (town) => {
 
 function absorb(list) {
   if (MODE !== 'life') return 0; // counted when you're back (the baseline lives in the life town)
-  if (!Array.isArray(list) || S.over) return 0;
+  if (!Array.isArray(list)) return 0;
+  if (!S.over) tickDay(); // a new day's work is booked to the new day, even with the panel hidden
   let gain = 0;
   for (const u of list) {
     const key = `${u.account}:${u.kind}`;
@@ -509,6 +513,7 @@ function absorb(list) {
     }
     S.usage[key] = cur;
   }
+  if (S.over) return 0; // the baseline keeps moving, so a new town doesn't get what was used meanwhile
   gain = Math.round(gain * 10) / 10;
   if (gain <= 0) return 0;
   findTick(gain); // something small found while you work (cozy.js)
@@ -604,10 +609,10 @@ function nextTask(noJob = false) {
   if (S.bag >= 4 || (S.bag > 0 && !S.plots.some((p) => !p.planted)))
     return { to: STALL_SPOT, tool: 'coin', what: '가게에 작물 팔기', act: sell };
   const lm = nextLandmark();
-  if (lm && S.coins >= lm.cost && haveMaterials(materialsFor('landmark', lm))) return { to: [lm.x + Math.floor(lm.w / 2), ROAD_Y], tool: 'hammer', what: `${lm.name} 짓기`, act: () => raise(lm), dur: 40 };
+  if (lm && S.coins >= lm.cost && haveMaterials(materialsFor('landmark', lm))) return { to: [lm.x + Math.floor(lm.w / 2), ROAD_Y], tool: 'hammer', what: `${lm.name} 짓기`, act: () => raise(lm), dur: 40, ok: () => haveMaterials(materialsFor('landmark', lm)) };
   const next = ERAS[S.era + 1];
   if (next && !lm && S.coins >= next.cost && haveMaterials(materialsFor('era')) && occupied() >= Math.min(houseCap(), (S.era + 1) * 2))
-    return { to: HOME_DOOR, tool: 'hammer', what: `${josa(next.name, '으로', '로')} 발전`, act: advance, dur: 40 };
+    return { to: HOME_DOOR, tool: 'hammer', what: `${josa(next.name, '으로', '로')} 발전`, act: advance, dur: 40, ok: () => haveMaterials(materialsFor('era')) };
   if (S.houses < houseCap() && wantClearing() && S.coins >= clearCost()) {
     const c = clearable();
     return { to: [c.x + 4, ROAD_Y + 1], tool: 'axe', what: '숲 개간하기', act: clearWoods, dur: 40, dir: 'd' };
@@ -615,7 +620,7 @@ function nextTask(noJob = false) {
   if (S.vacant > 0 && S.coins >= Math.ceil(buildCost(occupied()) / 2))
     return { to: doorOf(occupied()), tool: 'heart', what: '빈집에 새 가족 맞이하기', act: welcome };
   if (S.houses < houseCap() && S.coins >= buildCost(S.houses) && haveMaterials(materialsFor('house', S.houses)))
-    return { to: doorOf(S.houses), tool: 'hammer', what: S.ruins ? '무너진 집 다시 짓기' : '새 집 짓기', act: build, dur: 32, dir: 'u' };
+    return { to: doorOf(S.houses), tool: 'hammer', what: S.ruins ? '무너진 집 다시 짓기' : '새 집 짓기', act: build, dur: 32, dir: 'u', ok: () => haveMaterials(materialsFor('house', S.houses)) };
   if (S.chickens < MAX_CHICKENS && S.coins >= 20) return { to: PEN_GATE, tool: 'heart', what: '닭 들이기', act: buyChicken };
   if (S.era >= 1 && S.cows < MAX_COWS && S.coins >= 70) return { to: PEN_GATE, tool: 'heart', what: '소 들이기', act: buyCow };
   if (S.era >= 1 && S.sheep < 3 && S.coins >= 45) return { to: PEN_GATE, tool: 'heart', what: '양 들이기', act: () => buyAnimal('sheep', 45, '양') };
