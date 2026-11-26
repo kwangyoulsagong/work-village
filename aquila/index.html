@@ -252,6 +252,11 @@
       .stat__top b.stars { color: var(--yellow); letter-spacing: -1px; }
       .stat__note { font-size: 11px; color: var(--text-3); margin-top: 2px; }
       li.stat__note { padding-top: 8px; }
+      ul.me li.grove { display: grid; grid-template-columns: repeat(14, minmax(0, 1fr)); gap: 2px; padding: 6px 0; }
+      ul.me li.grove span { aspect-ratio: 1; border-radius: 3px; font-size: 10px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+      ul.me li.grove span.on { background: rgba(90, 160, 74, 0.18); }
+      ul.me li.grove span.off { background: var(--fill); }
+      ul.me li.grove span.none { background: transparent; box-shadow: inset 0 0 0 1px var(--line); }
       ul.me li.fam { padding: 6px 0; }
       ul.me li.fam + li.fam { border-top: 1px solid var(--line); }
       .fam-traits { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 2px; margin-top: 4px; font-size: 11px; color: var(--text-3); }
@@ -579,6 +584,7 @@
     <script src="home.js"></script>
     <script src="family.js"></script>
     <script src="guest.js"></script>
+    <script src="cozy.js"></script>
     <script src="motion.js"></script>
     <script src="game.js"></script>
   </body>

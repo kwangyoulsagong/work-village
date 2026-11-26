@@ -1051,6 +1051,7 @@ function meRows() {
     out.push(li);
   }
   out.push(el('li', 'stat__note', '성격은 정해진 게 아니라 살아온 모습에서 읽어요. 사는 대로 조금씩 바뀌어요.'));
+  out.push(...groveRows(), ...findRows()); // the work grove and finds (cozy.js)
   out.push(...familyRows()); // your spouse's and children's numbers, family memories (family.js)
   // The recipe book (pastimes.js): what the family has cooked so far.
   out.push(el('li', 'group', `요리 수첩 ${S.cooked?.length ?? 0}/${RECIPES.length}`));
@@ -1069,12 +1070,7 @@ function meRows() {
 function paintMe() {
   const list = document.getElementById('meList');
   if (list) list.replaceChildren(...meRows());
-  const news = document.getElementById('dayNews');
-  if (news) {
-    const line = MODE === 'life' ? todayLine() : '';
-    news.hidden = !line;
-    news.textContent = line ? `오늘의 한 줄 · ${line}` : '';
-  }
+  paintTicker(); // the town paper, today's big news first (cozy.js)
 }
 /** Tapping yourself opens your numbers. */
 function tryMe(wx, wy) {

@@ -240,6 +240,7 @@ function liveADay() {
   }
   // Yesterday without work: the family missed you.
   if (S.dayEarned >= 1) lifeCount('worked');
+  groveDay(S.dayEarned >= 1); // a tree in the work grove (cozy.js)
   if (S.dayEarned < 1) {
     // A loner minds a quiet day less; the gentle take it in their stride.
     S.happy = Math.max(0, S.happy - (S.temper === 'loner' ? 7 : S.temper === 'gentle' ? 11 : 15));
@@ -504,6 +505,7 @@ function absorb(list) {
   }
   gain = Math.round(gain * 10) / 10;
   if (gain <= 0) return 0;
+  findTick(gain); // something small found while you work (cozy.js)
   // Eggs and milk: the animals earn a little alongside you.
   // Grown-up children help on the farm: 5 % more each.
   const grown = S.kidAges.filter((a) => a >= 14).length;
@@ -1739,6 +1741,7 @@ function frame() {
   drawVillageOver(ctx);
   drawFamilyOver(ctx);
   drawNpcCalls(ctx);
+  drawPokes(ctx);
   drawJuice(ctx);
   drawPops(ctx, frameK);
   drawMeMarker(ctx);
@@ -1889,6 +1892,7 @@ function tick() {
   moved = homeTick() || moved;
   moved = familyTick() || moved;
   moved = guestTick() || moved;
+  moved = pokeTick() || moved;
   if (me.sulk > 0) me.sulk--;
   for (const s of sites) s.left--;
   if (sites.length && sites[0].left <= 0) sites.shift();
@@ -2374,6 +2378,7 @@ async function start() {
   wireHome();
   wireFamily();
   wireGuest();
+  wireCozy();
   wireStealth();
   wireBuild();
   wireFun();

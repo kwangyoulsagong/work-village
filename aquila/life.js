@@ -797,7 +797,7 @@ function wireBuild() {
     const [x, y] = worldAt(ev);
     if (tryGolden(x, y) || tryStopFight(x, y)) return;
     if (placing) placeDecor(x, y);
-    else tryMe(x, y) || tryVillager(x, y);
+    else tryMe(x, y) || tryVillager(x, y) || tryPoke(x, y);
   });
 }
 

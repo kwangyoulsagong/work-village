@@ -117,10 +117,10 @@ app.whenReady().then(async () => {
   const keep = await js(town(1, 8) + `S.leaving = { i: occupied() - 1, day: S.days }; const t = nextTask(); return t?.what;`);
   ok(/붙잡으러/.test(keep ?? ''), 'an errand to keep a neighbour: ' + keep);
 
-  // 7. Today's line and the 나 tab.
+  // 7. The town paper (cozy.js; today's big news is one of its lines) and the 나 tab.
   const me = await js(`story('💕 테스트 연인'); paintUi(); document.querySelector('[data-tab="me"]').click();
     return { news: $('dayNews').textContent, rows: $('meList').children.length, hidden: $('dayNews').hidden };`);
-  ok(/오늘의 한 줄/.test(me.news) && !me.hidden && me.rows >= 12, 'today line and the 나 tab: ' + JSON.stringify(me));
+  ok(/^\[마을 방\] /.test(me.news) && !me.hidden && me.rows >= 12, 'today line and the 나 tab: ' + JSON.stringify(me));
   await js(`document.querySelector('[data-body="me"]').scrollIntoView();`);
   await wait(300);
   await shot('v6-me');
