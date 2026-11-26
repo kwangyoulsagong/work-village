@@ -511,6 +511,7 @@ function absorb(list) {
   gain = Math.round(gain * 10) / 10;
   if (gain <= 0) return 0;
   findTick(gain); // something small found while you work (cozy.js)
+  hatTick(gain); // and now and then a hat (cozy.js)
   // Eggs and milk: the animals earn a little alongside you.
   // Grown-up children help on the farm: 5 % more each.
   const grown = S.kidAges.filter((a) => a >= 14).length;
@@ -1592,6 +1593,7 @@ function person(g, e, c) {
     const at = drawPerson(g, e, c, c?.style ? { hairStyle: c.style } : undefined);
     if (c?.skin) lookExtras(g, c, at);
     if (e.job && !e.zombie) drawGear(g, e.job, at.x, at.y, at.side, at.flip);
+    if (S.worn) drawHat(g, e, at); // a hat you gave them (cozy.js)
     return;
   }
   const st = S.style;

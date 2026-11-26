@@ -197,3 +197,66 @@ function wireCozy() {
     if (typeof document !== 'undefined' && document.visibilityState === 'visible' && MODE === 'life') paintTicker();
   }, 10_000);
 }
+
+// ── Hats: found while you work, given to neighbours, worn about town ─────────────────────────────────────────────
+
+const HAT_EVERY = 300; // coins from usage
+const HATS = [
+  { id: 'straw', name: '밀짚모자', px: ['...oooooo...', '..oyyyyyyo..', 'oyyyyyyyyyyo'], pal: { o: '#8a6a2a', y: '#e8c860' } },
+  { id: 'beanie', name: '털모자', px: ['.....oo.....', '...orrrro...', '..orrrrrro..', '..owwwwwwo..'], pal: { o: '#7a2a2a', r: '#d8503a', w: '#f4efe6' } },
+  { id: 'flower', name: '꽃 머리띠', px: ['.p.y.p.y.p..', 'gggggggggggg'], pal: { p: '#ff8ac0', y: '#ffd23f', g: '#5aa04a' } },
+  { id: 'fedora', name: '중절모', px: ['...oooooo...', '...obbbbo...', '...orrrro...', '.oooooooooo.'], pal: { o: '#2a2a33', b: '#4a4a5a', r: '#8a3a3a' } },
+  { id: 'cap', name: '야구모자', px: ['...oooooo...', '..obbbbbbo..', '..obbbbbbbbb'], pal: { o: '#1a3a7a', b: '#3182f6' } },
+  { id: 'beret', name: '베레모', px: ['......o.....', '..oooooooo..', '.orrrrrrrro.'], pal: { o: '#3a1a2a', r: '#8a2a4a' } },
+  { id: 'party', name: '파티 모자', px: ['.....y......', '.....o......', '....oro.....', '...orbro....', '..orbrbro...'], pal: { o: '#6a3a8a', r: '#ff5a9a', b: '#5ad7e8', y: '#ffd23f' } },
+  { id: 'helmet', name: '우주 헬멧', px: ['...oooooo...', '..owccccwo..', '.owcc..ccwo.'], pal: { o: '#8a9aa8', w: '#ffffff', c: 'rgba(160, 220, 255, 0.7)' } },
+];
+const hatBy = (id) => HATS.find((h) => h.id === id) ?? null;
+/** From absorb() too (with findTick): every 🪙300 from usage, a hat. */
+function hatTick(gain) {
+  if (MODE !== 'life' || !(gain > 0)) return;
+  S.hatAcc = (S.hatAcc ?? 0) + gain;
+  while (S.hatAcc >= HAT_EVERY) {
+    S.hatAcc -= HAT_EVERY;
+    const h = HATS[rand(0, HATS.length - 1)];
+    S.hats ??= {};
+    S.hats[h.id] = (S.hats[h.id] ?? 0) + 1;
+    story(`🎩 일하다가 ${eul(h.name)} 주웠어요. 이웃에게 선물해 보세요.`);
+  }
+}
+const hatsInHand = () => HATS.filter((h) => (S.hats?.[h.id] ?? 0) > 0);
+/** From the person card: give a hat (the one they'd like best: one they don't wear yet), once a day each. */
+function giveHat(e, i) {
+  const fr = S.friends[i];
+  const pick = hatsInHand().filter((h) => S.worn?.[i] !== h.id);
+  if (!fr || !pick.length) return '';
+  const h = pick[rand(0, pick.length - 1)];
+  S.hats[h.id]--;
+  S.worn ??= {};
+  S.worn[i] = h.id;
+  const first = fr.hatDay !== today();
+  fr.hatDay = today();
+  if (first) fr.f = Math.min(MAX_FRIEND, fr.f + 1);
+  e.shout = { text: '잘 어울려요?', t: 30 };
+  saveSoon();
+  return `${FAMILIES[i].single}: "${h.name}, 고마워요!"${first ? ' (호감 +1)' : ''}`;
+}
+/** Over a villager's head (person(), after their job's gear). */
+function drawHat(g, e, at) {
+  if (MODE === 'chaos' && !e.who) return;
+  const i = e.who && /^h\d+a$/.test(e.who) ? +e.who.slice(1, -1) : -1;
+  const h = i >= 0 ? hatBy(S.worn?.[i]) : null;
+  if (!h) return;
+  spr(g, h.px, h.pal, at.x, at.y - h.px.length + 2, at.flip);
+}
+function hatRows() {
+  const have = hatsInHand();
+  const worn = Object.entries(S.worn ?? {}).filter(([i, id]) => +i < occupied() && hatBy(id));
+  if (!have.length && !worn.length) return [];
+  const out = [el('li', 'group', '모자')];
+  const chips = el('li', 'chips');
+  for (const h of have) chips.append(el('span', 'chip', `${h.name} ×${S.hats[h.id]}`));
+  for (const [i, id] of worn) chips.append(el('span', 'chip rare', `${FAMILIES[i].single} · ${hatBy(id).name}`));
+  out.push(chips, el('li', 'stat__note', `사용량으로 🪙${HAT_EVERY}을 벌 때마다 모자를 하나 주워요. 이웃을 눌러 선물하면 쓰고 다녀요.`));
+  return out;
+}

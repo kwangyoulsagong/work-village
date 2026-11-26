@@ -53,9 +53,18 @@ app.whenReady().then(async () => {
   const poke = await js(town(2) + `S.happy = 50; const hen = animals.find((a) => a.kind === 'chicken'); moveCam(hen.x - VIEW_W / 2); const a = tryPoke(hen.x, hen.y - 5); const said = pokes.at(-1)?.text;
     const dog = people.find((p) => p.kind === 'dog'); const b = tryPoke(dog.x, dog.y - 5); for (let i = 0; i < 5; i++) tryPoke(hen.x, hen.y - 5);
     const miss = tryPoke(-500, -500); return { a, said, b, happy: S.happy, miss };`);
-  ok(poke.a && /꼬/.test(poke.said ?? '') && poke.b && poke.happy === 53 && !poke.miss, 'poke: ' + JSON.stringify(poke));
+  ok(poke.a && /꼬|꼭/.test(poke.said ?? '') && poke.b && poke.happy === 53 && !poke.miss, 'poke: ' + JSON.stringify(poke));
   await wait(200);
   fs.writeFileSync(path.join(OUT, 'cozy-poke.png'), Buffer.from((await js(`return document.getElementById('world').toDataURL()`)).split(',')[1], 'base64'));
+
+  // Hats: every 🪙300 a hat; give one to a neighbour (+1 once a day), they wear it.
+  const hat = await js(town(3) + `S.hats = {}; S.hatAcc = 0; hatTick(299); const none = hatsInHand().length; hatTick(1); const one = hatsInHand().length;
+    hatTick(300); const p = people.find((x) => x.who === 'h2a'); moveCam(p.x - VIEW_W / 2); const f0 = S.friends[2].f; openTalk(p);
+    [...$('talkActions').children].find((b) => b.textContent === '🎩 모자 선물하기').click(); const line = $('talkLine').textContent; closeTalk();
+    paintMe(); return { none, one, worn: S.worn[2], f: S.friends[2].f - f0, line, row: /모자/.test($('meList').textContent) };`);
+  ok(hat.none === 0 && hat.one === 1 && hat.worn && hat.f === 1 && /고마워요/.test(hat.line) && hat.row, 'hats: ' + JSON.stringify(hat));
+  await wait(300);
+  fs.writeFileSync(path.join(OUT, 'cozy-hat.png'), Buffer.from((await js(`return document.getElementById('world').toDataURL()`)).split(',')[1], 'base64'));
 
   // Chaos: none of it.
   const c = await js(town(2) + `enterChaos(2); const r = { line: tickerLine(), poke: tryPoke(0, 0) }; const before = S.findAcc ?? 0; findTick(100); r.find = (S.findAcc ?? 0) === before; leaveChaos(); return r;`);
