@@ -184,6 +184,7 @@ function openTalk(e) {
 let talkTimer = 0;
 /** The card beside them, as a popover: to their right, or left when there's no room; inside the picture. */
 function placeTalk() {
+  if (document.hidden) return; // battery: nothing moves while the panel is hidden
   const e = talkWith;
   const card = document.getElementById('talkCard');
   if (!e || card.hidden) return;

@@ -737,7 +737,7 @@ function homeTick() {
   return true;
 }
 /** Inside, and the view is following you (drag it and you see the town, your window lit). */
-const insideView = () => MODE === 'life' && !lifeCam && (!!homeStay || houseView);
+const insideView = () => MODE === 'life' && !lifeCam && !workStay && !guestStay && (!!homeStay || houseView);
 
 // ── Inside your house, era by era ─────────────────────────────────────────────────────────────────────────────────
 

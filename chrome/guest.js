@@ -202,6 +202,7 @@ function guestTick() {
 
 function guestDay() {
   if (MODE !== 'life') return;
+  if (S.ex != null) S.exDay ??= S.days; // older saves: the two weeks start now
   if (S.invite && S.invite.day !== S.days) S.invite = null;
   if (S.invite || Math.random() > 0.35) return;
   const close = S.friends.map((f, i) => [i, f?.f ?? 0]).filter(([i, f]) => i < occupied() && i !== S.spouse && !isEx(i) && f >= 6);

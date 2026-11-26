@@ -795,7 +795,7 @@ function layoutRows() {
 function wireBuild() {
   document.getElementById('buildTab')?.addEventListener('click', () => paintBuild());
   canvas.addEventListener('click', (ev) => {
-    if (MODE !== 'life' || dragged) return;
+    if (MODE !== 'life' || dragged || insideView() || guestView() || workView()) return; // a room or a scene is showing, not the town
     const [x, y] = worldAt(ev);
     if (tryGolden(x, y) || tryStopFight(x, y)) return;
     if (placing) placeDecor(x, y);

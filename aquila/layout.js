@@ -139,6 +139,7 @@ function moveCam(to) {
   else lifeCam = { x: to, until: Date.now() + HOLD_MS };
   paintCamMe();
   paintHome(); // dragging the view out of the house shows the town (home.js)
+  paintGuest(); // and out of a neighbour's (guest.js)
 }
 /** 내 캐릭터로 shows whether the view is following you (on, blue) or somewhere you moved it (off). */
 let camMeOn = null;
@@ -160,6 +161,7 @@ function lifeFollow() {
     lifeCam = null;
     paintCamMe(); // following you again
     paintHome();
+    paintGuest();
     return false;
   }
   lifeCam.x = Math.max(0, Math.min(W - VIEW_W, lifeCam.x));
@@ -194,13 +196,15 @@ function wireCamera() {
       clearInterval(held);
       held = setInterval(() => moveCam(camTarget() + dir * 8), 30);
     });
-    for (const ev of ['pointerup', 'pointerleave']) b.addEventListener(ev, () => clearInterval(held));
+    for (const ev of ['pointerup', 'pointerleave', 'pointercancel']) b.addEventListener(ev, () => clearInterval(held));
   }
   // Straight to you: no glide across the map.
   $('camMe').addEventListener('click', () => {
     lifeCam = null;
     camX = prevCam = Math.max(0, Math.min(W - VIEW_W, me.x - VIEW_W / 2));
     paintCamMe();
+    paintHome();
+    paintGuest();
     frame();
   });
   paintCamMe();
@@ -363,7 +367,10 @@ function wireTabs() {
   });
   window.addEventListener('pointerup', () => {
     if (grab?.moved) {
-      bar.addEventListener('click', (e) => (e.stopPropagation(), e.preventDefault()), { capture: true, once: true });
+      // Swallow the click this drag ends with; if it ended off the bar there's none, so disarm right after.
+      const eat = (e) => (e.stopPropagation(), e.preventDefault());
+      bar.addEventListener('click', eat, { capture: true, once: true });
+      setTimeout(() => bar.removeEventListener('click', eat, { capture: true }), 0);
       bar.classList.remove('dragging');
     }
     grab = null;
