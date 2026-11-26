@@ -61,7 +61,7 @@ const lateNow = () => hour() >= 19 || hour() < 5;
 function famWhy(a) {
   if (!hasFamily()) return '가족이 생기면 할 수 있어요';
   if (a.era && S.era < a.era) return `${ERAS[a.era].name}부터 할 수 있어요`;
-  if (a.kids && !kidsAt(3).length) return '아이가 조금 더 크면 할 수 있어요';
+  if (a.kids && !kidsAt(3).some((k) => homeToday(k.i))) return kidsAt(3).length ? '아이들이 독립해서 지금은 없어요' : '아이가 조금 더 크면 할 수 있어요';
   if (a.night && !lateNow()) return '밤에만 할 수 있어요';
   return '';
 }

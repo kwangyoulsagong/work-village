@@ -25,7 +25,7 @@ function hostsHome(i) {
 /** Why you can't call on family i now ('' when you can head over). */
 function callWhy(i) {
   if (MODE !== 'life' || i == null || i < 0 || i === S.spouse) return '갈 수 없어요';
-  if (i === S.ex) return '지금은 만나기 싫대요';
+  if (isEx(i)) return '지금은 만나기 싫대요';
   if ((S.friends[i]?.f ?? 0) < CALL_MIN) return `호감 ${CALL_MIN}부터 놀러 갈 수 있어요`;
   if (calledToday(i)) return '오늘은 벌써 다녀왔어요';
   if (S.sickDays > 0) return '몸이 나으면 가요';
@@ -204,7 +204,7 @@ function guestDay() {
   if (MODE !== 'life') return;
   if (S.invite && S.invite.day !== S.days) S.invite = null;
   if (S.invite || Math.random() > 0.35) return;
-  const close = S.friends.map((f, i) => [i, f?.f ?? 0]).filter(([i, f]) => i < occupied() && i !== S.spouse && i !== S.ex && f >= 6);
+  const close = S.friends.map((f, i) => [i, f?.f ?? 0]).filter(([i, f]) => i < occupied() && i !== S.spouse && !isEx(i) && f >= 6);
   if (!close.length) return;
   const [i] = close[rand(0, close.length - 1)];
   S.invite = { i, day: S.days };

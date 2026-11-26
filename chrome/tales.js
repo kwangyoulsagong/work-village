@@ -163,7 +163,12 @@ function bioLine(i) {
 }
 /** A family that leaves (illness, war, moving away): remembered. */
 function memorialize(i, why) {
-  if (MODE !== 'life' || !FAMILIES[i]) return;
+  if (MODE !== 'life' || !FAMILIES[i] || i === S.spouse) return; // your spouse lives with you, not over there
+  // What tied you to that house goes with them: a new family moving in starts as strangers.
+  if (S.myLover === i) S.myLover = null;
+  if (S.ex === i) S.ex = null;
+  if (S.invite?.i === i) S.invite = null;
+  if (S.worn) delete S.worn[i];
   S.memorial = [{ name: FAMILIES[i].single, family: FAMILIES[i].family, day: S.days, why, years: (S.bio?.[i] ?? []).length }, ...(S.memorial ?? [])].slice(0, 40);
   if (S.bio) delete S.bio[i]; // a new family may move in there
 }

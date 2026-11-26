@@ -84,9 +84,9 @@ app.whenReady().then(async () => {
 
   // A servant: freed after eight days of work, never a servant again.
   const free = await js(town(1, 'servant') + `S.traits = { health: 1, green: 5, charm: 1, trade: 1, luck: 1 }; S.job = 'servant';
-    for (let d = 0; d < 8; d++) { startWork(JOBS.find((j) => j.id === 'servant')); while (workStay) workTick(); }
-    return { freed: S.freed, job: S.job, story: S.story.slice(0, 4).map((s) => s.text).join(' | ') };`);
-  ok(free.freed === true && free.job !== 'servant' && /자유/.test(free.story), 'freed: ' + JSON.stringify(free));
+    startWork(JOBS.find((j) => j.id === 'servant')); while (workStay) workTick(); const sameDay = S.servantDays; for (let d = 0; d < 8; d++) { S.days++; startWork(JOBS.find((j) => j.id === 'servant')); while (workStay) workTick(); }
+    return { sameDay, freed: S.freed, job: S.job, story: S.story.slice(0, 4).map((s) => s.text).join(' | ') };`);
+  ok(free.sameDay === 1 && free.freed === true && free.job !== 'servant' && /자유/.test(free.story), 'freed: ' + JSON.stringify(free));
 
   // Ruling: some work days at the throne; your children are princes and princesses (in a kingdom only).
   const rule = await js(town(1, 'farmer') + `S.gov = { ruler: -1, mood: {}, last: [], era: S.era }; Math.random = () => 0.1; startWork(myJob());

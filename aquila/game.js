@@ -598,7 +598,7 @@ function nextTask(noJob = false) {
   if (chosen) return chosen;
   const together = familyTask(); // something with the family you picked (family.js)
   if (together) return together;
-  const call = callTask(); // calling on a neighbour, or their invitation this evening (guest.js)
+  const call = noJob && !wantCall ? null : callTask(); // calling on a neighbour, or their invitation this evening (guest.js); a probe starts nothing
   if (call) return call;
   if (S.bag >= 4 || (S.bag > 0 && !S.plots.some((p) => !p.planted)))
     return { to: STALL_SPOT, tool: 'coin', what: '가게에 작물 팔기', act: sell };
@@ -766,7 +766,7 @@ function visit(i) {
   if (i === S.myLover) S.loverQuiet = 0;
   lifeCount('visits');
   const who = FAMILIES[i].single;
-  if (fr.f >= MAX_FRIEND && S.spouse == null && i !== S.ex) {
+  if (fr.f >= MAX_FRIEND && S.spouse == null && !isEx(i)) {
     S.spouse = i;
     S.myLover = null;
     S.sinceKid = 0;
@@ -1944,7 +1944,7 @@ function tick() {
     task.arrive?.();
     moved = true;
   } else if (task && --me.act.t > 0) moved = true;
-  else if (task && (task.ok?.() === false || (!task.job && (S.coins < task.coinsAt || S.pocket < task.pocketAt) && nextTask(true)?.what !== task.what))) {
+  else if (task && (task.ok?.() === false || (!task.job && (S.coins < task.coinsAt || S.pocket < task.pocketAt) && nextTask(true)?.what !== task?.what))) {
     // Things changed on the way (a thief, a war, the crop was taken): don't pay for what's no longer affordable.
     me.act = null;
     task = null;

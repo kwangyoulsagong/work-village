@@ -415,6 +415,8 @@ function partWith(e) {
   toast(e.kind === 'spouse' ? '이혼했어요' : '헤어졌어요', 2400);
 }
 
+/** The one you divorced keeps away for two weeks (unless you've made up and are together again). */
+const isEx = (i) => i != null && i === S.ex && S.days - (S.exDay ?? S.days) < 14 && S.myLover !== i;
 /** The marriage ends: the spouse goes back to their family's house, the children stay, and the family is sad for a while. */
 function divorce(drifted) {
   const i = S.spouse;
@@ -423,6 +425,7 @@ function divorce(drifted) {
   S.spouse = null;
   S.myLover = null;
   S.ex = i;
+  S.exDay = S.days;
   S.sinceKid = 0;
   const fr = friendOf(i);
   if (fr) fr.f = 2;

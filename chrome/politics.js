@@ -183,7 +183,8 @@ function decide(side, auto = false) {
       story(`🤝 ${f.name}의 요구를 들어줬어요. 다른 쪽은 조금 서운해해요.`);
       return `${f.name}의 요구를 들어줬어요`;
     }
-    if (S.teller === 'calm' || !youRule()) {
+    if (S.teller === 'calm' || !youRule() || auto) {
+      // Left unanswered, things stay as they are (as the card says): they only grumble.
       g.mood[f.id] = Math.max(-5, (g.mood[f.id] ?? 0) - 1);
       story(`😤 ${josa(f.name, '이', '가')} 투덜대요.`);
       return `${josa(f.name, '이', '가')} 투덜대요`;
@@ -235,6 +236,7 @@ function election() {
     photoSoon(`${SEATS[S.era]} 당선`);
   } else {
     g.ruler = rival;
+    g.card = null; // the new ruler decides from now on
     if (inc) g.ousted = S.days;
     story(`🗳️ ${SEATS[S.era]} 선거에서 ${Math.round(share * 100)}%로 떨어졌어요. ${josa(rulerName(), '이', '가')} 뽑혔어요.${inc ? ` 이제 전 ${josa(SEATS[S.era], '이에요', '예요')}.` : ''}`);
   }

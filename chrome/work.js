@@ -119,10 +119,10 @@ function startWork(j) {
   const rule = typeof youRule === 'function' && youRule() && Math.random() < 0.3;
   const kind = rule ? 'throne' : sceneOf(j);
   const out = workRoll(j);
-  workStay = { id: j.id, name: rule ? SEATS[S.era] : j.name, kind, out, t: WORK_N, n: WORK_N, tapped: false, rule };
+  workStay = { id: j.id, job: j.name, name: rule ? SEATS[S.era] : j.name, kind, out, t: WORK_N, n: WORK_N, tapped: false, rule };
   me.hidden = true;
   rest = Math.max(rest, 2);
-  $('now').textContent = rule ? `${SEATS[S.era]}로서 일하는 중 · 화면을 누르면 힘을 내요` : `${josa(j.name, '으로', '로')} 일하는 중 · 화면을 누르면 힘을 내요`;
+  $('now').textContent = rule ? `${josa(SEATS[S.era], '으로서', '로서')} 일하는 중 · 화면을 누르면 힘을 내요` : `${josa(j.name, '으로', '로')} 일하는 중 · 화면을 누르면 힘을 내요`;
 }
 /** Each tick while at work. */
 function workTick() {
@@ -172,9 +172,10 @@ function workDone() {
     gov().mood[f.id] = Math.min(5, (gov().mood[f.id] ?? 0) + 1);
   }
   if (after > before)
-    story(`🌟 ${s.name}로 이름이 났어요. 이제 '${FAME_NAMES[after]}'예요.${after === 3 ? ' 집에 트로피를 걸었어요. 직업 수입 +6%' : after === 2 ? ' 직업 수입 +3%' : ''}`);
+    story(`🌟 ${josa(s.job ?? s.name, '으로', '로')} 이름이 났어요. 이제 '${FAME_NAMES[after]}'예요.${after === 3 ? ' 집에 트로피를 걸었어요. 직업 수입 +6%' : after === 2 ? ' 직업 수입 +3%' : ''}`);
   else if (s.out === 'great' && Math.random() < 0.5) story(`💼 ${line}.`);
-  if (s.id === 'servant' && !S.freed) {
+  if (s.id === 'servant' && !S.freed && !s.rule && S.servantDay !== S.days) {
+    S.servantDay = S.days; // a day's work counts once
     S.servantDays = (S.servantDays ?? 0) + 1;
     if (S.servantDays >= 8) {
       S.freed = true;
