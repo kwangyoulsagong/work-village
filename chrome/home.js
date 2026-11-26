@@ -789,6 +789,7 @@ function drawInterior(g) {
   R(g, 46, 19, 22, 1, c.trim);
   }
   drawFamilyWall(g); // height marks and the children's drawings (family.js)
+  drawTrophies(g); // a legend at a job (work.js)
   drawSpouseCorner(g, e);
   if (weather === 'rain' || weather === 'storm') for (let i = 0; i < 6; i++) R(g, 47 + ((i * 7 + t) % 20), 13 + ((i * 5 + t * 2) % 12), 1, 2, '#cfe8f5');
   shifted(g, pieceKey('bed'), () => drawBed(g, e));

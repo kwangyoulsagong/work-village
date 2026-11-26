@@ -2149,7 +2149,7 @@ function paintUi() {
   const head = el('li', 'me');
   if (mine) {
     const [a, b] = JOB_FIT[mine.id];
-    head.textContent = `내 직업 ${mine.name} · 수입 +${pct(myPay(0.5))}${VOLATILE.has(mine.id) ? ' (들쭉날쭉)' : ''} · ${traitName(a)} ${S.traits?.[a] ?? '-'} ${traitName(b)} ${S.traits?.[b] ?? '-'} · 오늘 ${fmt(S.jobToday ?? 0)}코인`;
+    head.textContent = `내 직업 ${mine.name} · ${FAME_NAMES[fameTier(mine.id)]} · 수입 +${pct(myPay(0.5))}${VOLATILE.has(mine.id) ? ' (들쭉날쭉)' : ''} · ${traitName(a)} ${S.traits?.[a] ?? '-'} ${traitName(b)} ${S.traits?.[b] ?? '-'} · 오늘 ${fmt(S.jobToday ?? 0)}코인`;
   } else head.textContent = '캐릭터를 고르면 직업이 생겨요';
   const town = el('li', 'me', `이웃 직업 세금 +${pct(townPay())}`);
   $('jobList').replaceChildren(

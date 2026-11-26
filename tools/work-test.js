@@ -96,6 +96,21 @@ app.whenReady().then(async () => {
     return { kind, name, role, later };`);
   ok(rule.kind === 'throne' && rule.name === '왕' && rule.role === '공주' && rule.later !== '공주', 'ruling: ' + JSON.stringify(rule));
 
+  // Watching a neighbour at work: their scene, nothing changes for you; a button on their card.
+  const watch = await js(town(3) + `const v = people.find((p) => p.kind === 'villager' && p.job && !p.small && p.who?.endsWith('a'));
+    const f0 = JSON.stringify(S.fame ?? {}), x0 = S.xp; openTalk?.(v); const btn = [...document.querySelectorAll('#talkActions button')].some((b) => b.textContent.includes('일하는 모습'));
+    closeTalk?.(); watchWork(v, whoIs(v).name, null); const kind = workStay?.kind, view = workView(), hidden = me.hidden;
+    const url = (() => { workStay.t = 20; workStay.banner = 'X'; drawWorkScene(ctx); return document.getElementById('world').toDataURL(); })(); workStay.t = WORK_N;
+    let n = 0; while (workStay && n < 200) { workTick(); n++; }
+    return { btn, kind, view, hidden, same: JSON.stringify(S.fame ?? {}) === f0 && S.xp === x0, now: $('now').textContent, url };`);
+  ok(watch.btn && watch.kind && watch.view && !watch.hidden && watch.same && watch.now.includes(':'), 'watching: ' + JSON.stringify({ ...watch, url: undefined }));
+  if (watch.url?.startsWith('data:')) fs.writeFileSync(path.join(OUT, '62-work-watch.png'), Buffer.from(watch.url.split(',')[1], 'base64'));
+
+  // Fame pays: a star +3 %, a legend +6 % and a trophy at home.
+  const fame = await js(town(4, 'doctor') + `const base = myPay(0.5); S.fame = { doctor: 30 }; const star = myPay(0.5) / base; S.fame = { doctor: 80 }; const legend = myPay(0.5) / base;
+    return { star: +star.toFixed(3), legend: +legend.toFixed(3), trophies: legends() };`);
+  ok(fame.star === 1.03 && fame.legend === 1.06 && fame.trophies.join() === 'doctor', 'fame pay: ' + JSON.stringify(fame));
+
   // Not in chaos mode.
   const chaos = await js(town(3, 'soccer') + `const m = MODE; MODE = 'chaos'; startWork(myJob()); const any = !!workStay; MODE = m; return any;`);
   ok(chaos === false, 'no work scenes in chaos mode');

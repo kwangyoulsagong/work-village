@@ -268,6 +268,7 @@ function paintTalk(line) {
   }
   if (MODE === 'life' && w.head != null && e.kind !== 'spouse') add('🎩 모자 선물하기', () => paintTalk(giveHat(e, w.head)), hatsInHand().some((h) => S.worn?.[w.head] !== h.id) ? null : '줄 모자가 없어요');
   if (MODE === 'life' && w.head != null) add('📖 지나온 이야기', () => paintTalk(`${w.name}의 이야기\n${bioLine(w.head)}`));
+  if (MODE === 'life' && e.job && !w.kid && !e.zombie) add('💼 일하는 모습 보기', () => (closeTalk(), watchWork(e, w.name, w.head != null ? villagerTraits(w.head) : null)), watchWorkWhy(e) || null);
   if (MODE === 'life' && w.head != null && e.kind !== 'spouse') {
     const why = callWhy(w.head);
     add('🏠 집에 놀러 가기', () => requestCall(e, w.head), why || null);

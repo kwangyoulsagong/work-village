@@ -77,6 +77,20 @@ const FAME_AT = [0, 10, 30, 80];
 const FAME_NAMES = ['신인', '주전', '스타', '전설'];
 const fameOf = (id) => S.fame?.[id] ?? 0;
 const fameTier = (id) => FAME_AT.reduce((k, at, i) => (fameOf(id) >= at ? i : k), 0);
+/** Known for your job pays: a star +3 %, a legend +6 % (on your own job's pay). */
+const fameMul = (id) => [1, 1, 1.03, 1.06][fameTier(id)];
+/** The jobs you're a legend at: a trophy each on the wall at home. */
+const legends = () => Object.keys(S.fame ?? {}).filter((id) => fameTier(id) >= 3);
+function drawTrophies(g) {
+  legends().slice(0, 4).forEach((id, i) => {
+    const x = 6 + i * 8;
+    R(g, x, 10, 6, 1, '#8a5a32');
+    R(g, x + 1, 5, 4, 3, '#e8c050');
+    R(g, x + 2, 8, 2, 2, '#c9921a');
+    R(g, x, 5, 1, 2, '#e8c050');
+    R(g, x + 5, 5, 1, 2, '#e8c050');
+  });
+}
 
 // ── Going to work ─────────────────────────────────────────────────────────────────────────────────────────────────
 
@@ -114,8 +128,10 @@ function startWork(j) {
 function workTick() {
   if (!workStay) return false;
   if (MODE !== 'life' || S.over) return (workStay = null), (me.hidden = false), false;
-  rest = Math.max(rest, 2);
-  me.hidden = true;
+  if (!workStay.watch) {
+    rest = Math.max(rest, 2);
+    me.hidden = true;
+  }
   if (workStay.t === Math.round(WORK_N * (1 - WORK_HIT))) {
     workStay.banner = workBanner(workStay.id, workStay.kind, workStay.out);
     workStay.line = workLine(workStay.kind, workStay.out);
@@ -136,8 +152,14 @@ function workTap() {
 function workDone() {
   const s = workStay;
   workStay = null;
-  me.hidden = false;
   const line = s.line ?? workLine(s.kind, s.out);
+  if (s.watch) {
+    // Only watching: their words, and a smile.
+    $('now').textContent = `${s.who}: "${line}"`;
+    toast(`${s.who}: ${s.banner ?? ''}`);
+    return;
+  }
+  me.hidden = false;
   S.fame ??= {};
   const before = fameTier(s.id);
   S.fame[s.id] = fameOf(s.id) + (s.out === 'great' ? 2 : s.out === 'ok' ? 1 : 0);
@@ -149,7 +171,8 @@ function workDone() {
     const f = fs[rand(0, fs.length - 1)];
     gov().mood[f.id] = Math.min(5, (gov().mood[f.id] ?? 0) + 1);
   }
-  if (after > before) story(`🌟 ${s.name}로 이름이 났어요. 이제 '${FAME_NAMES[after]}'예요.`);
+  if (after > before)
+    story(`🌟 ${s.name}로 이름이 났어요. 이제 '${FAME_NAMES[after]}'예요.${after === 3 ? ' 집에 트로피를 걸었어요. 직업 수입 +6%' : after === 2 ? ' 직업 수입 +3%' : ''}`);
   else if (s.out === 'great' && Math.random() < 0.5) story(`💼 ${line}.`);
   if (s.id === 'servant' && !S.freed) {
     S.servantDays = (S.servantDays ?? 0) + 1;
@@ -163,6 +186,22 @@ function workDone() {
   popAt(me.x, me.y);
   save();
   paintUi();
+}
+/** From a neighbour's card: watch them at work (their scene, their result; nothing changes for you). */
+function watchWorkWhy(e) {
+  if (MODE !== 'life' || !e?.job || e.zombie || e.small) return '볼 수 없어요';
+  if (workStay || homeStay || guestStay) return '지금은 볼 수 없어요';
+  return '';
+}
+function watchWork(e, name, traits) {
+  if (watchWorkWhy(e)) return;
+  const j = e.job;
+  const kind = sceneOf(j);
+  const fit = traits ? jobFit(j, traits) : 0.6;
+  const r = Math.random();
+  const out = r < 0.2 + (fit - 0.6) * 0.15 ? 'great' : r > 0.85 + (fit - 0.6) * 0.1 ? 'oops' : 'ok';
+  workStay = { id: j.id, name: `${name} · ${j.name}`, who: name, kind, out, t: WORK_N, n: WORK_N, tapped: false, watch: { look: e.look, job: j, gender: e.gender, who: e.who } };
+  lifeCam = null;
 }
 /** Taps on the scene go to the scene, not to the town underneath. */
 function wireWork() {
@@ -191,6 +230,8 @@ const lerp = (a, b, q) => a + (b - a) * Math.max(0, Math.min(1, q));
 /** A point on an arc from (x0, y0) to (x1, y1), h pixels high at the top. */
 const arcAt = (x0, y0, x1, y1, h, q) => [lerp(x0, x1, q), lerp(y0, y1, q) - h * 4 * q * (1 - q)];
 function wMe(g, c, x, y, dir = 'r', walk = false, hop = 0) {
+  const w = c.s.watch;
+  if (w) return person(g, { kind: 'villager', job: w.job, who: w.who, x: Math.round(x), y: Math.round(y + hop), dir, path: walk ? [1] : [], frame: walk ? c.t : 0, seed: 1, gender: w.gender }, w.look);
   person(g, { kind: 'me', x: Math.round(x), y: Math.round(y + hop), dir, path: walk ? [1] : [], frame: walk ? c.t : 0, seed: 1, gender: S.gender }, OUTFIT[c.E]);
 }
 function wFolk(g, c, x, y, dir, k, o = {}) {
@@ -599,7 +640,9 @@ const SCENES = {
     wMe(g, c, 46, 84, 'r');
     R(g, 52, strike ? 64 : 58, 2, 8, '#8a5a3a');
     R(g, 50, strike ? 62 : 56, 6, 3, '#5a5e66');
-    if (strike) for (let i = 0; i < 4; i++) R(g, 58 + i * 3, 66 - ((c.t + i) % 5), 1, 1, '#ffe066');
+    if (strike) for (let i = 0; i < 4; i++) R(g, 58 + i * 3, 66 - ((c.t + i) % 5), 1, 1, c.E >= 5 ? '#5ad7e8' : '#ffe066');
+    if (c.E >= 5 && !c.hit) R(g, 64, 20, 1, 50, 'rgba(90,215,232,0.7)'); // a laser from above
+    if (c.E >= 3 && c.E <= 4) for (let i = 0; i < 2; i++) disc(g, 22 + i * 4, 20 - ((c.t + i * 5) % 16), 3, 'rgba(90,90,98,0.5)'); // smoke from the stack
     if (c.hit && c.out === 'great') wSparkles(g, c, 65, 66, 7);
     void r;
   },
@@ -634,7 +677,20 @@ const SCENES = {
       R(g, 85, 61, 3, 3, '#5aa04a');
       wSparkles(g, c, 86, 70, 6);
     }
-    wMe(g, c, lerp(14, 70, c.p / WORK_HIT), 88, 'r', !c.hit);
+    if (c.E >= 5) for (const x of [10, 96]) {
+      g.fillStyle = 'rgba(200,240,255,0.35)';
+      g.beginPath();
+      g.arc(x + 8, 60, 12, Math.PI, 0);
+      g.fill();
+    }
+    const fx = lerp(14, 70, c.p / WORK_HIT);
+    if (c.E === 1 || c.E === 2) drawAnimal(g, { x: fx + 16, y: 88, dir: 'r', frame: c.t, path: c.hit ? [] : [1] }, COW, COW_PAL, 16, 10, 14);
+    if (c.E === 3 || c.E === 4) {
+      box(g, Math.round(fx) + 8, 78, 18, 8, '#c0402e', OL); // a tractor
+      disc(g, Math.round(fx) + 12, 88, 3, '#2a2a30');
+      disc(g, Math.round(fx) + 22, 88, 2, '#2a2a30');
+    }
+    wMe(g, c, fx, 88, 'r', !c.hit);
   },
   woods(g, c) {
     wSky(g, c, '#4a8a3a', 56);
@@ -740,6 +796,15 @@ const SCENES = {
   },
   shop(g, c) {
     const r = wRoom(g, c, 58);
+    if (c.E <= 2) {
+      R(g, 0, 0, 120, 58, night ? '#1c2448' : '#8fd3f4');
+      for (let x = 14; x < 106; x += 12) R(g, x, 34, 12, 8, (x / 12) % 2 ? '#e8505b' : '#f4efe6'); // the awning
+      R(g, 14, 42, 2, 20, '#8a5a3a');
+      R(g, 104, 42, 2, 20, '#8a5a3a');
+    } else if (c.E === 4) {
+      box(g, 92, 20, 24, 38, '#e8eef4', OL); // a fridge of drinks
+      for (let y = 24; y < 54; y += 8) for (let x = 95; x < 113; x += 5) R(g, x, y, 3, 5, ['#e8505b', '#5aa04a', '#3a7ad0'][(x + y) % 3]);
+    } else if (c.E >= 5) for (let i = 0; i < 3; i++) R(g, 8 + i * 4, 10 + ((c.t + i * 6) % 30), 2, 6, '#9a7aff');
     box(g, 20, 62, 80, 12, r.trim, OL);
     const id = workStay?.id;
     const goods = id === 'barber' ? ['#c9cdd4', '#8fd0f0'] : id === 'tailor' ? ['#e8505b', '#3a7ad0', '#e8c050'] : ['#e8505b', '#e8c050', '#5aa04a', '#8a6cc9'];
@@ -759,8 +824,13 @@ const SCENES = {
   kitchen(g, c) {
     const r = wRoom(g, c, 60);
     box(g, 8, 60, 104, 14, r.trim, OL);
-    box(g, 20, 48, 24, 12, c.E >= 4 ? '#c9cdd4' : '#3a3a42', OL);
-    disc(g, 32, 60, 3, '#f08a2e');
+    if (c.E <= 2) {
+      disc(g, 32, 50, 12, '#b8743a'); // a clay oven
+      R(g, 26, 52, 12, 8, '#2a2028');
+      disc(g, 32, 58, 3, '#f08a2e');
+    } else box(g, 20, 48, 24, 12, c.E >= 5 ? '#e8eef4' : c.E >= 4 ? '#c9cdd4' : '#3a3a42', OL);
+    if (c.E >= 5) R(g, 22, 46, 20, 1, '#5ad7e8');
+    else if (c.E > 2) disc(g, 32, 60, 3, '#f08a2e');
     box(g, 24, 40, 16, 8, '#5a5e66', OL);
     for (let i = 0; i < 3; i++) R(g, 28 + i * 4, 36 - ((c.t + i * 3) % 10), 1, 3, c.hit && c.out === 'oops' ? '#5a5a62' : 'rgba(255,255,255,0.8)');
     if (c.hit && c.out === 'oops') for (let i = 0; i < 4; i++) disc(g, 30 + i * 4, 28 - ((c.t + i * 2) % 12), 3, 'rgba(90,90,98,0.6)');
@@ -817,14 +887,21 @@ const SCENES = {
     wFolk(g, c, 14, 86, 'r', 5, { look: { hair: '#c8c8c8', top: '#3a3a5a', legs: '#2f2f3a' } });
   },
   street(g, c) {
-    wSky(g, c, '#9a9aa4', 54);
+    const old = c.E <= 2;
+    wSky(g, c, old ? '#b89a6a' : c.E >= 5 ? '#c8d4e0' : '#9a9aa4', 54);
     for (let i = 0; i < 4; i++) {
       const x = 4 + i * 30;
-      box(g, x, 22, 26, 32, ['#e8d4b8', '#c8d8e8', '#e8c8c8', '#d8e8c8'][i], OL);
-      gable(g, x - 2, 12, 30, 10, ['#a8323a', '#3a5a8a', '#5a4a42', '#2a6a3a'][i], OL);
+      if (c.E >= 5) {
+        box(g, x + 2, 8, 24, 46, ['#e8eef4', '#d7e3ee', '#cfdbe8', '#e4ecf4'][i], OL);
+        for (let y = 12; y < 46; y += 8) R(g, x + 5, y, 18, 3, '#5ad7e8');
+        continue;
+      }
+      box(g, x, 22, 26, 32, old ? ['#c8a878', '#d8b880', '#b89870', '#c8a878'][i] : ['#e8d4b8', '#c8d8e8', '#e8c8c8', '#d8e8c8'][i], OL);
+      gable(g, x - 2, 12, 30, 10, old ? '#c8a050' : ['#a8323a', '#3a5a8a', '#5a4a42', '#2a6a3a'][i], OL);
       box(g, x + 10, 40, 7, 14, '#8a5a3a', OL);
     }
-    R(g, 0, 70, 120, 2, '#c9cdd4');
+    if (!old) R(g, 0, 70, 120, 2, '#c9cdd4');
+    else for (let i = 0; i < 10; i++) R(g, (i * 23) % 120, 74 + (i % 3) * 6, 3, 1, '#a88a5a');
     const id = workStay?.id;
     const walkTo = c.hit ? 76 : lerp(8, 76, c.p / WORK_HIT);
     wMe(g, c, walkTo, 66, 'r', !c.hit);
@@ -839,10 +916,16 @@ const SCENES = {
       g.fillStyle = '#ffffff';
       g.fillText('?', 74, 44 - (c.t % 4 < 2 ? 1 : 0));
     }
-    if (c.E >= 3) {
-      const cx = ((c.t * 3) % 160) - 20;
-      box(g, cx, 78, 16, 6, '#3a7ad0', OL);
+    const cx = ((c.t * 3) % 160) - 20;
+    if (c.E >= 5) {
+      box(g, cx, 76, 18, 5, '#e8eef4', OL);
+      R(g, cx + 2, 83, 14, 1, '#5ad7e8');
+    } else if (c.E >= 3) {
+      box(g, cx, 78, 16, 6, c.E === 3 ? '#2a2a30' : '#3a7ad0', OL);
       for (const dx of [3, 12]) disc(g, cx + dx, 85, 1, '#2a2a30');
+    } else {
+      box(g, cx, 78, 12, 6, '#a8743a', OL); // a cart
+      disc(g, cx + 6, 85, 2, '#6b4428');
     }
   },
   fire(g, c) {
@@ -865,7 +948,12 @@ const SCENES = {
       R(g, 30, 18, 4, 1, '#5a5e66');
     }
     wMe(g, c, 22, 86, 'r');
-    if (!c.hit || c.out === 'oops') {
+    if (c.E <= 2) {
+      // A bucket line: neighbours pass the water along.
+      wFolk(g, c, 8, 88, 'r', 2);
+      for (let i = 0; i < 2; i++) box(g, 10 + ((c.t * 2 + i * 12) % 14), 74, 4, 4, '#8a5a3a', OL);
+      if (!c.hit || c.out === 'oops') for (let i = 0; i < 5; i++) R(g, 30 + i * 6, 70 - i * 6 - (c.t % 3), 2, 2, '#8fd0f0');
+    } else if (!c.hit || c.out === 'oops') {
       g.strokeStyle = '#8fd0f0';
       g.lineWidth = 1.5;
       g.beginPath();
@@ -887,6 +975,11 @@ const SCENES = {
       box(g, 36 + i * 14, 48, 8, 12, '#e8eef4', OL);
       R(g, 37 + i * 14, 52, 6, 7, cols[i]);
       if (!c.hit) R(g, 39 + i * 14, 44 - ((c.t + i * 3) % 6), 1, 1, cols[i]);
+    }
+    if (c.E <= 2 && workStay?.id === 'alchemist') {
+      disc(g, 84, 80, 8, '#3a3a42');
+      R(g, 78, 72, 12, 2, '#5a5e66');
+      for (let i = 0; i < 3; i++) disc(g, 80 + i * 4, 70 - ((c.t + i * 3) % 8), 1, '#5ee0b0');
     }
     if (workStay?.id === 'astronomer') {
       R(g, 0, 0, 120, 40, '#1c2448');
@@ -1086,14 +1179,14 @@ function drawWorkScene(g) {
   }
   // A label, top left: the job and its fame; a tap hint until the moment.
   g.font = '5px sans-serif';
-  const label = s.rule ? s.name : `${s.name} · ${FAME_NAMES[fameTier(s.id)]}`;
+  const label = s.rule || s.watch ? s.name : `${s.name} · ${FAME_NAMES[fameTier(s.id)]}`;
   const w = Math.ceil(g.measureText(label).width) + 6;
   g.fillStyle = 'rgba(25, 31, 40, 0.7)';
   g.fillRect(2, 86, w, 8);
   g.fillStyle = '#ffffff';
   g.fillText(label, 5, 92);
   if (!s.tapped && !c.hit) {
-    const hint = '눌러서 힘내기';
+    const hint = s.watch ? '눌러서 응원하기' : '눌러서 힘내기';
     const hw = Math.ceil(g.measureText(hint).width) + 6;
     g.fillStyle = 'rgba(49, 130, 246, 0.85)';
     g.fillRect(118 - hw, 86, hw, 8);

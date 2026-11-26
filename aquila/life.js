@@ -164,7 +164,7 @@ function jobPay(j, traits, luck = 0.5) {
   const pay = JOB_PAY[je] * (0.5 + jobFit(j, traits)) * (1 + (S.era - je) * 0.15);
   return VOLATILE.has(j.id) ? pay * (0.3 + luck * 1.4) : pay;
 }
-const myPay = (luck = Math.random()) => jobPay(myJob(), S.traits, luck);
+const myPay = (luck = Math.random()) => jobPay(myJob(), S.traits, luck) * (myJob() && typeof fameMul === 'function' ? fameMul(myJob().id) : 1);
 /** The neighbours' jobs pay the town a little tax, too. */
 function townPay() {
   let s = 0;
