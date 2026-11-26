@@ -10,6 +10,28 @@
 
 - [ ] Aquila에서 놀러가기 확인: "복사" 버튼이 되는지(Aquila는 클립보드 권한이 없어서 안 되면 코드를 선택해 두고 ⌘C 안내가 떠요).
 
+## 진행 중: 직업 대확장 + 일터 장면 (2026-11-26 요청, 다음 세션에서 이어서)
+요청 원문 요지: 연예인(배우·가수)·운동선수(축구·농구·야구 등)·판사·왕/왕자/공주/대통령·노비·무사 등 직업을 시대별로 다양하게.
+의사·간호사·경찰·소방관 같은 직업은 **시대마다 그 시대 모습으로** 완벽하게(예: 원시 약초꾼 → 고대 의원 → 중세 의원/수도원 약사 →
+산업 의사 → 현대 의사 → 미래 로봇 의사/의료 로봇). 미래엔 로봇 직업도. "시대별로 직업이 너무 적다, 세상엔 직업이 많다" → 시대마다
+훨씬 많이(10–15개 이상 목표). **모든 직업**은 일하러 가면 그 일터 화면으로 들어가서(집 안처럼 120×96 장면) 그 직업다운 결정적 장면:
+축구 골, 야구 홈런, 농구 버저비터, 배우 슬레이트(OK/NG), 가수 앙코르, 판사 망치(무죄/유죄/정숙) 등. 바깥 일(사냥·낚시·농사…)도 장면.
+- [x] 1단계(커밋됨): JOBS를 시대마다 6–8개로(jobs.js). `until`로 여러 시대에 걸치는 직업, `names`로 시대별 이름(eraName), 오래 가는
+      직업은 그 시대 급여(life.js jobPay `je`). 새 직업 JOB_FIT·VOLATILE·장비(wig·jester·topknot·mirror·fire). 노비는 고대–중세만, 면천하면
+      (S.freed) 다시 안 됨(bestJob skip). sim 71 %로 균형 그대로.
+- [ ] 2단계: 직업을 시대마다 10–15개 이상으로. 의사·간호사·경찰·소방관·교사·요리사·판사·군인 등은 한 id에 `until: 5` + 시대별 이름
+      (names)으로 시대마다 모습이 바뀌게. 미래: 로봇 의사·로봇 경찰·드론 소방대·AI 판사 보좌관·홀로 아이돌·무중력 구기 등.
+      바꾼 뒤 `npm run sim`(직업이 많아지면 맞는 직업을 더 잘 골라 수입이 오를 수 있음 → JOB_PAY 조정).
+- [ ] 3단계: 일터 장면 `aquila/work.js`(새 파일: index.html·build-chrome.sh·tools/sim.js 목록에 추가). 설계:
+      workStay {job, t:96, n:96, out:'great'|'ok'|'oops'}; game.js nextTask 직업 분기 `act`에서 startWork(mine) → 장면, 끝나면 jobDone + 결과.
+      frame()에서 insideView 전에 workView()면 drawWorkScene. 장면 종류: stage·film·booth·office·court·lab·clinic·temple·kitchen·forge·
+      factory·mine·shop·ring·arena·dojo·track·soccer·baseball·basketball·volleyball·zerog·woods·lake·farm·street·fire·launch·yard·throne.
+      결과 확률 대성공 ~20 %/성공 ~65 %/실수 ~15 %(적성·명성으로 보정), 장면 중 탭하면 한 단계 오를 기회(입력은 선택). 결과는 경험치·행복·
+      명성(S.fame[job], 신인→주전→스타→전설)만, 코인은 안 움직임. 같은 줄 연속 금지(문구 결과마다 2–4개). 내가 다스리면 30 %로 옥좌/
+      집무실 장면(대성공이면 세력 기분 +). 다스리는 동안 내 아이는 왕자·공주(whoIs·가족 칸). 노비는 일 8번에 면천(S.freed, 이야기).
+      테스트 tools/work-test.js(장면마다 오프스크린 캡처), package.json test 목록에 추가. 노비는 존중하며(굴욕 없는 실수), 운동선수 부상 없음.
+      조사 근거: The Sims 4 Get to Work(선택적 관람·실적 막대), Kairosoft(짧게·건너뛰기), Idol Manager(콘서트), Tomodachi Life(반복 피로).
+
 ## 다음에 만들 것 (2026-11-24 요청 + 재미 요소 조사)
 요청 순서대로. 조사 근거: RimWorld·Dwarf Fortress(관계가 이야기를 만듦), Banished(사냥·교역), Stardew(알·부화),
 Neko Atsume·Rusty's Retirement(몇 초 보는 재미), Animal Crossing(떠나는 이웃).
