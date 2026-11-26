@@ -77,7 +77,7 @@ app.whenReady().then(async () => {
   ok(split.spouse == null && split.ex === 1 && split.kids === 1 && split.back && split.f === 2 && split.story.includes('이혼'), 'divorced: spouse home, kids stay: ' + JSON.stringify(split));
   // A proposal below full friendship: a chance (charm, coins, furniture), and a no costs a point.
   const odds = await js(`(() => {
-    S.myLover = 2; S.friends[2] = { f: 7, day: '' };
+    S.myLover = 2; S.friends[2] = { f: 7, day: '' }; if (S.traits) S.traits.charm = 3; // odds don't hang on a random charm
     const e = people.find((p) => p.who === 'h2a'); e.hidden = false; openTalk(e);
     const btn = () => [...document.querySelectorAll('#talkActions button')].find((b) => b.textContent.includes('청혼'));
     const at7 = btn().disabled;
