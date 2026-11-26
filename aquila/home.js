@@ -401,6 +401,7 @@ function hobbyTask() {
 function requestHobby(id) {
   if (MODE !== 'life' || !S.gender || S.over) return;
   wantFamily = null; // family.js
+  wantCall = null; // guest.js
   if (homeStay) {
     // Already in: switch to it now.
     homeStay = { hobby: id, t: 96, n: 96 };
@@ -691,6 +692,7 @@ function paintMine() {
 function wireHome() {
   wireArrange();
   document.getElementById('homeView')?.addEventListener('click', () => {
+    leaveGuest(); // from a neighbour's straight home (guest.js)
     if (insideView()) {
       houseView = false;
       if (homeStay) homeStay.t = 1; // out you come

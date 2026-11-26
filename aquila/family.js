@@ -84,6 +84,7 @@ function requestFamily(id) {
   if (homeStay && !a.out) return void (startFamilyHome(a), paintHome());
   wantFamily = id;
   wantHobby = null;
+  wantCall = null;
   task = null;
   me.path = [];
   me.act = null;
@@ -455,10 +456,11 @@ const cornerName = () => (spouseBest() ? CORNER[spouseBest()][Math.max(0, Math.m
 /** On the floor under the bed's end (left): drawn before the furniture, so anything you put there covers it. */
 function drawSpouseCorner(g, e) {
   const k = spouseBest();
-  if (!k) return;
+  if (k) drawCorner(g, e, k, 8, 66);
+}
+/** Something of someone's, by their best ability and the era (a neighbour's room uses it too: guest.js). */
+function drawCorner(g, e, k, x, y) {
   const t = clockTick();
-  const x = 8;
-  const y = 66;
   switch (k) {
     case 'health':
       if (e === 0) return void box(g, x + 2, y + 6, 9, 6, '#8a8e96', OL);

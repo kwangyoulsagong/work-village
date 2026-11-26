@@ -265,6 +265,10 @@ function paintTalk(line) {
       add(`${name} 3개 사기 (${cost}코인)`, () => buyFrom(e, k), home().coins >= cost ? null : '코인이 모자라요');
     }
   }
+  if (MODE === 'life' && w.head != null && e.kind !== 'spouse') {
+    const why = callWhy(w.head);
+    add('🏠 집에 놀러 가기', () => requestCall(e, w.head), why || null);
+  }
   if (w.head != null && S.spouse == null && MODE !== 'visit') {
     if (S.myLover !== w.head) add('💌 고백하기', () => askOut(e), fr.f >= LOVE_AT ? null : `호감 ${LOVE_AT}부터 할 수 있어요`);
     else {

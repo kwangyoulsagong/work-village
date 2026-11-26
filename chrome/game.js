@@ -248,6 +248,7 @@ function liveADay() {
   if (S.spouse != null) marriageDay();
   else if (S.myLover != null) loveDay();
   familyMoment();
+  guestDay(); // an invitation from a close neighbour now and then (guest.js)
   familyDay(); // birthdays, anniversaries, first words, a child's wish (family.js)
   const h = trait('health');
   if (S.sickDays > 0) {
@@ -589,6 +590,8 @@ function nextTask(noJob = false) {
   if (chosen) return chosen;
   const together = familyTask(); // something with the family you picked (family.js)
   if (together) return together;
+  const call = callTask(); // calling on a neighbour, or their invitation this evening (guest.js)
+  if (call) return call;
   if (S.bag >= 4 || (S.bag > 0 && !S.plots.some((p) => !p.planted)))
     return { to: STALL_SPOT, tool: 'coin', what: '가게에 작물 팔기', act: sell };
   const lm = nextLandmark();
@@ -1661,6 +1664,12 @@ function frame() {
   // A view you're dragging goes straight there; otherwise it glides with everyone else.
   const manual = MODE === 'chaos' || lifeCam;
   viewX = manual ? camX : prevCam + (camX - prevCam) * alpha;
+  if (guestView()) {
+    // Calling on a neighbour: inside their house (guest.js).
+    drawGuestRoom(ctx);
+    drawMini();
+    return;
+  }
   if (insideView()) {
     // You're at home and the view follows you: inside the house (home.js).
     drawInterior(ctx);
@@ -1729,6 +1738,7 @@ function frame() {
   drawWishes(ctx);
   drawVillageOver(ctx);
   drawFamilyOver(ctx);
+  drawNpcCalls(ctx);
   drawJuice(ctx);
   drawPops(ctx, frameK);
   drawMeMarker(ctx);
@@ -1878,6 +1888,7 @@ function tick() {
   moved = pastimesTick() || moved;
   moved = homeTick() || moved;
   moved = familyTick() || moved;
+  moved = guestTick() || moved;
   if (me.sulk > 0) me.sulk--;
   for (const s of sites) s.left--;
   if (sites.length && sites[0].left <= 0) sites.shift();
@@ -2128,6 +2139,7 @@ function paintUi() {
   meFeel();
   paintWeek();
   paintHome();
+  paintGuest();
   paintAlbum();
   $('dexCount').textContent = `도감 ${S.dex.length + (S.variants?.length ?? 0)}/${DEX_TOTAL + VARIANT_TOTAL}`;
   const rare = (S.variants ?? []).map((k) => {
@@ -2361,6 +2373,7 @@ async function start() {
   wireStartOver();
   wireHome();
   wireFamily();
+  wireGuest();
   wireStealth();
   wireBuild();
   wireFun();

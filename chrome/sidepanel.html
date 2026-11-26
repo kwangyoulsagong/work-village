@@ -451,6 +451,13 @@
       <div class="hint" id="arrangeNote" hidden>집 안의 가구를 끌어서 옮겨요. 초록이면 놓을 수 있고, 빨강이면 못 놓아요.</div>
     </section>
 
+    <section class="card life-only home-card" id="guestCard" hidden>
+      <div class="eyebrow" id="guestName">이웃집</div>
+      <div class="hint" id="guestNote"></div>
+      <div class="mine" id="guestActs" style="margin-top: 8px"></div>
+      <div class="row"><span class="grow"></span><button class="btn" id="guestLeave">나가기</button></div>
+    </section>
+
     <section class="card visit-card" id="visitCard" hidden>
       <div class="eyebrow">놀러가기</div>
       <p class="hint">서버 없이 코드로 주고받아요. 메신저로 보내고, 받은 코드를 붙여 넣으면 돼요.</p>
@@ -571,6 +578,7 @@
     <script src="pastimes.js"></script>
     <script src="home.js"></script>
     <script src="family.js"></script>
+    <script src="guest.js"></script>
     <script src="motion.js"></script>
     <script src="game.js"></script>
     <script src="helper-setup.js"></script>

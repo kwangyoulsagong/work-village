@@ -635,6 +635,7 @@ function villageOptions(e, add, night) {
   if (i < 0) return;
   tradeOption(e, i, add);
   makeUpOption(e, i, add);
+  npcCallOption(e, i, add); // drop in on another family, if someone's home (guest.js)
 }
 
 // ── Travellers on foot: a word with whoever they pass, a hand at a building site ──────────────────────────────────
