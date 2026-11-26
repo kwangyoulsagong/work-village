@@ -607,17 +607,46 @@ function drawFamilyHome(g, t) {
       if (!homeToday(i)) return;
       const p = { kind: 'kid', gender: i % 2 ? 'm' : 'f', small: a < 7, baby: a < 3, look: { hair: '#4a2f1f', top: KID_TOPS[i], legs: '#4b4560' } };
       if (p.baby) {
-        // A cradle that rocks a little.
-        const rock = Math.floor(t / 10) % 2;
-        box(g, 52 + rock, 70, 14, 6, '#a8743a', OL);
-        R(g, 53, 76, 2, 2, '#8a5a32');
-        R(g, 63, 76, 2, 2, '#8a5a32');
-        famPut(g, p, 59 + rock, 72, 'd', i);
-        if (t % 48 < 20) spr(g, NOTE_PX, { o: '#8a8eb0' }, 68, 60 - ((t % 48) >> 2)); // a lullaby
+        drawCradle(g, 50, 66, t, KID_TOPS[i]);
       } else if (p.small || a < 14) {
         famPut(g, p, 72 + small * 12 + Math.round(Math.sin(t / 6 + i) * 3), 84, small % 2 ? 'l' : 'r', i, (t + i * 4) % 12 < 6 ? -1 : 0);
         small++;
       } else famPut(g, p, 96, 84, 'l', i);
     }),
   );
+}
+
+/** A cradle, clear at a glance: rockers, a woven basket, a hood, a blanket in the baby's colour, a sleeping face. */
+function drawCradle(g, x, y, t, colour) {
+  const rock = Math.round(Math.sin(t / 12));
+  const wood = '#f6efe4'; // a painted cradle stands out from the wooden floor
+  const dark = '#8a6a4a';
+  // Rockers.
+  R(g, x + 1, y + 12, 18, 1, dark);
+  R(g, x, y + 11, 1, 1, dark);
+  R(g, x + 19, y + 11, 1, 1, dark);
+  R(g, x + 4, y + 10, 1, 2, dark);
+  R(g, x + 15, y + 10, 1, 2, dark);
+  const bx = x + rock;
+  // The basket, with a woven line.
+  box(g, bx + 1, y + 4, 18, 7, wood, OL);
+  for (let k = bx + 3; k < bx + 18; k += 3) R(g, k, y + 6, 1, 4, '#ddd0bf');
+  // The hood over the head end.
+  box(g, bx + 1, y - 1, 7, 6, colour, OL);
+  R(g, bx + 2, y, 5, 1, lighten(colour, 0.35));
+  // The baby: a face on the pillow, eyes shut, rosy cheeks; the blanket up to the chin.
+  R(g, bx + 8, y + 2, 5, 3, '#f4efe6'); // pillow
+  disc(g, bx + 10, y + 3, 2, SKIN);
+  R(g, bx + 9, y + 3, 1, 1, '#3a2a3a');
+  R(g, bx + 11, y + 3, 1, 1, '#3a2a3a');
+  R(g, bx + 8, y + 4, 1, 1, '#ffa8b0');
+  R(g, bx + 12, y + 4, 1, 1, '#ffa8b0');
+  R(g, bx + 8, y + 5, 10, 3, lighten(colour, 0.2));
+  R(g, bx + 8, y + 5, 10, 1, '#ffffff');
+  for (let k = bx + 9; k < bx + 18; k += 3) R(g, k, y + 7, 1, 1, '#ffffff'); // dots on the blanket
+  // Asleep.
+  const z = t % 36;
+  g.font = 'bold 5px sans-serif';
+  g.fillStyle = 'rgba(90, 106, 138, 0.9)';
+  g.fillText('z', bx + 14 + z / 9, y - 1 - z / 6);
 }
