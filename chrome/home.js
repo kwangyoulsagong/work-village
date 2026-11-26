@@ -55,14 +55,14 @@ function leisureTask() {
   const list = [
     { id: 'home', w: 3 + (100 - myHealth) / 20 + (tm === 'loner' ? 3 : 0) + (late ? 6 : 0), what: '집에 들어가 쉬기', to: HOME_DOOR, tool: 'heart', dur: 6, dir: 'u', act: goInside },
     { id: 'fish', w: 2 + t('luck') * 0.6 + (tm === 'loner' ? 1 : 0), what: '낚시하러 가기', to: fishAt, tool: 'rod', dur: 90, dir: fishAt[1] === ROAD_Y ? (SEA.side === 'e' ? 'r' : 'l') : 'd', act: () => {
-      if (Math.random() > 0.3 + t('luck') * 0.08) return '오늘은 입질이 없네요';
+      if (Math.random() > 0.3 + t('luck') * 0.08 + fishBonus()) return '오늘은 입질이 없네요'; // the old tower helps (tales.js)
       stock('fish', 1);
       leaps.push({ x: me.x + (me.dir === 'l' ? -8 : 8), y: me.y + 2, sx: me.x, t: 0, big: Math.random() < 0.15 });
       if (Math.random() < 0.1) find(hasSea() && fishAt[1] === ROAD_Y ? 'sea' : 'fish');
       return '한 마리 낚았어요!';
     } },
     { id: 'forage', w: 2 + t('green') * 0.5, what: '숲에서 열매 따기', to: groveSpot(me), tool: 'pick', dur: 48, act: () => {
-      stock('berries', 1 + (Math.random() < 0.4 ? 1 : 0));
+      stock('berries', 1 + (Math.random() < 0.4 ? 1 : 0) + forageBonus());
       if (Math.random() < 0.08) find('forage');
       return '열매를 한 바구니 땄어요';
     } },

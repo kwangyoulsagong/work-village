@@ -746,6 +746,7 @@ function villageDay() {
     S.leaving = null;
     if (i === occupied() - 1 && lives(i)) {
       S.vacant++;
+      memorialize(i, '이사를 떠났어요'); // tales.js
       story(`🧳 ${nameOf(i)}네가 결국 마을을 떠났어요. 빈집에 언젠가 새 가족이 오겠죠.`);
       spawnFamily();
     }
@@ -797,6 +798,7 @@ function keepTask() {
       if (i === occupied() - 1) {
         S.vacant++;
         spawnFamily();
+        memorialize(i, '이사를 떠났어요'); // tales.js
         story(`🧳 붙잡아 봤지만 ${nameOf(i)}네는 결국 떠났어요.`);
       } else story(`🧳 ${nameOf(i)}네는 아직 마음을 못 정했대요. 조금 더 지내 보기로 했어요.`);
       return `${nameOf(i)}: "그동안 고마웠어요."`;
@@ -1053,6 +1055,7 @@ function meRows() {
   out.push(el('li', 'stat__note', '성격은 정해진 게 아니라 살아온 모습에서 읽어요. 사는 대로 조금씩 바뀌어요.'));
   out.push(...groveRows(), ...findRows()); // the work grove and finds (cozy.js)
   out.push(...familyRows()); // your spouse's and children's numbers, family memories (family.js)
+  out.push(...memorialRows()); // those who left (tales.js)
   // The recipe book (pastimes.js): what the family has cooked so far.
   out.push(el('li', 'group', `요리 수첩 ${S.cooked?.length ?? 0}/${RECIPES.length}`));
   const book = el('li', 'chips');

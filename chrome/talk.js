@@ -265,6 +265,7 @@ function paintTalk(line) {
       add(`${name} 3개 사기 (${cost}코인)`, () => buyFrom(e, k), home().coins >= cost ? null : '코인이 모자라요');
     }
   }
+  if (MODE === 'life' && w.head != null) add('📖 지나온 이야기', () => paintTalk(`${w.name}의 이야기\n${bioLine(w.head)}`));
   if (MODE === 'life' && w.head != null && e.kind !== 'spouse') {
     const why = callWhy(w.head);
     add('🏠 집에 놀러 가기', () => requestCall(e, w.head), why || null);

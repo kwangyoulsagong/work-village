@@ -249,6 +249,7 @@ function liveADay() {
   if (S.spouse != null) marriageDay();
   else if (S.myLover != null) loveDay();
   familyMoment();
+  tripDay(); // someone sets off on a trip now and then (tales.js)
   govDay(); // who rules, this week's decision, elections (politics.js)
   guestDay(); // an invitation from a close neighbour now and then (guest.js)
   familyDay(); // birthdays, anniversaries, first words, a child's wish (family.js)
@@ -285,7 +286,7 @@ function familyMoment() {
 
 /** Now and then something goes missing: coins, a hen, the ripe crops. Bigger towns tempt more; luck helps. */
 function crime() {
-  const chance = (0.04 + S.houses * 0.002 - trait('luck') * 0.006 - (has('temple') ? 0.02 : 0)) * (has('castle') ? 0.5 : 1) * tellerMul() * weekGuard() * govMul('crime');
+  const chance = (0.04 + S.houses * 0.002 - trait('luck') * 0.006 - (has('temple') ? 0.02 : 0)) * (has('castle') ? 0.5 : 1) * tellerMul() * weekGuard() * govMul('crime') * towerCrime();
   if (Math.random() >= chance) return;
   const r = Math.random();
   const ripe = S.plots.filter((p) => p.planted && p.g >= GROW);
@@ -324,6 +325,7 @@ function war() {
     return;
   }
   const fall = Math.max(1, Math.round(S.houses * (0.2 + Math.random() * 0.2)));
+  for (let i = S.houses - fall; i < S.houses; i++) memorialize(i, '전쟁으로 피난을 떠났어요'); // tales.js
   for (let i = S.houses - fall; i < S.houses; i++) collapseLot(i); // they come down where you can see
   const lost = Math.floor(S.coins * 0.3);
   S.houses -= fall;
@@ -348,6 +350,7 @@ function epidemic() {
   S.vacant = Math.min(S.houses, S.vacant + left);
   // One from each family that leaves didn't make it: a grave where they stood.
   for (let i = occupied(); i < before; i++) {
+    memorialize(i, `${name} 때문에 마을을 떠났어요`); // tales.js
     const p = people.find((e) => e.home === i && !e.small);
     if (p) tomb(p.x, p.y);
   }
@@ -438,6 +441,7 @@ function story(text) {
   tickDay();
   S.story.unshift({ day: S.days, text, t: Date.now() });
   chronicle(text);
+  taleOf(text); // into the life story of whoever it names (tales.js)
   S.story.length = Math.min(S.story.length, 40);
 }
 
@@ -1519,6 +1523,7 @@ function spawnFamily() {
   // A chaos town passed between friends: whoever fell stays gone (chaos.js ghost()).
   if (MODE === 'chaos' && S.gone?.length) people = people.filter((p) => !p.who || !S.gone.includes(p.who));
   people.push(...guestPeople()); // friends walking around (visit.js)
+  people = people.filter((p) => !onTrip(p)); // someone away on a trip (tales.js)
   villageSpawn();
 }
 function shade(hex) {
@@ -1896,6 +1901,7 @@ function tick() {
   moved = guestTick() || moved;
   moved = pokeTick() || moved;
   moved = govTick() || moved;
+  moved = tripTick() || moved;
   if (me.sulk > 0) me.sulk--;
   for (const s of sites) s.left--;
   if (sites.length && sites[0].left <= 0) sites.shift();

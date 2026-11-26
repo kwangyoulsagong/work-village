@@ -49,10 +49,12 @@ function paintAlbum() {
   const list = document.getElementById('albumList');
   if (!list) return;
   const tab = document.getElementById('albumTab');
-  if (tab) tab.textContent = `앨범 ${album.length}`;
+  if (tab) tab.textContent = `앨범 ${album.length + (MODE === 'life' ? S.cards?.length ?? 0 : 0)}`;
   if (list.closest('.tab-body')?.hidden) return;
-  if (!album.length) return list.replaceChildren(el('li', 'empty', '큰 일이 생기면 사진이 남아요. 지금 찍어도 돼요.'));
+  const cards = MODE === 'life' ? postcardRows() : []; // postcards from trips (tales.js)
+  if (!album.length && !cards.length) return list.replaceChildren(el('li', 'empty', '큰 일이 생기면 사진이 남아요. 지금 찍어도 돼요.'));
   list.replaceChildren(
+    ...cards,
     ...album.map((p) => {
       const li = el('li', 'photo');
       const img = el('img');

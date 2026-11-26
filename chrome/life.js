@@ -720,10 +720,11 @@ function paintBuild() {
   const sig =
     rows.map((r) => r.group + r.name).join('|') +
     (S.coreOrder ?? coreOrderNow()).join() +
+    towerSig() +
     (S.wishes ?? []).map((w) => `${w.i}${w.id}${w.until - S.days}${S.coins >= ((w.kind === 'decor' ? DECOR.find((d) => d.id === w.id) : SHOP_ANIMALS.find((a) => a.key === w.id))?.cost ?? 0)}`).join();
   if (list.dataset.sig !== sig) {
     list.dataset.sig = sig;
-    const items = [...wishRows(), ...tellerRows()];
+    const items = [...wishRows(), ...towerRows(), ...tellerRows()]; // the old tower (tales.js)
     let group = '';
     for (const r of rows) {
       if (r.group !== group) {
