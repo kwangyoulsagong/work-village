@@ -30,8 +30,8 @@ local helper) or, with neither, the minutes the browser is open. Plain HTML/JS, 
    what's on screen; stop when the panel is hidden. Check frame time after adding anything that draws every frame.
 5. **Serverless, local only.** No network calls, with one exception: `live.js` joins two panels on the same network
    with a WebRTC data channel, `iceServers: []` (local addresses only, no STUN/TURN), the handshake passed by hand as codes.
-   Never add a server, a STUN/TURN host or any other origin. Saves go through `aquila.storage` (Aquila: 512 KB in all; the photo
-   album has its own key and stays small) or `chrome.storage`. The native helper only reads ~/.claude / ~/.codex.
+   Never add a server, a STUN/TURN host or any other origin. Saves go through `aquila.storage` (Aquila: 10 MB in all; the photo
+   album has its own key, 48 photos at most) or `chrome.storage` (10 MB). The native helper only reads ~/.claude / ~/.codex.
 6. **Load order.** Scripts load in the order in `aquila/index.html`; files before `game.js` must not use `game.js`
    constants at top level, only inside functions.
 7. **Korean UI copy, written from the player's side** (Toss style: short, plain, polite). Code, comments, commits in

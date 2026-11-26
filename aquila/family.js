@@ -187,7 +187,7 @@ function familyDone(id) {
 function remember(text) {
   const f = famState();
   f.mem.unshift({ day: S.days, text });
-  f.mem.length = Math.min(f.mem.length, 30);
+  f.mem.length = Math.min(f.mem.length, 60);
 }
 
 // ── Each day: birthdays, anniversaries, first words, a child's wish ──────────────────────────────────────────────

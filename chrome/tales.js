@@ -47,7 +47,7 @@ function tripTick(force = false) {
   while (t.sent < 2 && part >= (t.sent + 1) / 3) {
     t.sent++;
     const places = PLACES[Math.max(0, Math.min(5, t.era))];
-    S.cards = [{ who: t.who === 'dog' ? 'dog' : t.who, name: tripName(t), place: places[rand(0, places.length - 1)], day: S.days, seed: (Math.random() * 1e6) | 0, era: t.era }, ...(S.cards ?? [])].slice(0, 24);
+    S.cards = [{ who: t.who === 'dog' ? 'dog' : t.who, name: tripName(t), place: places[rand(0, places.length - 1)], day: S.days, seed: (Math.random() * 1e6) | 0, era: t.era }, ...(S.cards ?? [])].slice(0, 48);
     story(`💌 ${tripName(t)}에게서 엽서가 왔어요: "${S.cards[0].place}에 왔어요!"`);
   }
   if (now >= t.back) {
@@ -153,7 +153,7 @@ function taleOf(text) {
     const list = (S.bio[i] ??= []);
     if (list[0]?.text === text) continue;
     list.unshift({ day: S.days, text: text.replace(/^[^\p{L}\p{N}]+/u, '') });
-    list.length = Math.min(list.length, 6);
+    list.length = Math.min(list.length, 12);
   }
 }
 function bioLine(i) {
@@ -164,7 +164,7 @@ function bioLine(i) {
 /** A family that leaves (illness, war, moving away): remembered. */
 function memorialize(i, why) {
   if (MODE !== 'life' || !FAMILIES[i]) return;
-  S.memorial = [{ name: FAMILIES[i].single, family: FAMILIES[i].family, day: S.days, why, years: (S.bio?.[i] ?? []).length }, ...(S.memorial ?? [])].slice(0, 20);
+  S.memorial = [{ name: FAMILIES[i].single, family: FAMILIES[i].family, day: S.days, why, years: (S.bio?.[i] ?? []).length }, ...(S.memorial ?? [])].slice(0, 40);
   if (S.bio) delete S.bio[i]; // a new family may move in there
 }
 function memorialRows() {

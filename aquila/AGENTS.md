@@ -31,7 +31,7 @@ Ask only for what the page uses: the user sees the list before enabling it, and 
 | `system` | `aquila.system()` and the `system` event: `{ cpu, cores, load, memory: { used, total }, appMemory, onBattery, saver, at }` (cpu in %, bytes) |
 | `sessions:status` | `aquila.sessions()` and the `sessions` event: `{ counts: { working, waiting, done, error, idle, stopped }, total }`; the `waiting` event `{ count }` when a session starts waiting |
 | `usage` | `aquila.usage()` and the `usage` event: `[{ account, kind, fiveHour, weekly, near }]` (percent or null) |
-| `storage` | `aquila.storage.get/set/remove/keys` — JSON values, 512 KB in all |
+| `storage` | `aquila.storage.get/set/remove/keys` — JSON values, 10 MB in all |
 | `notify` | `aquila.notify(title, body)` — a macOS banner, at most one per 10 s |
 | `background` | may keep running while the panel is closed, if the user allows it; otherwise a hidden page is closed after 5 minutes |
 | `network:<domain>` | `fetch`/WebSocket to `https://<domain>` (`*.example.com` for subdomains). Nothing else reaches the network |

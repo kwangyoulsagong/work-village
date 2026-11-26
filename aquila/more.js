@@ -4,7 +4,7 @@
 
 // ── Photo album: the town at its big moments (and when you press the button) ─────────────────────────────────────
 
-const ALBUM_MAX = 12;
+const ALBUM_MAX = 48; // about 15 KB a photo: well inside the 10 MB storage
 let album = []; // { day, era, caption, src } — kept under its own storage key, apart from the save
 
 async function loadAlbum() {

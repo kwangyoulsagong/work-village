@@ -19,7 +19,7 @@ function chronicle(text) {
   if (!BIG.test(text) || MODE !== 'life') return;
   S.chronicle ??= [];
   S.chronicle.unshift({ day: S.days, era: S.era, text });
-  S.chronicle.length = Math.min(S.chronicle.length, 80);
+  S.chronicle.length = Math.min(S.chronicle.length, 200);
 }
 
 // ── While you were away ────────────────────────────────────────────────────────────────────────────────────────────
