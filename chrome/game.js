@@ -647,7 +647,8 @@ function nextTask(noJob = false) {
   if (mine && live() && !noJob && Math.random() < 0.45) {
     const hunt = mine.id === 'hunter' ? myHuntTask(mine) : null; // a hunter really hunts (village.js)
     if (hunt) return hunt;
-    return { to: jobPlace(me, mine), tool: mine.tool ?? 'sparkle', what: `${josa(mine.name, '으로', '로')} 일하기`, act: () => jobDone(mine), job: true };
+    // On arrival you go in: the workplace scene (work.js), its moment and its result.
+    return { to: jobPlace(me, mine), tool: mine.tool ?? 'sparkle', what: `${josa(mine.name, '으로', '로')} 일하러 가기`, act: () => (jobDone(mine), startWork(mine)), job: true, dur: 6 };
   }
   const f = S.friends.findIndex((x, i) => i < occupied() && x && x.day !== today() && i !== S.spouse);
   if (f >= 0) return { to: doorOf(f), tool: 'talk', what: `${FAMILIES[f].family}에 놀러 가기`, act: () => visit(f), dur: 30, dir: 'u' };
@@ -1686,6 +1687,12 @@ function frame() {
     drawMini();
     return;
   }
+  if (workView()) {
+    // At work: the workplace scene (work.js).
+    drawWorkScene(ctx);
+    drawMini();
+    return;
+  }
   if (insideView()) {
     // You're at home and the view follows you: inside the house (home.js).
     drawInterior(ctx);
@@ -1907,6 +1914,7 @@ function tick() {
   moved = homeTick() || moved;
   moved = familyTick() || moved;
   moved = guestTick() || moved;
+  moved = workTick() || moved;
   moved = pokeTick() || moved;
   moved = govTick() || moved;
   moved = tripTick() || moved;
@@ -2397,6 +2405,7 @@ async function start() {
   wireHome();
   wireFamily();
   wireGuest();
+  wireWork();
   wireCozy();
   wireGov();
   wireStealth();

@@ -85,6 +85,7 @@ function whoIs(e) {
   if (e.car) return { name: e.car.type === 'runner' ? '달리던 사람' : '지나가던 사람', role: '나그네' };
   if (e.kind === 'guest') return { name: e.name ?? '이웃', role: '친구', guest: true };
   if (e.kind === 'spouse') return { name: FAMILIES[S.spouse]?.single ?? '배우자', role: '내 배우자', heart: true };
+  if (e.kind === 'kid' && !e.baby && youRule() && S.era >= 1 && S.era <= 2 && !movedOut(+String(e.who).slice(1))) return { name: nameFor(e).name, role: e.gender === 'm' ? '왕자' : '공주', kid: true, mine: true };
   if (e.kind === 'kid') return { name: nameFor(e).name, role: e.baby ? '내 아기' : movedOut(+String(e.who).slice(1)) ? '독립한 내 아이' : '내 아이', kid: true, mine: true };
   if (e.who?.startsWith('h') && e.who.endsWith('a') && fam) return { name: fam.single, role: `${e.job?.name ?? '주민'} ${fam.flag ?? ''}`, head: i };
   if (e.who?.startsWith('h') && e.who.endsWith('s') && fam) return { name: nameFor(e).name, role: `${fam.family} 아이`, kid: true };
