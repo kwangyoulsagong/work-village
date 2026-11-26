@@ -837,6 +837,7 @@ function drawInterior(g) {
   // Family about the house: your spouse at the table, the dog on the rug, the cat on the bed.
   drawFamilyTable(g);
   if (S.spouse != null && !homeStay?.fam) shifted(g, pieceKey('table'), () => person(g, { kind: 'spouse', x: 76, y: 66, dir: 'l', path: [], frame: 0, seed: 3, gender: FAMILIES[S.spouse].gender }, FAMILIES[S.spouse].look));
+  drawFamilyHome(g, clockTick()); // the children about the house (family.js)
   if (S.dog) shifted(g, pieceKey('rug'), () => drawAnimal(g, { x: 44, y: 84, dir: 'r', path: [], frame: 0 }, DOG, dogBreed().pal, 12, 9, 10));
   if (S.cat) shifted(g, pieceKey('bed'), () => drawAnimal(g, { x: 26, y: 47, dir: 'l', path: [], frame: 0 }, CAT, { ...CAT_PAL, y: '#f4f1ea' }, 10, 7, 8));
   drawFurniture(g, t);

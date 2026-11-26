@@ -597,3 +597,27 @@ function kidTalked(e) {
   saveSoon();
   return ' (유대 +3)';
 }
+
+/** Inside, any other time: the baby in a cradle by the rug, the little ones playing on it, a grown child at home. */
+function drawFamilyHome(g, t) {
+  if (homeStay?.fam || !S.kids) return;
+  let small = 0;
+  shifted(g, pieceKey('rug'), () =>
+    S.kidAges.forEach((a, i) => {
+      if (!homeToday(i)) return;
+      const p = { kind: 'kid', gender: i % 2 ? 'm' : 'f', small: a < 7, baby: a < 3, look: { hair: '#4a2f1f', top: KID_TOPS[i], legs: '#4b4560' } };
+      if (p.baby) {
+        // A cradle that rocks a little.
+        const rock = Math.floor(t / 10) % 2;
+        box(g, 52 + rock, 70, 14, 6, '#a8743a', OL);
+        R(g, 53, 76, 2, 2, '#8a5a32');
+        R(g, 63, 76, 2, 2, '#8a5a32');
+        famPut(g, p, 59 + rock, 72, 'd', i);
+        if (t % 48 < 20) spr(g, NOTE_PX, { o: '#8a8eb0' }, 68, 60 - ((t % 48) >> 2)); // a lullaby
+      } else if (p.small || a < 14) {
+        famPut(g, p, 72 + small * 12 + Math.round(Math.sin(t / 6 + i) * 3), 84, small % 2 ? 'l' : 'r', i, (t + i * 4) % 12 < 6 ? -1 : 0);
+        small++;
+      } else famPut(g, p, 96, 84, 'l', i);
+    }),
+  );
+}

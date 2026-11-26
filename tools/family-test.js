@@ -95,6 +95,13 @@ app.whenReady().then(async () => {
   await wait(350);
   await shot('family-wall-cake.png');
 
+  // At home any other time: the baby in a cradle, the little ones on the rug.
+  for (const kids of [[0], [1, 5], [2, 8, 15]]) {
+    await js(town(3, kids) + `lifeCam = null; houseView = true; homeStay = null; paintHome(); return 1;`);
+    await wait(300);
+    await shot(`family-home-${kids.join('-')}.png`);
+  }
+
   // The 나 tab and the person card.
   const meTab = await js(town(4) + `S.fam = { mem: [{ day: 3, text: '테스트 추억' }] }; paintMe(); const t = $('meList').textContent;
     const kid = people.find((p) => p.kind === 'kid' && p.who === 'k2'); openTalk(kid); const stat = $('talkStats').textContent; const btn = [...$('talkActions').children].map((b) => b.textContent);
