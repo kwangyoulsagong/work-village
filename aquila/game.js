@@ -1507,6 +1507,7 @@ function spawnFamily() {
     );
   const kidTops = ['#f2a65a', '#5ab4e0', '#e05a9a'];
   for (let k = 0; k < S.kids; k++)
+    if ((S.kidAges[k] ?? 0) >= 3) // a baby doesn't walk about: it rides with a parent (family.js drawBabyCarry)
     people.push(
       make('kid', kidStart(k), { // a grown child who moved out starts at their own place (family.js)
         who: `k${k}`,
@@ -1594,6 +1595,7 @@ function person(g, e, c) {
     if (c?.skin) lookExtras(g, c, at);
     if (e.job && !e.zombie) drawGear(g, e.job, at.x, at.y, at.side, at.flip);
     if (S.worn) drawHat(g, e, at); // a hat you gave them (cozy.js)
+    if (e.kind === 'spouse') drawBabyCarry(g, e, at); // the baby rides along (family.js)
     return;
   }
   const st = S.style;
@@ -1622,6 +1624,7 @@ function person(g, e, c) {
   else if (st.hat === 'crown') H2(['..g.g..g.g..', '..gGggGggg..', '..gggrgggg..'], -3);
   else if (myJob()) drawGear(g, myJob(), x, y, side, flip); // the job's hat when the shop sold you none
   else if (S.era >= 2) H2(['.....gg.....'], -1); // a little badge of office
+  if (S.spouse == null && MODE === 'life') drawBabyCarry(g, e, at); // no spouse: you carry the baby (family.js)
 }
 
 function chicken(g, e) {

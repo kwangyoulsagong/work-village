@@ -75,7 +75,7 @@ app.whenReady().then(async () => {
     const along = people.filter((p) => (p.kind === 'spouse' || p.kind === 'kid') && p.goal?.what === 'play').length;
     me.x = t.to[0] * T + T / 2; me.y = t.to[1] * T + T / 2; famOut.x = me.x; famOut.y = me.y; moveCam(me.x - VIEW_W / 2);
     return { what, o, along };`);
-  ok(/소풍/.test(out.what) && out.o && out.along === 4, 'a picnic: ' + JSON.stringify(out));
+  ok(/소풍/.test(out.what) && out.o && out.along === 3, 'a picnic: ' + JSON.stringify(out));
   await wait(400);
   await shot('family-picnic.png');
   const outDone = await js(`const said = task.act(); task = null; return { said, gone: !famOut, n: S.fam.n };`);
@@ -100,6 +100,15 @@ app.whenReady().then(async () => {
     await js(town(3, kids) + `lifeCam = null; houseView = true; homeStay = null; paintHome(); return 1;`);
     await wait(300);
     await shot(`family-home-${kids.join('-')}.png`);
+  }
+
+  // Outside, the baby doesn't walk: it rides in a pram (industrial on) or a sling, with your spouse (or you).
+  for (const era of [1, 4]) {
+    const r = await js(town(era, [1, 6]) + `const babyWalks = people.some((p) => p.who === 'k0'); const sp = people.find((p) => p.kind === 'spouse'); sp.hidden = false; sp.path = []; sp.act = null; sp.held = true;
+      sp.x = me.x + 20; sp.y = me.y; sp.dir = 'r'; moveCam(me.x - VIEW_W / 2); houseView = false; homeStay = null; return { babyWalks, kids: people.filter((p) => p.kind === 'kid').length };`);
+    ok(!r.babyWalks && r.kids === 1, `no baby walking about (era ${era}): ` + JSON.stringify(r));
+    await wait(350);
+    await shot(`family-baby-out-${era}.png`);
   }
 
   // The 나 tab and the person card.

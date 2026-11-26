@@ -650,3 +650,37 @@ function drawCradle(g, x, y, t, colour) {
   g.fillStyle = 'rgba(90, 106, 138, 0.9)';
   g.fillText('z', bx + 14 + z / 9, y - 1 - z / 6);
 }
+
+// ── Out with the baby: nobody that small walks about alone ───────────────────────────────────────────────────────
+
+const babiesOut = () => (MODE === 'life' ? S.kidAges.map((a, i) => ({ a, i })).filter((k) => k.a < 3 && homeToday(k.i)) : []);
+/** Over your spouse (or you, with no spouse): a pram pushed ahead (industrial on), a sling on the chest before. */
+function drawBabyCarry(g, e, at) {
+  if (insideView() || guestView()) return; // the room draws its own cradle
+  const kids = babiesOut();
+  if (!kids.length) return;
+  const colour = KID_TOPS[kids[0].i];
+  const { x, y, side, flip } = at;
+  if (S.era >= 3) {
+    // A pram in front, in the direction they face (to the side when facing you or away).
+    const right = side === 'r' ? !flip : true;
+    const px = right ? x + 11 : x - 10;
+    const py = y + 10;
+    const wheel = (e.frame ?? 0) % 8 < 4 ? '#3a3a42' : '#5a5a66';
+    R(g, right ? px - 2 : px + 10, py + 1, 3, 1, '#5a5a66'); // the handle
+    box(g, px, py + 2, 10, 5, '#f6efe4', OL); // a white pram body stands out from any shirt
+    box(g, right ? px + 4 : px, py - 1, 6, 4, colour, OL); // the hood
+    disc(g, right ? px + 3 : px + 7, py + 2, 1, SKIN);
+    disc(g, px + 2, py + 8, 1, wheel);
+    disc(g, px + 8, py + 8, 1, wheel);
+    if (kids.length > 1) R(g, px + 3, py + 4, 4, 1, KID_TOPS[kids[1].i]); // twins of a sort: two blankets
+    return;
+  }
+  // A sling across the chest: the baby's head peeking out.
+  if (side === 'u') return void R(g, x + 3, y + 11, 6, 2, '#f6efe4'); // from behind: just the strap
+  const sx = side === 'r' ? (flip ? x + 1 : x + 5) : x + 3;
+  box(g, sx, y + 11, 7, 5, '#f6efe4', OL); // a white sling, whatever they wear
+  R(g, sx + 1, y + 14, 5, 1, colour);
+  disc(g, sx + 3, y + 11, 2, SKIN);
+  R(g, sx + 2, y + 9, 3, 1, '#4a2f1f'); // a tuft of hair
+}
