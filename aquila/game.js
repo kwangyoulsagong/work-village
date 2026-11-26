@@ -2146,7 +2146,8 @@ function paintUi() {
     town,
     ...JOBS.map((j) => {
       const n = jobs.get(j.name);
-      const li = el('li', '', j.era > S.era ? `${ERAS[j.era].name}에 열려요` : `${j.name}${n ? ` ${n}명` : ''} · +${pct(jobPay(j, null))}`);
+      const gone = j.era <= S.era && jobUntil(j) < S.era;
+      const li = el('li', '', j.era > S.era ? `${ERAS[j.era].name}에 열려요` : gone ? `${j.name} · 지난 시대` : `${j.name}${n ? ` ${n}명` : ''} · +${pct(jobPay(j, null))}`);
       li.style.opacity = n || j.id === S.job ? '1' : '0.45';
       return li;
     }),

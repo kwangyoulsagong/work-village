@@ -151,7 +151,7 @@ const hasElder = (i) => ((i * 7 + (S.mapSeed ?? 0)) >>> 0) % 3 === 0;
 /** Base pay of an era's jobs, as a share of what you earn by working. Later eras pay more. */
 const JOB_PAY = [0.05, 0.07, 0.09, 0.11, 0.13, 0.16];
 /** Jobs that pay in hits and misses: sometimes a lot, sometimes little. */
-const VOLATILE = new Set(['athlete', 'soccer', 'star', 'creator', 'gamer', 'bard', 'hunter']);
+const VOLATILE = new Set(['athlete', 'soccer', 'star', 'creator', 'gamer', 'bard', 'hunter', 'actor', 'wrestler', 'gladiator', 'jester', 'circus', 'baseball', 'basketball', 'volleyball', 'holoidol', 'zerog', 'storyteller']);
 /** How well traits fit a job: 0.2 (not at all) … 1 (perfectly). */
 const jobFit = (j, t) => {
   const [a, b] = JOB_FIT[j.id];
@@ -160,7 +160,8 @@ const jobFit = (j, t) => {
 /** A job's pay for someone: era base × (0.5 + fit), swinging for the volatile ones. */
 function jobPay(j, traits, luck = 0.5) {
   if (!j) return 0;
-  const pay = JOB_PAY[j.era] * (0.5 + jobFit(j, traits)) * (1 + (S.era - j.era) * 0.15);
+  const je = j.until ? Math.min(S.era, j.until) : j.era; // a job that lasts many eras pays like its time
+  const pay = JOB_PAY[je] * (0.5 + jobFit(j, traits)) * (1 + (S.era - je) * 0.15);
   return VOLATILE.has(j.id) ? pay * (0.3 + luck * 1.4) : pay;
 }
 const myPay = (luck = Math.random()) => jobPay(myJob(), S.traits, luck);

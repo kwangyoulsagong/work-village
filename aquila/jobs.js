@@ -1,36 +1,61 @@
-// 작은 마을 — jobs: 24 of them, four an era. Villagers take one of the two latest eras' jobs, go to its workplace,
+// 작은 마을 — jobs: about fifty, six to eight open in any era (research in TODO.md). Villagers take one of the two latest eras' jobs, go to its workplace,
 // wear its gear and play its motion. (Life mode; the protagonist keeps their own title.)
 'use strict';
 
+// A job lasts two eras (its own and the next) unless it says `until`; some change their name with the times.
+const eraName = (j) => j.names[Math.max(0, Math.min(j.names.length - 1, S.era))] || j.names.find(Boolean);
 const JOBS = [
   { id: 'hunter', name: '사냥꾼', era: 0, at: 'woods', tool: 'bow', top: '#6b7a3a', gear: 'band' },
   { id: 'gatherer', name: '채집꾼', era: 0, at: 'woods', tool: 'pick', top: '#8a6a3a' },
   { id: 'fisher', name: '어부', era: 0, at: 'lake', tool: 'rod', top: '#4a7a9a', gear: 'straw' },
   { id: 'shaman', name: '주술사', era: 0, at: 'plaza', tool: 'staff', top: '#7a3a5a', gear: 'feather' },
+  { id: 'storyteller', name: '이야기꾼', era: 0, at: 'plaza', tool: 'staff', top: '#a8643a', gear: 'feather' },
+  { id: 'wrestler', name: '씨름꾼', era: 0, at: 'plaza', tool: null, top: '#c8503a', gear: 'band' },
+  { id: 'herbalist', name: '약초꾼', era: 0, at: 'woods', tool: 'pick', top: '#5a8a4a', gear: 'straw' },
   { id: 'farmer', name: '농부', era: 1, at: 'farm', tool: 'hoe', top: '#c9a24a', gear: 'straw' },
   { id: 'smith', name: '대장장이', era: 1, at: 'store', tool: 'hammer', top: '#5a4a42', gear: 'apron' },
-  { id: 'athlete', name: '운동선수', era: 1, at: 'run', tool: null, top: '#e8505b', gear: 'band' },
+  { id: 'athlete', name: '올림픽 선수', era: 1, at: 'run', tool: null, top: '#e8505b', gear: 'band' },
   { id: 'merchant', name: '상인', era: 1, at: 'stall', tool: 'coin', top: '#2f7a6a', gear: 'turban' },
+  { id: 'actor', era: 1, until: 5, names: ['', '가면 배우', '유랑 극단 배우', '연극 배우', '배우', '홀로 배우'], get name() { return eraName(this); }, at: 'plaza', tool: 'mic', top: '#b04a8a', gear: 'shades' },
+  { id: 'judge', era: 1, until: 5, names: ['', '판관', '판관', '판사', '판사', '판사'], get name() { return eraName(this); }, at: 'bench', tool: 'pray', top: '#2a2a33', gear: 'wig' },
+  { id: 'scribe', name: '서기관', era: 1, at: 'bench', tool: 'mail', top: '#d8c8a0', gear: 'turban' },
+  { id: 'gladiator', name: '검투사', era: 1, at: 'plaza', tool: 'sword', top: '#a8743a', gear: 'helm' },
+  { id: 'servant', name: '노비', era: 1, until: 2, at: 'doors', tool: 'bread', top: '#9a8a74' },
   { id: 'knight', name: '기사', era: 2, at: 'patrol', tool: 'sword', top: '#9aa0aa', gear: 'helm' },
   { id: 'bard', name: '음유시인', era: 2, at: 'plaza', tool: 'lute', top: '#8a4ab0', gear: 'feather' },
   { id: 'baker', name: '제빵사', era: 2, at: 'stall', tool: 'bread', top: '#f4efe6', gear: 'chef' },
   { id: 'monk', name: '수도사', era: 2, at: 'temple', tool: 'pray', top: '#7a5a3a', gear: 'hood' },
+  { id: 'jester', name: '광대', era: 2, at: 'plaza', tool: 'staff', top: '#e8c050', gear: 'jester' },
+  { id: 'samurai', name: '무사', era: 2, at: 'patrol', tool: 'sword', top: '#3a3a5a', gear: 'topknot' },
   { id: 'miner', name: '광부', era: 3, at: 'mine', tool: 'pickaxe', top: '#5a5a62', gear: 'lamp' },
   { id: 'worker', name: '공장 노동자', era: 3, at: 'factory', tool: 'wrench', top: '#3a5a8a', gear: 'cap' },
   { id: 'mail', name: '우체부', era: 3, at: 'doors', tool: 'mail', top: '#c0402e', gear: 'cap' },
   { id: 'police', name: '경찰', era: 3, at: 'patrol', tool: 'whistle', top: '#2a3a6a', gear: 'police' },
+  { id: 'baseball', name: '야구 선수', era: 3, until: 5, at: 'plaza', tool: 'ball', top: '#f4f6f8', gear: 'cap' },
+  { id: 'circus', name: '서커스 단원', era: 3, at: 'plaza', tool: 'sparkle', top: '#e0475f', gear: 'band' },
+  { id: 'lawyer', name: '변호사', era: 3, until: 5, at: 'bench', tool: 'laptop', top: '#3a3f4a', gear: 'tie' },
+  { id: 'inventor', name: '발명가', era: 3, at: 'store', tool: 'wrench', top: '#8a6a4a', gear: 'goggles' },
+  { id: 'soccer', name: '축구 선수', era: 3, until: 5, at: 'plaza', tool: 'ball', top: '#2a8a4a', gear: 'number' },
+  { id: 'basketball', name: '농구 선수', era: 3, until: 5, at: 'plaza', tool: 'ball', top: '#e8892a', gear: 'band' },
   { id: 'office', name: '회사원', era: 4, at: 'bench', tool: 'laptop', top: '#3a3f4a', gear: 'tie' },
   { id: 'nurse', name: '간호사', era: 4, at: 'hospital', tool: 'heart', top: '#f4f6f8', gear: 'nurse' },
-  { id: 'soccer', name: '축구 선수', era: 4, at: 'plaza', tool: 'ball', top: '#2a8a4a', gear: 'number' },
-  { id: 'star', name: '연예인', era: 4, at: 'plaza', tool: 'mic', top: '#e07aa0', gear: 'shades' },
+  { id: 'star', name: '가수', era: 4, at: 'plaza', tool: 'mic', top: '#e07aa0', gear: 'shades' },
+  { id: 'volleyball', name: '배구 선수', era: 4, until: 5, at: 'plaza', tool: 'ball', top: '#3a7ad0', gear: 'band' },
+  { id: 'doctor', name: '의사', era: 4, until: 5, at: 'hospital', tool: 'heart', top: '#ffffff', gear: 'mirror' },
+  { id: 'chef', name: '요리사', era: 4, until: 5, at: 'stall', tool: 'bread', top: '#ffffff', gear: 'chef' },
+  { id: 'firefighter', name: '소방관', era: 4, at: 'patrol', tool: 'whistle', top: '#d8503a', gear: 'fire' },
+  { id: 'programmer', name: '프로그래머', era: 4, until: 5, at: 'bench', tool: 'laptop', top: '#3a3a5a', gear: 'headset' },
   { id: 'robotics', name: '로봇 공학자', era: 5, at: 'factory', tool: 'wrench', top: '#d7e3ee', gear: 'goggles' },
   { id: 'astronaut', name: '우주비행사', era: 5, at: 'rocket', tool: 'sparkle', top: '#f2f4f6', gear: 'space' },
   { id: 'gamer', name: '프로게이머', era: 5, at: 'bench', tool: 'laptop', top: '#3a2a5a', gear: 'headset' },
   { id: 'creator', name: '크리에이터', era: 5, at: 'plaza', tool: 'phone', top: '#f2a65a', gear: 'cap' },
+  { id: 'holoidol', name: '홀로 아이돌', era: 5, at: 'plaza', tool: 'mic', top: '#9a7aff', gear: 'shades' },
+  { id: 'zerog', name: '무중력 구기 선수', era: 5, at: 'plaza', tool: 'ball', top: '#5ad7e8', gear: 'space' },
 ];
+const jobUntil = (j) => j.until ?? Math.min(5, j.era + 1);
 
 /** The jobs a villager can have now: those of the two latest eras reached. */
-const jobPool = () => JOBS.filter((j) => j.era <= S.era && j.era >= S.era - 1);
+const jobPool = () => JOBS.filter((j) => j.era <= S.era && jobUntil(j) >= S.era);
 /** A neighbour's job: the open job their traits fit best (see bestJob below). */
 const jobFor = (i) => bestJob(villagerTraits(i), i);
 
@@ -147,6 +172,21 @@ function drawGear(g, j, x, y, side, flip) {
     case 'tie':
       if (side !== 'u') P(['.....rr.....', '.....r......'], { r: '#e8404b' }, 11);
       break;
+    case 'wig':
+      P(['..owwwwwwo..', '.owwwwwwwwo.', 'ow.w....w.wo', 'ow........wo'], { w: '#f4f4f0' }, -1);
+      break;
+    case 'jester':
+      P(['.r........y.', '.rr......yy.', '..rrrryyyy..', '..orrrryyyo.'], { r: '#e0475f', y: '#ffd23f' }, -3);
+      break;
+    case 'topknot':
+      P(['.....oo.....', '.....hh.....', '..hhhhhhhh..'], { h: '#1a1a22' }, -2);
+      break;
+    case 'mirror':
+      P(['............', '.oooooooooo.', '....oyyo....'], { y: '#e8eef4' }, 1);
+      break;
+    case 'fire':
+      P(['...oooooo...', '..orrrrrro..', '.orryyrrrro.', 'oooooooooooo'], { r: '#d8503a', y: '#ffd23f' }, -2);
+      break;
     case 'number':
       if (side === 'u') P(['.....ww.....', '.....w......', '.....ww.....'], { w: '#ffffff' }, 11);
       break;
@@ -242,13 +282,19 @@ const JOB_FIT = {
   miner: ['health', 'luck'], worker: ['green', 'health'], mail: ['health', 'trade'], police: ['health', 'charm'],
   office: ['trade', 'green'], nurse: ['charm', 'health'], soccer: ['health', 'luck'], star: ['charm', 'luck'],
   robotics: ['green', 'trade'], astronaut: ['health', 'luck'], gamer: ['luck', 'green'], creator: ['charm', 'trade'],
+  storyteller: ['charm', 'luck'], wrestler: ['health', 'charm'], herbalist: ['green', 'luck'], actor: ['charm', 'luck'],
+  judge: ['trade', 'charm'], scribe: ['trade', 'green'], gladiator: ['health', 'charm'], servant: ['green', 'health'],
+  jester: ['charm', 'luck'], samurai: ['health', 'luck'], baseball: ['health', 'luck'], circus: ['health', 'charm'],
+  lawyer: ['trade', 'charm'], inventor: ['trade', 'luck'], basketball: ['health', 'luck'], volleyball: ['health', 'charm'],
+  doctor: ['green', 'trade'], chef: ['green', 'charm'], firefighter: ['health', 'charm'], programmer: ['trade', 'luck'],
+  holoidol: ['charm', 'luck'], zerog: ['health', 'luck'],
 };
 // Read when used: TRAITS lives in game.js, which loads after this file.
 const traitName = (k) => Object.fromEntries(TRAITS)[k];
 
 /** The job (of the open ones) that fits these traits best; `salt` breaks ties so neighbours differ. */
-function bestJob(traits, salt = 0) {
-  const pool = jobPool();
+function bestJob(traits, salt = 0, skip = null) {
+  const pool = jobPool().filter((j) => j.id !== skip);
   let best = pool[0];
   let bestScore = -1;
   pool.forEach((j, i) => {
@@ -267,7 +313,7 @@ function villagerTraits(i) {
 /** Your job: what your traits fit best now; a story when it changes. */
 function updateMyJob(quiet = false) {
   if (!S.traits) return;
-  const j = bestJob(S.traits);
+  const j = bestJob(S.traits, 0, S.freed ? 'servant' : null); // once freed, never a servant again
   if (S.job === j.id) return;
   S.job = j.id;
   if (quiet) return;
