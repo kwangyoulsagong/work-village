@@ -15,10 +15,10 @@ app.whenReady().then(async () => {
   await win.loadFile(path.join(GAME, 'index.html'));
   await wait(1200);
   const url = await win.webContents.executeJavaScript(`(() => { try {
-    const c = document.createElement('canvas'); c.width = 6 * 34 + 4; c.height = 4 * 44 + 4;
+    const c = document.createElement('canvas'); c.width = 10 * 34 + 4; c.height = Math.ceil(JOBS.length / 10) * 44 + 4;
     const g = c.getContext('2d'); g.fillStyle = '#86c06a'; g.fillRect(0, 0, c.width, c.height);
     JOBS.forEach((j, i) => {
-      const col = i % 6, row = Math.floor(i / 6);
+      const col = i % 10, row = Math.floor(i / 10);
       const looks = [{ hair: '#3a2418' }, { hair: '#7a4a2a' }, { hair: '#1f1b2b' }, { hair: '#5a3022' }];
       const e = { kind: 'villager', x: 16 + col * 34, y: 30 + row * 44, dir: j.tool === 'pray' ? 'd' : 'r', frame: 0, path: [], seed: 0, gender: i % 2 ? 'm' : 'f', job: j };
       const at = drawPerson(g, e, { ...looks[i % 4], top: j.top, legs: '#4b4560' });

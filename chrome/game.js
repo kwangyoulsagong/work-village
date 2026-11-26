@@ -708,7 +708,10 @@ function advance() {
   photoSoon(`${era().name} 시대가 열린 날`);
   updateMyJob();
   const newJobs = JOBS.filter((j) => j.era === S.era).map((j) => j.name);
-  story(`새 직업이 생겼어요: ${newJobs.join(', ')}. 이웃들이 하나둘 일을 바꿔요.`);
+  const more = newJobs.length > 6 ? ` 외 ${newJobs.length - 6}개` : '';
+  story(`새 직업이 생겼어요: ${newJobs.slice(0, 6).join(', ')}${more}. 이웃들이 하나둘 일을 바꿔요.`);
+  const changed = JOBS.filter((j) => j.era < S.era && jobUntil(j) >= S.era && jobNameAt(j, S.era - 1) !== j.name);
+  if (changed.length) story(`일하는 모습도 바뀌었어요: ${changed.slice(0, 3).map((j) => `${jobNameAt(j, S.era - 1)} → ${j.name}`).join(', ')}${changed.length > 3 ? ' …' : ''}.`);
   spawnFamily();
   cache.dirty = true;
   spawnCars();
@@ -2144,12 +2147,13 @@ function paintUi() {
   $('jobList').replaceChildren(
     head,
     town,
-    ...JOBS.map((j) => {
+    ...jobPool().map((j) => {
       const n = jobs.get(j.name);
-      const li = el('li', '', j.era > S.era ? `${ERAS[j.era].name}에 열려요` : `${j.name}${n ? ` ${n}명` : ''} · +${pct(jobPay(j, null))}`);
+      const li = el('li', '', `${j.name}${n ? ` ${n}명` : ''} · +${pct(jobPay(j, null))}`);
       li.style.opacity = n || j.id === S.job ? '1' : '0.45';
       return li;
     }),
+    ...(ERAS[S.era + 1] ? [el('li', '', `${ERAS[S.era + 1].name}에 새 직업 ${JOBS.filter((j) => j.era === S.era + 1).length}개가 열려요`)] : []),
   );
   paintBuild();
   paintTimeline();

@@ -19,9 +19,11 @@
 - [x] 1단계(커밋됨): JOBS를 시대마다 6–8개로(jobs.js). `until`로 여러 시대에 걸치는 직업, `names`로 시대별 이름(eraName), 오래 가는
       직업은 그 시대 급여(life.js jobPay `je`). 새 직업 JOB_FIT·VOLATILE·장비(wig·jester·topknot·mirror·fire). 노비는 고대–중세만, 면천하면
       (S.freed) 다시 안 됨(bestJob skip). sim 71 %로 균형 그대로.
-- [ ] 2단계: 직업을 시대마다 10–15개 이상으로. 의사·간호사·경찰·소방관·교사·요리사·판사·군인 등은 한 id에 `until: 5` + 시대별 이름
-      (names)으로 시대마다 모습이 바뀌게. 미래: 로봇 의사·로봇 경찰·드론 소방대·AI 판사 보좌관·홀로 아이돌·무중력 구기 등.
-      바꾼 뒤 `npm run sim`(직업이 많아지면 맞는 직업을 더 잘 골라 수입이 오를 수 있음 → JOB_PAY 조정).
+- [x] 2단계(커밋됨): 79개, 시대마다 15 / 33 / 39 / 45 / 51 / 56개. `jobLine`: name·at·tool·top·gear를 시대별 목록으로(한 id가 약초꾼 →
+      의원 → 수도원 약사 → 왕진 의사 → 의사 → 로봇 의사). 줄기: 의사·간호사·경찰·소방관·선생님·요리사·군인·건축가·화가·춤꾼·어부·농부·
+      대장장이·상인·우체부·마부/기관사·선원·사제·악사·이발사·은행원·기자·천문학자·과학자·여관 등. 미래: 로봇 경찰·케어 로봇 간호사·드론
+      소방대·AI 조련사·테라포밍·메카 조종사 등. 직업 목록은 지금 열린 직업만 + 다음 시대 개수, 시대가 오르면 "의원 → 수도원 약사" 이야기.
+      새 장비 beret·antenna. sim 72 %(전과 같음).
 - [ ] 3단계: 일터 장면 `aquila/work.js`(새 파일: index.html·build-chrome.sh·tools/sim.js 목록에 추가). 설계:
       workStay {job, t:96, n:96, out:'great'|'ok'|'oops'}; game.js nextTask 직업 분기 `act`에서 startWork(mine) → 장면, 끝나면 jobDone + 결과.
       frame()에서 insideView 전에 workView()면 drawWorkScene. 장면 종류: stage·film·booth·office·court·lab·clinic·temple·kitchen·forge·

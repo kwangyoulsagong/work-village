@@ -1,57 +1,127 @@
-// 작은 마을 — jobs: about fifty, six to eight open in any era (research in TODO.md). Villagers take one of the two latest eras' jobs, go to its workplace,
+// 작은 마을 — jobs: about seventy-five, a dozen or more open in any era (research in TODO.md). Villagers take one of the two latest eras' jobs, go to its workplace,
 // wear its gear and play its motion. (Life mode; the protagonist keeps their own title.)
 'use strict';
 
-// A job lasts two eras (its own and the next) unless it says `until`; some change their name with the times.
-const eraName = (j) => j.names[Math.max(0, Math.min(j.names.length - 1, S.era))] || j.names.find(Boolean);
+// A job lasts two eras (its own and the next) unless it says `until` (a "line" lasting many eras). Any of name / at / tool /
+// top / gear may be a list by era (index = era, '' before it opens, the last one holds after), so a doctor is an herbalist in
+// the stone age, a monastery apothecary in the middle ages and a robot doctor in the future.
+const atEra = (v) => (Array.isArray(v) ? v[Math.max(0, Math.min(v.length - 1, S.era))] || v.find(Boolean) : v);
+function jobLine(o) {
+  const j = { id: o.id, era: o.era, raw: o };
+  if (o.until != null) j.until = o.until;
+  for (const k of ['name', 'at', 'tool', 'top', 'gear']) Object.defineProperty(j, k, { get: () => atEra(o[k]) ?? null, enumerable: true });
+  return j;
+}
+/** A job's name in a given era (for "the herbalist is now a doctor" stories). */
+const jobNameAt = (j, era) => {
+  const v = j.raw.name;
+  return Array.isArray(v) ? v[Math.min(v.length - 1, era)] || v.find(Boolean) : v;
+};
 const JOBS = [
+  // Stone age
   { id: 'hunter', name: '사냥꾼', era: 0, at: 'woods', tool: 'bow', top: '#6b7a3a', gear: 'band' },
   { id: 'gatherer', name: '채집꾼', era: 0, at: 'woods', tool: 'pick', top: '#8a6a3a' },
-  { id: 'fisher', name: '어부', era: 0, at: 'lake', tool: 'rod', top: '#4a7a9a', gear: 'straw' },
+  { id: 'fisher', name: ['어부', '어부', '어부', '어부', '원양 어부', '양식장 관리자'], era: 0, until: 5, at: 'lake', tool: 'rod', top: '#4a7a9a', gear: ['straw', 'straw', 'straw', 'cap', 'cap', 'goggles'] },
   { id: 'shaman', name: '주술사', era: 0, at: 'plaza', tool: 'staff', top: '#7a3a5a', gear: 'feather' },
   { id: 'storyteller', name: '이야기꾼', era: 0, at: 'plaza', tool: 'staff', top: '#a8643a', gear: 'feather' },
-  { id: 'wrestler', name: '씨름꾼', era: 0, at: 'plaza', tool: null, top: '#c8503a', gear: 'band' },
-  { id: 'herbalist', name: '약초꾼', era: 0, at: 'woods', tool: 'pick', top: '#5a8a4a', gear: 'straw' },
-  { id: 'farmer', name: '농부', era: 1, at: 'farm', tool: 'hoe', top: '#c9a24a', gear: 'straw' },
-  { id: 'smith', name: '대장장이', era: 1, at: 'store', tool: 'hammer', top: '#5a4a42', gear: 'apron' },
+  { id: 'wrestler', name: ['씨름꾼', '씨름꾼', '씨름 장사', '권투 선수', '격투기 선수', '로봇 격투 조종사'], era: 0, until: 5, at: 'plaza', tool: null, top: '#c8503a', gear: ['band', 'band', 'band', 'band', 'band', 'headset'] },
+  { id: 'firekeeper', name: '불지기', era: 0, until: 0, at: 'plaza', tool: 'staff', top: '#b0503a', gear: 'band' },
+  { id: 'potter', name: ['토기장이', '도공'], era: 0, at: 'store', tool: 'hammer', top: '#a8744a', gear: 'apron' },
+  { id: 'herder', name: ['짐승 길들이는 이', '목동', '양치기'], era: 0, until: 2, at: 'farm', tool: 'staff', top: '#8a7a4a', gear: 'straw' },
+  { id: 'doctor', name: ['약초꾼', '의원', '수도원 약사', '왕진 의사', '의사', '로봇 의사'], era: 0, until: 5, at: ['woods', 'hospital'], tool: ['pick', 'heart'],
+    top: ['#5a8a4a', '#e8e0c8', '#7a5a3a', '#3a3a42', '#ffffff', '#d7e3ee'], gear: ['straw', 'turban', 'hood', 'tie', 'mirror', 'antenna'] },
+  { id: 'teacher', name: ['어른 스승', '훈장', '수도원 선생', '선생님', '선생님', '홀로 선생님'], era: 0, until: 5, at: 'plaza', tool: ['staff', 'mail', 'pray', 'mail', 'laptop', 'phone'],
+    top: ['#8a6a3a', '#e8e0c8', '#5a4a6a', '#5a6a8a', '#4a7a6a', '#9ab0e0'], gear: ['feather', 'topknot', 'hood', 'tie', 'tie', 'antenna'] },
+  { id: 'builder', name: ['움집 짓는 이', '석공', '성 짓는 석공', '목수', '건축가', '3D 프린팅 건축가'], era: 0, until: 5, at: 'doors', tool: ['hammer', 'hammer', 'hammer', 'hammer', 'laptop', 'wrench'],
+    top: ['#8a6a3a', '#a89a7a', '#7a7a82', '#8a5a3a', '#f2c24a', '#e8eef4'], gear: ['band', 'straw', 'helm', 'cap', 'cap', 'goggles'] },
+  { id: 'painter', name: ['동굴 화가', '벽화가', '성화 화가', '화가', '일러스트레이터', '홀로 아티스트'], era: 0, until: 5, at: 'plaza', tool: ['staff', 'staff', 'staff', 'staff', 'laptop', 'sparkle'],
+    top: ['#a8643a', '#c89a5a', '#6a4a8a', '#4a5a8a', '#e07aa0', '#9a7aff'], gear: ['feather', 'turban', 'hood', 'beret', 'beret', 'shades'] },
+  { id: 'dancer', name: ['춤꾼', '무희', '궁중 무용수', '발레리나', '댄서', '홀로 댄서'], era: 0, until: 5, at: 'plaza', tool: 'sparkle',
+    top: ['#c8503a', '#e8c050', '#c0402e', '#f4c8d8', '#3a3a5a', '#9a7aff'], gear: ['feather', 'band', 'band', 'band', 'cap', 'shades'] },
+  { id: 'toolmaker', name: '석기 만드는 이', era: 0, until: 0, at: 'woods', tool: 'hammer', top: '#7a6a5a', gear: 'band' },
+  // Ancient
+  { id: 'sailor', name: ['', '뱃사공', '선원', '증기선 선원', '선장', '우주 항해사'], era: 1, until: 5, at: 'lake', tool: ['', 'rod', 'rod', 'rod', 'whistle', 'sparkle'],
+    top: ['', '#4a7a9a', '#3a5a8a', '#f4f6f8', '#ffffff', '#e8eef4'], gear: ['', 'band', 'band', 'cap', 'cap', 'space'] },
+  { id: 'priest', name: ['', '제사장', '신부', '목사', '목사', '디지털 명상가'], era: 1, until: 5, at: 'temple', tool: 'pray',
+    top: ['', '#f4efe6', '#2a2a33', '#2a2a33', '#2a2a33', '#e8eef4'], gear: ['', 'turban', 'hood', 'tie', 'tie', 'antenna'] },
+  { id: 'musician', name: ['', '악사', '궁정 악사', '오케스트라 단원', '밴드 기타리스트', '신스 연주자'], era: 1, until: 5, at: 'plaza', tool: 'lute',
+    top: ['', '#a8643a', '#6a4a8a', '#2a2a33', '#3a3a42', '#5ad7e8'], gear: ['', 'turban', 'feather', 'tie', 'shades', 'headset'] },
+  { id: 'farmer', name: ['', '농부', '농부', '농부', '농부', '스마트팜 농부'], era: 1, until: 5, at: 'farm', tool: 'hoe', top: '#c9a24a', gear: ['', 'straw', 'straw', 'straw', 'cap', 'goggles'] },
+  { id: 'smith', name: ['', '대장장이', '대장장이', '제철공', '용접공', '나노 대장장이'], era: 1, until: 5, at: 'store', tool: ['', 'hammer', 'hammer', 'hammer', 'wrench', 'wrench'], top: '#5a4a42', gear: ['', 'apron', 'apron', 'apron', 'goggles', 'goggles'] },
   { id: 'athlete', name: '올림픽 선수', era: 1, at: 'run', tool: null, top: '#e8505b', gear: 'band' },
-  { id: 'merchant', name: '상인', era: 1, at: 'stall', tool: 'coin', top: '#2f7a6a', gear: 'turban' },
-  { id: 'actor', era: 1, until: 5, names: ['', '가면 배우', '유랑 극단 배우', '연극 배우', '배우', '홀로 배우'], get name() { return eraName(this); }, at: 'plaza', tool: 'mic', top: '#b04a8a', gear: 'shades' },
-  { id: 'judge', era: 1, until: 5, names: ['', '판관', '판관', '판사', '판사', '판사'], get name() { return eraName(this); }, at: 'bench', tool: 'pray', top: '#2a2a33', gear: 'wig' },
+  { id: 'merchant', name: ['', '상인', '상인', '상점 주인', '편의점 사장', '우주 무역상'], era: 1, until: 5, at: 'stall', tool: 'coin', top: '#2f7a6a', gear: ['', 'turban', 'turban', 'apron', 'apron', 'space'] },
+  { id: 'actor', name: ['', '가면 배우', '유랑 극단 배우', '연극 배우', '배우', '홀로 배우'], era: 1, until: 5, at: 'plaza', tool: 'mic', top: '#b04a8a', gear: 'shades' },
+  { id: 'judge', name: ['', '판관', '판관', '판사', '판사', '판사'], era: 1, until: 5, at: 'bench', tool: 'pray', top: '#2a2a33', gear: 'wig' },
   { id: 'scribe', name: '서기관', era: 1, at: 'bench', tool: 'mail', top: '#d8c8a0', gear: 'turban' },
   { id: 'gladiator', name: '검투사', era: 1, at: 'plaza', tool: 'sword', top: '#a8743a', gear: 'helm' },
   { id: 'servant', name: '노비', era: 1, until: 2, at: 'doors', tool: 'bread', top: '#9a8a74' },
+  { id: 'police', name: ['', '포졸', '경비병', '순경', '경찰', '로봇 경찰'], era: 1, until: 5, at: 'patrol', tool: ['', 'staff', 'sword', 'whistle'],
+    top: ['', '#3a3a4a', '#9aa0aa', '#2a3a6a', '#2a3a6a', '#c8d4e0'], gear: ['', 'band', 'helm', 'police', 'police', 'antenna'] },
+  { id: 'nurse', name: ['', '산파', '수녀 간호사', '간호사', '간호사', '케어 로봇 간호사'], era: 1, until: 5, at: 'hospital', tool: 'heart',
+    top: ['', '#e8e0c8', '#3a3a42', '#f4f6f8', '#f4f6f8', '#e8eef4'], gear: ['', 'turban', 'hood', 'nurse', 'nurse', 'antenna'] },
+  { id: 'chef', name: ['', '부엌 요리사', '성 주방장', '식당 요리사', '요리사', '분자 요리사'], era: 1, until: 5, at: 'stall', tool: 'bread', top: '#ffffff', gear: 'chef' },
+  { id: 'soldier', name: ['', '창병', '궁수', '군인', '군인', '로봇 병사'], era: 1, until: 5, at: 'patrol', tool: ['', 'sword', 'bow', 'whistle'],
+    top: ['', '#a8743a', '#6b7a3a', '#5a6a4a', '#5a6a4a', '#b8bcc4'], gear: ['', 'helm', 'hood', 'cap', 'cap', 'antenna'] },
+  { id: 'tailor', name: ['', '베 짜는 이', '재단사', '재봉사', '패션 디자이너', '나노 옷 디자이너'], era: 1, until: 5, at: 'stall', tool: 'sparkle',
+    top: ['', '#e8e0c8', '#8a4a6a', '#5a4a42', '#2a2a33', '#9a7aff'], gear: ['', 'turban', 'hood', 'apron', 'shades', 'goggles'] },
+  { id: 'astronomer', name: ['', '별 보는 점성가', '천문학자', '천문학자', '천문학자', '우주 관측 연구원'], era: 1, until: 5, at: 'plaza', tool: 'sparkle',
+    top: ['', '#3a3a6a', '#3a3a6a', '#4a4a5a', '#ffffff', '#f2f4f6'], gear: ['', 'turban', 'hood', 'goggles', 'goggles', 'space'] },
+  // Middle ages
   { id: 'knight', name: '기사', era: 2, at: 'patrol', tool: 'sword', top: '#9aa0aa', gear: 'helm' },
   { id: 'bard', name: '음유시인', era: 2, at: 'plaza', tool: 'lute', top: '#8a4ab0', gear: 'feather' },
   { id: 'baker', name: '제빵사', era: 2, at: 'stall', tool: 'bread', top: '#f4efe6', gear: 'chef' },
   { id: 'monk', name: '수도사', era: 2, at: 'temple', tool: 'pray', top: '#7a5a3a', gear: 'hood' },
   { id: 'jester', name: '광대', era: 2, at: 'plaza', tool: 'staff', top: '#e8c050', gear: 'jester' },
   { id: 'samurai', name: '무사', era: 2, at: 'patrol', tool: 'sword', top: '#3a3a5a', gear: 'topknot' },
-  { id: 'miner', name: '광부', era: 3, at: 'mine', tool: 'pickaxe', top: '#5a5a62', gear: 'lamp' },
-  { id: 'worker', name: '공장 노동자', era: 3, at: 'factory', tool: 'wrench', top: '#3a5a8a', gear: 'cap' },
-  { id: 'mail', name: '우체부', era: 3, at: 'doors', tool: 'mail', top: '#c0402e', gear: 'cap' },
-  { id: 'police', name: '경찰', era: 3, at: 'patrol', tool: 'whistle', top: '#2a3a6a', gear: 'police' },
+  { id: 'falconer', name: '매사냥꾼', era: 2, until: 2, at: 'woods', tool: 'bow', top: '#6a5a3a', gear: 'feather' },
+  { id: 'firefighter', name: ['', '', '멸화군', '소방수', '소방관', '드론 소방대'], era: 2, until: 5, at: 'patrol', tool: 'whistle', top: '#d8503a', gear: 'fire' },
+  { id: 'alchemist', name: ['', '', '연금술사', '화학자', '과학자', '양자 과학자'], era: 2, until: 5, at: 'store', tool: 'sparkle',
+    top: ['', '', '#5a3a6a', '#ffffff', '#ffffff', '#e8eef4'], gear: ['', '', 'hood', 'goggles', 'goggles', 'antenna'] },
+  { id: 'innkeeper', name: ['', '', '주막 주인', '여관 주인', '호텔 지배인', '우주 호텔 지배인'], era: 2, until: 5, at: 'stall', tool: 'coin',
+    top: ['', '', '#8a6a4a', '#5a4a42', '#2a2a33', '#3a3a5a'], gear: ['', '', 'apron', 'apron', 'tie', 'tie'] },
+  { id: 'barber', name: ['', '', '이발사', '이발사', '미용사', '홀로 헤어 디자이너'], era: 2, until: 5, at: 'stall', tool: 'sparkle',
+    top: ['', '', '#f4f6f8', '#f4f6f8', '#e07aa0', '#9a7aff'], gear: ['', '', 'apron', 'apron', 'shades', 'shades'] },
+  // Industrial
+  { id: 'banker', name: ['', '', '', '은행원', '은행원', '코인 트레이더'], era: 3, until: 5, at: 'bench', tool: ['', '', '', 'coin', 'coin', 'laptop'], top: '#2a3a4a', gear: 'tie' },
+  { id: 'miner', name: ['', '', '', '광부', '광부', '소행성 광부'], era: 3, until: 5, at: 'mine', tool: 'pickaxe', top: '#5a5a62', gear: ['', '', '', 'lamp', 'lamp', 'space'] },
+  { id: 'worker', name: ['', '', '', '공장 노동자', '공장 노동자', '로봇 공장 감독관'], era: 3, until: 5, at: 'factory', tool: ['', '', '', 'wrench', 'wrench', 'laptop'], top: '#3a5a8a', gear: ['', '', '', 'cap', 'cap', 'headset'] },
+  { id: 'mail', name: ['', '파발꾼', '전령', '우체부', '택배 기사', '드론 배송 관리자'], era: 1, until: 5, at: 'doors', tool: ['', 'mail', 'mail', 'mail', 'mail', 'phone'], top: ['', '#8a6a3a', '#3a5a8a', '#c0402e', '#3a6a5a', '#f2a65a'], gear: ['', 'band', 'feather', 'cap', 'cap', 'antenna'] },
   { id: 'baseball', name: '야구 선수', era: 3, until: 5, at: 'plaza', tool: 'ball', top: '#f4f6f8', gear: 'cap' },
   { id: 'circus', name: '서커스 단원', era: 3, at: 'plaza', tool: 'sparkle', top: '#e0475f', gear: 'band' },
   { id: 'lawyer', name: '변호사', era: 3, until: 5, at: 'bench', tool: 'laptop', top: '#3a3f4a', gear: 'tie' },
   { id: 'inventor', name: '발명가', era: 3, at: 'store', tool: 'wrench', top: '#8a6a4a', gear: 'goggles' },
   { id: 'soccer', name: '축구 선수', era: 3, until: 5, at: 'plaza', tool: 'ball', top: '#2a8a4a', gear: 'number' },
   { id: 'basketball', name: '농구 선수', era: 3, until: 5, at: 'plaza', tool: 'ball', top: '#e8892a', gear: 'band' },
+  { id: 'photographer', name: ['', '', '', '사진사', '사진작가'], era: 3, until: 4, at: 'plaza', tool: 'sparkle', top: '#4a4a52', gear: 'beret' },
+  { id: 'detective', name: '탐정', era: 3, until: 4, at: 'patrol', tool: 'mail', top: '#8a7a5a', gear: 'beret' },
+  { id: 'reporter', name: ['', '', '', '신문 기자', '방송 기자', '홀로 리포터'], era: 3, until: 5, at: 'plaza', tool: ['', '', '', 'mail', 'mic', 'phone'],
+    top: ['', '', '', '#6a5a4a', '#3a5a8a', '#5ad7e8'], gear: ['', '', '', 'cap', 'tie', 'antenna'] },
+  { id: 'driver', name: ['', '전차 마부', '마부', '기관사', '버스 기사', '자율주행 관제사'], era: 1, until: 5, at: ['', 'patrol', 'patrol', 'patrol', 'patrol', 'bench'], tool: ['', 'staff', 'staff', 'whistle', 'whistle', 'laptop'],
+    top: ['', '#a8743a', '#6a5a3a', '#2a2a33', '#3a6a5a', '#e8eef4'], gear: ['', 'helm', 'straw', 'cap', 'cap', 'headset'] },
+  // Modern
   { id: 'office', name: '회사원', era: 4, at: 'bench', tool: 'laptop', top: '#3a3f4a', gear: 'tie' },
-  { id: 'nurse', name: '간호사', era: 4, at: 'hospital', tool: 'heart', top: '#f4f6f8', gear: 'nurse' },
   { id: 'star', name: '가수', era: 4, at: 'plaza', tool: 'mic', top: '#e07aa0', gear: 'shades' },
   { id: 'volleyball', name: '배구 선수', era: 4, until: 5, at: 'plaza', tool: 'ball', top: '#3a7ad0', gear: 'band' },
-  { id: 'doctor', name: '의사', era: 4, until: 5, at: 'hospital', tool: 'heart', top: '#ffffff', gear: 'mirror' },
-  { id: 'chef', name: '요리사', era: 4, until: 5, at: 'stall', tool: 'bread', top: '#ffffff', gear: 'chef' },
-  { id: 'firefighter', name: '소방관', era: 4, at: 'patrol', tool: 'whistle', top: '#d8503a', gear: 'fire' },
   { id: 'programmer', name: '프로그래머', era: 4, until: 5, at: 'bench', tool: 'laptop', top: '#3a3a5a', gear: 'headset' },
+  { id: 'pilot', name: ['', '', '', '', '비행기 조종사', '우주선 조종사'], era: 4, until: 5, at: 'rocket', tool: 'sparkle', top: ['', '', '', '', '#2a3a6a', '#f2f4f6'], gear: ['', '', '', '', 'cap', 'space'] },
+  { id: 'webtoon', name: '웹툰 작가', era: 4, until: 5, at: 'bench', tool: 'laptop', top: '#f2a65a', gear: 'headset' },
+  { id: 'barista', name: '바리스타', era: 4, at: 'stall', tool: 'bread', top: '#5a3a2a', gear: 'apron' },
+  { id: 'vet', name: ['', '', '', '', '수의사', '로봇 수의사'], era: 4, until: 5, at: 'hospital', tool: 'heart', top: ['', '', '', '', '#8ad0a0', '#e8eef4'], gear: ['', '', '', '', 'mirror', 'antenna'] },
+  { id: 'attendant', name: ['', '', '', '', '승무원', '우주선 승무원'], era: 4, until: 5, at: 'rocket', tool: 'heart', top: ['', '', '', '', '#2a3a6a', '#f2f4f6'], gear: ['', '', '', '', 'cap', 'space'] },
+  { id: 'zookeeper', name: '사육사', era: 4, at: 'woods', tool: 'heart', top: '#6b7a3a', gear: 'cap' },
+  // Future
   { id: 'robotics', name: '로봇 공학자', era: 5, at: 'factory', tool: 'wrench', top: '#d7e3ee', gear: 'goggles' },
   { id: 'astronaut', name: '우주비행사', era: 5, at: 'rocket', tool: 'sparkle', top: '#f2f4f6', gear: 'space' },
-  { id: 'gamer', name: '프로게이머', era: 5, at: 'bench', tool: 'laptop', top: '#3a2a5a', gear: 'headset' },
-  { id: 'creator', name: '크리에이터', era: 5, at: 'plaza', tool: 'phone', top: '#f2a65a', gear: 'cap' },
+  { id: 'gamer', name: '프로게이머', era: 4, until: 5, at: 'bench', tool: 'laptop', top: '#3a2a5a', gear: 'headset' },
+  { id: 'creator', name: ['', '', '', '', '유튜버', '크리에이터'], era: 4, until: 5, at: 'plaza', tool: 'phone', top: '#f2a65a', gear: 'cap' },
   { id: 'holoidol', name: '홀로 아이돌', era: 5, at: 'plaza', tool: 'mic', top: '#9a7aff', gear: 'shades' },
   { id: 'zerog', name: '무중력 구기 선수', era: 5, at: 'plaza', tool: 'ball', top: '#5ad7e8', gear: 'space' },
-];
+  { id: 'aitrainer', name: 'AI 조련사', era: 5, at: 'bench', tool: 'laptop', top: '#5a6aa0', gear: 'antenna' },
+  { id: 'terraformer', name: '테라포밍 기술자', era: 5, at: 'farm', tool: 'hoe', top: '#c86a3a', gear: 'space' },
+  { id: 'vrdesigner', name: '가상 세계 설계자', era: 5, at: 'bench', tool: 'laptop', top: '#2a2a4a', gear: 'goggles' },
+  { id: 'mecha', name: '메카 조종사', era: 5, at: 'plaza', tool: 'sparkle', top: '#d8503a', gear: 'helm' },
+  { id: 'robopet', name: '로봇 펫 정비사', era: 5, at: 'store', tool: 'wrench', top: '#8ad0a0', gear: 'goggles' },
+].map(jobLine);
 const jobUntil = (j) => j.until ?? Math.min(5, j.era + 1);
 
 /** The jobs a villager can have now: those of the two latest eras reached. */
@@ -187,6 +257,12 @@ function drawGear(g, j, x, y, side, flip) {
     case 'fire':
       P(['...oooooo...', '..orrrrrro..', '.orryyrrrro.', 'oooooooooooo'], { r: '#d8503a', y: '#ffd23f' }, -2);
       break;
+    case 'beret':
+      P(['....oooooo..', '...obbbbbbo.', '..obbbbbbbbo', '...o.....oo.'], { b: j.id === 'detective' ? '#6a5a3a' : '#c0402e' }, -1);
+      break;
+    case 'antenna':
+      P(['.....y......', '.....o......', '..oooooooo..', '..osssssso..'], { y: '#ff6a6a', s: '#c8d4e0' }, -4);
+      break;
     case 'number':
       if (side === 'u') P(['.....ww.....', '.....w......', '.....ww.....'], { w: '#ffffff' }, 11);
       break;
@@ -282,12 +358,21 @@ const JOB_FIT = {
   miner: ['health', 'luck'], worker: ['green', 'health'], mail: ['health', 'trade'], police: ['health', 'charm'],
   office: ['trade', 'green'], nurse: ['charm', 'health'], soccer: ['health', 'luck'], star: ['charm', 'luck'],
   robotics: ['green', 'trade'], astronaut: ['health', 'luck'], gamer: ['luck', 'green'], creator: ['charm', 'trade'],
-  storyteller: ['charm', 'luck'], wrestler: ['health', 'charm'], herbalist: ['green', 'luck'], actor: ['charm', 'luck'],
+  storyteller: ['charm', 'luck'], wrestler: ['health', 'charm'], actor: ['charm', 'luck'],
   judge: ['trade', 'charm'], scribe: ['trade', 'green'], gladiator: ['health', 'charm'], servant: ['green', 'health'],
   jester: ['charm', 'luck'], samurai: ['health', 'luck'], baseball: ['health', 'luck'], circus: ['health', 'charm'],
   lawyer: ['trade', 'charm'], inventor: ['trade', 'luck'], basketball: ['health', 'luck'], volleyball: ['health', 'charm'],
   doctor: ['green', 'trade'], chef: ['green', 'charm'], firefighter: ['health', 'charm'], programmer: ['trade', 'luck'],
   holoidol: ['charm', 'luck'], zerog: ['health', 'luck'],
+  firekeeper: ['luck', 'health'], potter: ['green', 'trade'], herder: ['green', 'charm'], teacher: ['charm', 'trade'],
+  builder: ['health', 'green'], painter: ['charm', 'green'], soldier: ['health', 'luck'], tailor: ['charm', 'green'],
+  astronomer: ['luck', 'trade'], falconer: ['luck', 'green'], alchemist: ['trade', 'luck'], innkeeper: ['trade', 'charm'],
+  photographer: ['luck', 'charm'], detective: ['luck', 'trade'], reporter: ['charm', 'trade'], driver: ['health', 'trade'],
+  pilot: ['luck', 'health'], webtoon: ['charm', 'green'], barista: ['charm', 'trade'], aitrainer: ['trade', 'luck'],
+  dancer: ['charm', 'health'], toolmaker: ['green', 'health'], sailor: ['health', 'luck'], priest: ['charm', 'luck'],
+  musician: ['charm', 'luck'], barber: ['charm', 'green'], banker: ['trade', 'luck'], vet: ['green', 'charm'],
+  attendant: ['charm', 'health'], zookeeper: ['green', 'charm'],
+  terraformer: ['green', 'health'], vrdesigner: ['green', 'trade'], mecha: ['health', 'luck'], robopet: ['green', 'charm'],
 };
 // Read when used: TRAITS lives in game.js, which loads after this file.
 const traitName = (k) => Object.fromEntries(TRAITS)[k];
