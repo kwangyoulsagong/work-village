@@ -249,6 +249,7 @@ function liveADay() {
   if (S.spouse != null) marriageDay();
   else if (S.myLover != null) loveDay();
   familyMoment();
+  govDay(); // who rules, this week's decision, elections (politics.js)
   guestDay(); // an invitation from a close neighbour now and then (guest.js)
   familyDay(); // birthdays, anniversaries, first words, a child's wish (family.js)
   const h = trait('health');
@@ -284,7 +285,7 @@ function familyMoment() {
 
 /** Now and then something goes missing: coins, a hen, the ripe crops. Bigger towns tempt more; luck helps. */
 function crime() {
-  const chance = (0.04 + S.houses * 0.002 - trait('luck') * 0.006 - (has('temple') ? 0.02 : 0)) * (has('castle') ? 0.5 : 1) * tellerMul() * weekGuard();
+  const chance = (0.04 + S.houses * 0.002 - trait('luck') * 0.006 - (has('temple') ? 0.02 : 0)) * (has('castle') ? 0.5 : 1) * tellerMul() * weekGuard() * govMul('crime');
   if (Math.random() >= chance) return;
   const r = Math.random();
   const ripe = S.plots.filter((p) => p.planted && p.g >= GROW);
@@ -311,7 +312,7 @@ let thief = null;
 /** Now and then a neighbouring land attacks. Won: a scare. Lost: houses fall, families flee, the town rebuilds. */
 function war() {
   if (S.era < 1 || S.houses < 3) return;
-  const chance = (0.015 + S.houses * 0.0008) * (has('castle') ? 0.5 : 1) * tellerMul() * weekGuard();
+  const chance = (0.015 + S.houses * 0.0008) * (has('castle') ? 0.5 : 1) * tellerMul() * weekGuard() * govMul('war');
   if (Math.random() >= chance) return;
   S.wars++;
   const enemy = S.era === 5 ? '로봇 군단' : ['', '이웃 부족', '기사단', '외국 군대', '외국 군대'][S.era];
@@ -340,7 +341,7 @@ const occupied = () => S.houses - S.vacant;
 function epidemic() {
   if (S.houses < 3) return;
   const care = has('hospital') ? 0.5 : 1;
-  if (Math.random() >= (0.012 + S.houses * 0.0005) * care * tellerMul()) return;
+  if (Math.random() >= (0.012 + S.houses * 0.0005) * care * tellerMul() * govMul('plague')) return;
   const name = S.era === 5 ? '신종 바이러스' : '역병';
   const left = Math.max(1, Math.round(occupied() * (0.15 + Math.random() * 0.15) * care));
   const before = occupied();
@@ -1742,6 +1743,7 @@ function frame() {
   drawFamilyOver(ctx);
   drawNpcCalls(ctx);
   drawPokes(ctx);
+  drawGov(ctx);
   drawJuice(ctx);
   drawPops(ctx, frameK);
   drawMeMarker(ctx);
@@ -1893,6 +1895,7 @@ function tick() {
   moved = familyTick() || moved;
   moved = guestTick() || moved;
   moved = pokeTick() || moved;
+  moved = govTick() || moved;
   if (me.sulk > 0) me.sulk--;
   for (const s of sites) s.left--;
   if (sites.length && sites[0].left <= 0) sites.shift();
@@ -2144,6 +2147,7 @@ function paintUi() {
   paintWeek();
   paintHome();
   paintGuest();
+  paintGov();
   paintAlbum();
   $('dexCount').textContent = `도감 ${S.dex.length + (S.variants?.length ?? 0)}/${DEX_TOTAL + VARIANT_TOTAL}`;
   const rare = (S.variants ?? []).map((k) => {
@@ -2379,6 +2383,7 @@ async function start() {
   wireFamily();
   wireGuest();
   wireCozy();
+  wireGov();
   wireStealth();
   wireBuild();
   wireFun();

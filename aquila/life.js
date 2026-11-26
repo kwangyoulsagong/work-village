@@ -170,7 +170,7 @@ function townPay() {
   const n = S.houses - S.vacant;
   for (let i = 0; i < n; i++) if (i !== S.spouse) s += jobPay(jobFor(i), villagerTraits(i));
   for (let k = 0; k < (S.folk ?? 0); k++) s += jobPay(jobFor(100 + k), villagerTraits(100 + k));
-  return s * 0.03;
+  return s * 0.03 * govTax(); // a tax rise lasts a week (politics.js)
 }
 const pct = (v) => `${Math.round(v * 100)}%`;
 

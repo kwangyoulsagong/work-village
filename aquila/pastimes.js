@@ -119,7 +119,7 @@ function drawJoust(g) {
 
 // ── The industrial era: rush hour, and now and then a strike ──────────────────────────────────────────────────────
 
-const strikeToday = () => S.strike === S.days && S.era === 3;
+const strikeToday = () => S.strike === S.days && S.era === 3 && !govNoStrike(); // higher wages: no strike (politics.js)
 function strikeDay() {
   if (S.era !== 3 || !has('factory')) return;
   if (S.strike === S.days - 1) story('🤝 협상이 끝났어요. 노동자들이 다시 공장으로 돌아가요.');
