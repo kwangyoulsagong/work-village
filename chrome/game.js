@@ -447,8 +447,9 @@ function story(text) {
 
 let saveTimer = 0;
 let wiping = false; // starting over: nothing may be written any more
+let loadFailed = false; // the save couldn't be read: never write a fresh town over it
 function save() {
-  if (MODE !== 'life' || wiping) return; // a sandbox or a friend's town is never saved; the life town is safe
+  if (MODE !== 'life' || wiping || loadFailed) return; // a sandbox or a friend's town is never saved; the life town is safe
   clearTimeout(saveTimer);
   // The life town as it is now: if a visit or chaos swaps S in the meantime, it's still this one that's written.
   const town = S;
@@ -489,7 +490,7 @@ function standAside() {
   document.body.append(cover);
 }
 const writeTown = async (town) => {
-  if (!wiping && (await leading())) await aquila.storage.set('save', town).catch(() => {});
+  if (!wiping && !loadFailed && (await leading())) await aquila.storage.set('save', town).catch(() => {});
 };
 
 // ── Economy: usage → coins, growth, animals' produce, babies ──────────────────────────────────────────────────────
@@ -2311,14 +2312,24 @@ async function start() {
         ? '이 컴퓨터의 Claude·Codex 사용량만큼 마을이 자라요. 주간 사용량 1%가 코인 10이에요.'
         : '브라우저를 켜 둔 1시간마다 코인 10. Claude·Codex 도우미를 설치하면 사용량으로 자라요.';
   }
-  try {
-    const saved = await aquila.storage.get('save');
-    if (saved && saved.v === 2) S = { ...fresh(), ...saved };
-    if (saved && !('sea' in saved)) S.sea = null; // a town from before the sea keeps its map
-    ensurePlots();
-  } catch {
-    /* first run */
+  // Lead first, then read: an older copy stops before we take its save, so nothing it writes after is lost.
+  await aquila.storage.set('lead', COPY).catch(() => {});
+  // Only an empty answer is a first run; a failed read (tried twice) must not start a fresh town over the real one.
+  let saved = null;
+  for (let tries = 0; tries < 2; tries++) {
+    try {
+      saved = await aquila.storage.get('save');
+      loadFailed = false;
+      break;
+    } catch {
+      loadFailed = true;
+      await new Promise((r) => setTimeout(r, 400));
+    }
   }
+  if (saved && saved.v === 2) S = { ...fresh(), ...saved };
+  if (saved && !('sea' in saved)) S.sea = null; // a town from before the sea keeps its map
+  ensurePlots();
+  if (loadFailed) toast('마을을 불러오지 못했어요. 패널을 닫았다 다시 열어 주세요', 6000);
   tickDay();
   checkSeason();
   checkWeather();

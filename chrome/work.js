@@ -204,6 +204,16 @@ function watchWork(e, name, traits) {
   workStay = { id: j.id, name: `${name} · ${j.name}`, who: name, kind, out, t: WORK_N, n: WORK_N, tapped: false, watch: { look: e.look, job: j, gender: e.gender, who: e.who } };
   lifeCam = null;
 }
+/** Off to chaos or a friend's town: whatever you were in the middle of in your own town (work, a call, a pastime,
+ * a boat trip) ends, so nothing brings you back on their map. */
+function dropLifeStays() {
+  workStay = null;
+  guestStay = null;
+  wantCall = null;
+  homeStay = null;
+  houseView = false;
+  seaTrip = 0;
+}
 /** Taps on the scene go to the scene, not to the town underneath. */
 function wireWork() {
   canvas.addEventListener(

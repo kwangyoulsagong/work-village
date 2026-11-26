@@ -17,7 +17,7 @@ async function loadAlbum() {
 }
 /** A photo of what's on screen now, small (240 × 192 WebP), with a caption. */
 function snapshot(caption) {
-  if (MODE !== 'life' || typeof document === 'undefined') return;
+  if (MODE !== 'life' || typeof document === 'undefined' || follower) return; // a copy that stood aside keeps its old album: never write it
   try {
     if (cache.dirty) paintCache();
     frame();

@@ -54,6 +54,7 @@ function enterChaos(era) {
   VISIT = null; // a new sandbox is your own
   endTalk();
   endLive(); // a live friend was in your life town
+  dropLifeStays(); // work.js
   guests = [];
   MODE = 'chaos';
   S = sandboxFor(era);
