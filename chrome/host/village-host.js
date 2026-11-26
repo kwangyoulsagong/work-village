@@ -91,17 +91,27 @@ function codexUsage() {
   };
   const root = path.join(home, 'sessions');
   const files = [];
-  for (const y of dirs(root))
+  // Newest day folders first; stop as soon as there are enough (not one more folder per month).
+  walk: for (const y of dirs(root))
     for (const m of dirs(path.join(root, y)))
       for (const d of dirs(path.join(root, y, m))) {
         const dir = path.join(root, y, m, d);
         try {
           for (const f of fs.readdirSync(dir)) if (f.endsWith('.jsonl')) files.push(path.join(dir, f));
         } catch {}
-        if (files.length >= 5) break;
+        if (files.length >= 5) break walk;
       }
-  files.sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
-  for (const file of files.slice(0, 5)) {
+  const mtime = (f) => {
+    try {
+      return fs.statSync(f).mtimeMs; // Codex may rotate a file away mid-scan
+    } catch {
+      return 0;
+    }
+  };
+  const stamped = files.map((f) => [f, mtime(f)]).filter(([, t]) => t > 0).sort((a, b) => b[1] - a[1]);
+  // Older than a week: that window is long over, so it's not live usage any more.
+  if (!stamped.length || Date.now() - stamped[0][1] > 7 * 24 * 60 * 60_000) return null;
+  for (const [file] of stamped.slice(0, 5)) {
     let text;
     try {
       const size = fs.statSync(file).size;

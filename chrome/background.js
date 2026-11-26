@@ -49,7 +49,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
   void (async () => {
     // Already answering? Then the regular polls are enough: no extra `claude -p /usage` on every panel open.
     const { live } = await chrome.storage.local.get('live');
-    if (!live?.host) await poll(false);
+    if (!live?.host) await poll(true); // just installed: Claude too, so the panel switches over now
     reply({ host: !!(await chrome.storage.local.get('live')).live?.host });
   })();
   return true; // answering later
@@ -62,7 +62,7 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== 'minute') return;
   const now = new Date();
   const m = now.getHours() * 60 + now.getMinutes();
-  if (m % 3 === 0) await poll(m % 10 === 0);
+  if (m % 3 === 0 || m % 10 === 0) await poll(m % 10 === 0); // Codex every 3 minutes, Claude every 10
   if ((await chrome.idle.queryState(600)) === 'locked') return;
   const { live, minutes = 0, source } = await chrome.storage.local.get(['live', 'minutes', 'source']);
   if (source !== 'browser' && hasLive(live, Date.now())) return;
